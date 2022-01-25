@@ -1,0 +1,30 @@
+[package]
+name = "rotz"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Paul Volavsek <paul.volavsek@gmail.com>" ]
+license = "MIT"
+description = "Fully cross platform dotfile manager written in rust."
+repository = "https://github.com/volllly/rotz"
+readme = "./README.md"
+documentation = "https://docs.rs/rotz/"
+keywords = ["dotfiles", "dotfile", "manager", "dotfile-manager", "cross-platform"]
+
+[features]
+
+default = [ "yaml" ]
+toml = [ "serde_toml", "figment/toml" ]
+yaml = [ "serde_yaml", "figment/yaml" ]
+
+[dependencies]
+clap = { version = "3.0.12", features = [ "derive" ] }
+miette = "3.3.0"
+serde_yaml = { version = "0.8.23", optional = true }
+serde_toml = { package = "toml", version = "0.5.8", optional = true }
+figment = { version = "0.10.6", default-features = false, features = [ "env" ] }
+directories = "4.0.1"
+once_cell = "1.9.0"
+derive_more = "0.99.17"
+serde = { version = "1.0.135", features = ["derive"] }
+crossterm = "0.22.1"
+junction = "0.2.0"

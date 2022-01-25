@@ -1,0 +1,10 @@
+tab_spaces = 2
+max_width = 200
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+
+format_code_in_doc_comments = true
+normalize_comments = true
+normalize_doc_attributes = true
+
+edition = "2021"
