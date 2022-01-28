@@ -1,4 +1,4 @@
-# rotz 👃
+# Rotz 👃
 [![crates.io](https://img.shields.io/crates/v/rotz)](https://crates.io/crates/rotz)
 [![docs.rs](https://docs.rs/rotz/badge.svg)](https://docs.rs/rotz/)
 
@@ -13,7 +13,7 @@ Fully cross platform dotfile manager and dev environment bootstrapper written in
 > `Rot s`<br>
 > `Rotz`
 
-rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
+Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
 
 ## Status
  This project is still in development.
@@ -22,4 +22,4 @@ rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
 
  Expect documentation, and more features in the first release which should be ready in a few weeks.
 
-## [roadmap](https://github.com/users/volllly/projects/1/views/1)
+## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
