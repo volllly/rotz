@@ -61,7 +61,7 @@ pub enum Command {
 
     #[clap(long, short)]
     /// Force link creation if file already exists
-    force: bool
+    force: bool,
   },
 
   /// Syncs dotfiles with the git repository
@@ -87,7 +87,12 @@ impl Provider for Cli {
       dict.insert("repo".to_string(), Value::serialize(repo).unwrap());
     }
 
-    if let Command::Link { link_type: Some(link_type), dots: _, force: _ } = &self.command {
+    if let Command::Link {
+      link_type: Some(link_type),
+      dots: _,
+      force: _,
+    } = &self.command
+    {
       dict.insert("link_type".to_string(), Value::serialize(link_type).unwrap());
     }
 

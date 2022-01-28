@@ -66,15 +66,17 @@ fn create_link<T: AsRef<Path>>(from: T, to: T, link_type: &LinkType, force: bool
         match err.kind() {
           std::io::ErrorKind::AlreadyExists => {
             if to.as_ref().is_dir() {
-            fs::remove_dir_all(&to).unwrap();
+              fs::remove_dir_all(&to).unwrap();
             } else {
-            fs::remove_file(&to).unwrap();
+              fs::remove_file(&to).unwrap();
             }
             create(&from, &to)
           }
           _ => Err(err),
         }
-      } else { Err(err) }
+      } else {
+        Err(err)
+      }
     }
   }
   .unwrap()

@@ -241,27 +241,35 @@ impl Merge<&Dot> for Dot {
     if let Some(links) = &merge.links {
       if let Some(l) = &mut self.links {
         l.extend(links.clone())
-      } else { self.links = Some(links.to_owned()) }
+      } else {
+        self.links = Some(links.to_owned())
+      }
     }
 
     if let Some(installs) = &merge.installs {
       if let Some(i) = &mut self.installs {
         i.cmd = installs.cmd.clone();
         i.depends.extend(installs.depends.clone());
-      } else { self.installs = Some(installs.to_owned()) }
+      } else {
+        self.installs = Some(installs.to_owned())
+      }
     }
 
     if let Some(updates) = &merge.updates {
       if let Some(u) = &mut self.updates {
         u.cmd = updates.cmd.clone();
         u.depends.extend(updates.depends.clone());
-      } else { self.updates = Some(updates.to_owned()) }
+      } else {
+        self.updates = Some(updates.to_owned())
+      }
     }
 
     if let Some(depends) = &merge.depends {
       if let Some(d) = &mut self.depends {
         d.extend(depends.clone())
-      } else { self.depends = Some(depends.to_owned()) }
+      } else {
+        self.depends = Some(depends.to_owned())
+      }
     }
 
     self
