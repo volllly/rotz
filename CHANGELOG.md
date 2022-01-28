@@ -6,4 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+# Added
+
+- Cli parsing
+- Config parsing
+- Dotfile linking
+
 [Unreleased]: https://github.com/volllly/rotz
