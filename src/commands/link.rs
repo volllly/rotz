@@ -5,7 +5,6 @@ use std::{
 
 use color_eyre::eyre::{Result, WrapErr};
 use crossterm::style::{Attribute, Stylize};
-use directories::UserDirs;
 use itertools::Itertools;
 use somok::Somok;
 
