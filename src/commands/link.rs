@@ -12,7 +12,7 @@ use somok::Somok;
 use crate::{
   config::{Config, LinkType},
   dot::{Dot, Merge},
-  FILE_EXTENSION,
+  FILE_EXTENSION, USER_DIRS,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -98,7 +98,7 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
         if to.starts_with("~/") {
           let mut iter = to.iter();
           iter.next();
-          to = UserDirs::new().unwrap().home_dir().iter().chain(iter).collect()
+          to = USER_DIRS.home_dir().iter().chain(iter).collect()
         }
 
         if let Err(err) = create_link(from, to, &link_type, force) {
@@ -121,11 +121,7 @@ fn create_link<T: AsRef<Path>>(from: T, to: T, link_type: &LinkType, force: bool
       if force {
         match err.kind() {
           std::io::ErrorKind::AlreadyExists => {
-            if to.as_ref().is_dir() {
-              fs::remove_dir_all(&to).unwrap();
-            } else {
-              fs::remove_file(&to).unwrap();
-            }
+            if to.as_ref().is_dir() { fs::remove_dir_all(&to) } else { fs::remove_file(&to) }.map_err(|e| Error::Symlink(from.as_ref().to_path_buf(), to.as_ref().to_path_buf(), e))?;
             create(&from, &to)
           }
           _ => err.error(),

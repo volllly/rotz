@@ -70,7 +70,7 @@ fn main() -> Result<()> {
   if config.dotfiles.starts_with("~/") {
     let mut iter = config.dotfiles.iter();
     iter.next();
-    config.dotfiles = UserDirs::new().unwrap().home_dir().iter().chain(iter).collect()
+    config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect()
   }
 
   match cli.command {
