@@ -39,7 +39,10 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
     },
   };
   let wildcard = dots.contains(&"*".to_string());
-  let paths = fs::read_dir(&dotfiles).wrap_err("Could not read dotfiles directory")?.map_ok(|d| d.path()).filter_ok(|p| p.is_dir());
+  let paths = fs::read_dir(&dotfiles)
+    .wrap_err(format!("Could not read dotfiles directory {}", dotfiles.display()))?
+    .map_ok(|d| d.path())
+    .filter_ok(|p| p.is_dir());
 
   let dotsfile = crate::helpers::join_err_result(paths.collect())?
     .into_iter()
@@ -77,9 +80,14 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
     .map_ok(|d| (d.0, if let Some(global) = &global { global.clone().merge(&d.1) } else { d.1 }))
     .filter_map_ok(|d| d.1.links.map(|l| (d.0, l)));
 
-  let mut errors = Vec::<Error>::new();
+  let links = crate::helpers::join_err_result(links.collect())?;
+  if links.is_empty() {
+    println!("Warning: {}", "No dots found".yellow());
+    return ().okay();
+  }
 
-  for (name, link) in crate::helpers::join_err_result(links.collect())?.into_iter() {
+  let mut errors = Vec::<Error>::new();
+  for (name, link) in links.into_iter() {
     println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
 
     let base_path = dotfiles.join(name);

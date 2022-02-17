@@ -65,7 +65,13 @@ fn main() -> Result<()> {
     config = config.merge(config_file);
   }
 
-  let config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().context("Cloud not parse config")?;
+  let mut config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().context("Cloud not parse config")?;
+
+  if config.dotfiles.starts_with("~/") {
+    let mut iter = config.dotfiles.iter();
+    iter.next();
+    config.dotfiles = UserDirs::new().unwrap().home_dir().iter().chain(iter).collect()
+  }
 
   match cli.command {
     Command::Link { dots, link_type: _, force } => commands::link::execute(config, force, dots.dots),
