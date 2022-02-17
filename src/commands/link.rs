@@ -4,6 +4,7 @@ use std::{
 };
 
 use color_eyre::eyre::{Result, WrapErr};
+use crossterm::style::{Attribute, Stylize};
 use directories::UserDirs;
 use itertools::Itertools;
 use somok::Somok;
@@ -79,12 +80,12 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
   let mut errors = Vec::<Error>::new();
 
   for (name, link) in crate::helpers::join_err_result(links.collect())?.into_iter() {
-    println!("Linking {name}");
+    println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
 
     let base_path = dotfiles.join(name);
     for (from, tos) in link {
       for mut to in tos {
-        println!("  {} -> {}", from.display(), to.display());
+        println!("  {} -> {}", from.display().to_string().green(), to.display().to_string().green());
         let from = base_path.join(&from);
         if to.starts_with("~/") {
           let mut iter = to.iter();
