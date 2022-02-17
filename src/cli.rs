@@ -7,6 +7,7 @@ use figment::{
   value::{Dict, Map, Value},
   Error, Metadata, Profile, Provider,
 };
+use somok::Somok;
 
 use crate::{config::LinkType, FILE_EXTENSION, PROJECT_DIRS};
 
@@ -80,11 +81,11 @@ impl Provider for Cli {
     let mut dict = Dict::new();
 
     if let Some(dotfiles) = &self.dotfiles {
-      dict.insert("dotfiles".to_string(), Value::serialize(dotfiles.to_string()).unwrap());
+      dict.insert("dotfiles".to_string(), Value::serialize(dotfiles.to_string())?);
     }
 
     if let Command::Clone { repo: Some(repo) } = &self.command {
-      dict.insert("repo".to_string(), Value::serialize(repo).unwrap());
+      dict.insert("repo".to_string(), Value::serialize(repo)?);
     }
 
     if let Command::Link {
@@ -93,15 +94,12 @@ impl Provider for Cli {
       force: _,
     } = &self.command
     {
-      dict.insert("link_type".to_string(), Value::serialize(link_type).unwrap());
+      dict.insert("link_type".to_string(), Value::serialize(link_type)?);
     }
 
-    Ok(map! {
+    map! {
       Profile::Global => dict
-    })
+    }
+    .okay()
   }
 }
-
-// dotfiles: cli.dotfiles.map(|d| d.into()),
-// repo: if let Command::Clone { repo } = &cli.command { repo.clone() } else { None },
-// link_type: if let Command::Link { link_type, dots: _ } = &cli.command { Some(link_type.clone()) } else { None },

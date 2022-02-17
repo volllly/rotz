@@ -1,6 +1,12 @@
-use std::{fs, path::Path};
+use std::{
+  fs,
+  path::{Path, PathBuf},
+};
 
+use color_eyre::eyre::{Result, WrapErr};
 use directories::UserDirs;
+use itertools::Itertools;
+use somok::Somok;
 
 use crate::{
   config::{Config, LinkType},
@@ -8,34 +14,71 @@ use crate::{
   FILE_EXTENSION,
 };
 
-pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dots: Vec<String>) {
+#[derive(thiserror::Error, Debug)]
+enum Error {
+  #[error("{0}")]
+  Path(String),
+  #[cfg(feature = "yaml")]
+  #[error(transparent)]
+  Parse(#[from] serde_yaml::Error),
+  #[error("Io Error on file {0}")]
+  Io(PathBuf, #[source] std::io::Error),
+  #[error("Could not create link from {0} to {1}")]
+  Symlink(PathBuf, PathBuf, #[source] std::io::Error),
+}
+
+pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dots: Vec<String>) -> Result<()> {
   let dotfiles = dotfiles;
 
   let global = match fs::read_to_string(dotfiles.join(format!("dots.{FILE_EXTENSION}"))) {
-    Ok(text) => Some(text.parse::<Dot>().unwrap()),
+    Ok(text) => text.parse::<Dot>()?.some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => panic!("{}", err),
     },
   };
   let wildcard = dots.contains(&"*".to_string());
-  let links = fs::read_dir(&dotfiles)
-    .unwrap()
-    .map(|d| d.unwrap().path())
-    .filter(|p| p.is_dir())
-    .filter(|p| wildcard || dots.contains(&p.file_name().unwrap().to_str().unwrap().to_string()))
-    .map(|p| (p.file_name().unwrap().to_str().unwrap().to_string(), fs::read_to_string(p.join(format!("dot.{FILE_EXTENSION}")))))
-    .filter_map(|f| match f.1 {
-      Ok(text) => Some((f.0, text.parse::<Dot>().unwrap())),
-      Err(err) => match err.kind() {
-        std::io::ErrorKind::NotFound => None,
-        _ => panic!("{}", err),
-      },
-    })
-    .map(|d| (d.0, if let Some(global) = &global { global.clone().merge(&d.1) } else { d.1 }))
-    .filter_map(|d| d.1.links.map(|l| (d.0, l)));
+  let paths = fs::read_dir(&dotfiles).wrap_err("Could not read dotfiles directory")?.map_ok(|d| d.path()).filter_ok(|p| p.is_dir());
 
-  for (name, link) in links {
+  let dotsfile = crate::helpers::join_err_result(paths.collect())?
+    .into_iter()
+    .map(|p| {
+      let name = p
+        .file_name()
+        .ok_or_else(|| Error::Path("Could not find dot directory".to_string()))?
+        .to_str()
+        .ok_or_else(|| Error::Path("Could not parse dot directory".to_string()))?
+        .to_string();
+      Ok::<(String, PathBuf), Error>((name, p))
+    })
+    .filter_ok(|p| wildcard || dots.contains(&p.0))
+    .map_ok(|p| {
+      (
+        p.0,
+        fs::read_to_string(p.1.join(format!("dot.{FILE_EXTENSION}"))).map_err(|e| Error::Io(p.1.join(format!("dot.{FILE_EXTENSION}")), e)),
+      )
+    });
+
+  let dots = dotsfile.filter_map(|f| match f {
+    Ok((name, Ok(text))) => match text.parse::<Dot>() {
+      Ok(dot) => (name, dot).okay().some(),
+      Err(err) => Error::Parse(err).error().some(),
+    },
+    Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
+      std::io::ErrorKind::NotFound => None,
+      _ => Error::Io(file, err).error().some(),
+    },
+    Ok((_, Err(err))) => err.error().some(),
+    Err(err) => err.error().some(),
+  });
+
+  let links = dots
+    .map_ok(|d| (d.0, if let Some(global) = &global { global.clone().merge(&d.1) } else { d.1 }))
+    .filter_map_ok(|d| d.1.links.map(|l| (d.0, l)));
+
+  let mut errors = Vec::<Error>::new();
+
+  for (name, link) in crate::helpers::join_err_result(links.collect())?.into_iter() {
     println!("Linking {name}");
 
     let base_path = dotfiles.join(name);
@@ -49,18 +92,22 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
           to = UserDirs::new().unwrap().home_dir().iter().chain(iter).collect()
         }
 
-        create_link(from, to, &link_type, force);
+        if let Err(err) = create_link(from, to, &link_type, force) {
+          errors.push(err)
+        }
       }
     }
     println!();
   }
+
+  crate::helpers::join_err(errors)
 }
 
-fn create_link<T: AsRef<Path>>(from: T, to: T, link_type: &LinkType, force: bool) {
+fn create_link<T: AsRef<Path>>(from: T, to: T, link_type: &LinkType, force: bool) -> std::result::Result<(), Error> {
   let create: fn(&T, &T) -> std::result::Result<(), std::io::Error> = if link_type.is_symbolic() { symlink } else { hardlink };
 
   match create(&from, &to) {
-    Ok(ok) => Ok(ok),
+    Ok(ok) => ok.okay(),
     Err(err) => {
       if force {
         match err.kind() {
@@ -72,14 +119,14 @@ fn create_link<T: AsRef<Path>>(from: T, to: T, link_type: &LinkType, force: bool
             }
             create(&from, &to)
           }
-          _ => Err(err),
+          _ => err.error(),
         }
       } else {
-        Err(err)
+        err.error()
       }
     }
   }
-  .unwrap()
+  .map_err(|e| Error::Symlink(from.as_ref().to_path_buf(), to.as_ref().to_path_buf(), e))
 }
 
 #[cfg(windows)]
@@ -90,21 +137,28 @@ fn symlink<T: AsRef<Path>>(from: &T, to: &T) -> std::io::Result<()> {
   } else {
     fs::symlink_file(from, to)?
   };
-  Ok(())
+  ().okay()
 }
 
 #[cfg(unix)]
 fn symlink<T: AsRef<Path>>(from: &T, to: &T) -> std::io::Result<()> {
   use std::os::unix::fs;
   fs::symlink(from, to)?;
-  Ok(())
+  ().okay()
 }
 
+#[cfg(windows)]
 fn hardlink<T: AsRef<Path>>(from: &T, to: &T) -> std::io::Result<()> {
   if from.as_ref().is_dir() {
     junction::create(from, to)?;
   } else {
     fs::hard_link(from, to)?;
   }
-  Ok(())
+  ().okay()
+}
+
+#[cfg(unix)]
+fn hardlink<T: AsRef<Path>>(from: &T, to: &T) -> std::io::Result<()> {
+  fs::hard_link(from, to)?;
+  ().okay()
 }

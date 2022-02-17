@@ -5,6 +5,7 @@ mod repr {
   };
 
   use serde::Deserialize;
+  use somok::Somok;
 
   #[derive(Deserialize, Debug, Default)]
   struct DotSimplified {
@@ -80,10 +81,10 @@ mod repr {
   #[cfg(feature = "yaml")]
   fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str) -> Result<T, ParseError> {
     match serde_yaml::from_str::<T>(value) {
-      Ok(ok) => Ok(ok),
+      Ok(ok) => ok.okay(),
       Err(err) => match err.location() {
-        Some(_) => Err(err),
-        None => Ok(T::default()),
+        Some(_) => err.error(),
+        None => T::default().okay(),
       },
     }
   }
@@ -107,10 +108,11 @@ mod repr {
       {
         parse_inner::<Dot>(value)
       } else {
-        Ok(Dot {
-          global: Some(parsed.capabilities.into()),
+        Dot {
+          global: parsed.capabilities.boxed().some(),
           ..Default::default()
-        })
+        }
+        .okay()
       }
     }
   }
@@ -122,7 +124,7 @@ mod repr {
   impl Merge<Option<Box<Capabilities>>> for Option<Capabilities> {
     fn merge(self, merge: Option<Box<Capabilities>>) -> Self {
       if let Some(s) = self {
-        Some(if let Some(merge) = merge { s.merge(*merge) } else { s })
+        if let Some(merge) = merge { s.merge(*merge) } else { s }.some()
       } else {
         merge.map(|g| *g)
       }
@@ -225,6 +227,7 @@ use std::{
 };
 
 pub use repr::{Installs, Merge, Updates};
+use somok::Somok;
 
 use self::repr::Capabilities;
 
@@ -242,7 +245,7 @@ impl Merge<&Dot> for Dot {
       if let Some(l) = &mut self.links {
         l.extend(links.clone())
       } else {
-        self.links = Some(links.to_owned())
+        self.links = links.to_owned().some()
       }
     }
 
@@ -251,7 +254,7 @@ impl Merge<&Dot> for Dot {
         i.cmd = installs.cmd.clone();
         i.depends.extend(installs.depends.clone());
       } else {
-        self.installs = Some(installs.to_owned())
+        self.installs = installs.to_owned().some()
       }
     }
 
@@ -260,7 +263,7 @@ impl Merge<&Dot> for Dot {
         u.cmd = updates.cmd.clone();
         u.depends.extend(updates.depends.clone());
       } else {
-        self.updates = Some(updates.to_owned())
+        self.updates = updates.to_owned().some()
       }
     }
 
@@ -268,7 +271,7 @@ impl Merge<&Dot> for Dot {
       if let Some(d) = &mut self.depends {
         d.extend(depends.clone())
       } else {
-        self.depends = Some(depends.to_owned())
+        self.depends = depends.to_owned().some()
       }
     }
 
@@ -310,7 +313,7 @@ impl FromStr for Dot {
       capabilities = capabilities.merge(darwin_windows);
     }
 
-    Ok(if let Some(capabilities) = capabilities {
+    if let Some(capabilities) = capabilities {
       Dot {
         links: capabilities.links.map(|c| match c {
           repr::Links::One { links } => links
@@ -329,6 +332,7 @@ impl FromStr for Dot {
       }
     } else {
       Dot::default()
-    })
+    }
+    .okay()
   }
 }

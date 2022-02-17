@@ -2,8 +2,9 @@ use std::path::PathBuf;
 
 use clap::ArgEnum;
 use derive_more::{Display, IsVariant};
-use directories::UserDirs;
 use serde::{Deserialize, Serialize};
+
+use crate::USER_DIRS;
 
 #[derive(Debug, ArgEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
 pub enum LinkType {
@@ -26,7 +27,7 @@ pub struct Config {
 impl Default for Config {
   fn default() -> Self {
     Self {
-      dotfiles: UserDirs::new().unwrap().home_dir().join(".dotfiles"),
+      dotfiles: USER_DIRS.home_dir().join(".dotfiles"),
       link_type: LinkType::Symbolic,
       repo: None,
     }
