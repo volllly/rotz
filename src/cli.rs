@@ -38,7 +38,7 @@ pub struct Cli {
 
 #[derive(Debug, Args)]
 pub struct Dots {
-  #[clap(default_value = "\"*\"")]
+  #[clap(default_value = "*")]
   /// All dots to link
   pub dots: Vec<String>,
 }
