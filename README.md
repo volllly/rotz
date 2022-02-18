@@ -1,5 +1,7 @@
 # Rotz 👃
 [![crates.io](https://img.shields.io/crates/v/rotz)](https://crates.io/crates/rotz)
+![](https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey)
+[![](https://img.shields.io/crates/l/rotz)](https://github.com/volllly/rotz/blob/main/LICENSE)
 
 Fully cross platform dotfile manager and dev environment bootstrapper written in rust.
 
