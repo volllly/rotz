@@ -20,7 +20,7 @@ This project is still in development.
 
 Linking dotfiles on windows already works but is not very well tested.
 
-Expect documentation, and more features in the first release which should be ready in a few weeks.
+Expect more features in the next release which should be ready in a few weeks.
 
 ## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
 
