@@ -31,7 +31,7 @@ mod dot;
 
 mod commands;
 
-pub static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "volavsek", "rotz").ok_or_else(|| eyre!("Could not get application data directory")).unwrap());
+pub static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or_else(|| eyre!("Could not get application data directory")).unwrap());
 pub static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| UserDirs::new().ok_or_else(|| eyre!("Could not get user directory folder")).unwrap());
 
 #[cfg(feature = "toml")]

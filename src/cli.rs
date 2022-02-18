@@ -69,6 +69,10 @@ pub enum Command {
   Sync {
     #[clap(flatten)]
     dots: Dots,
+
+    #[clap(long, short)]
+    /// The url of the repository passed to the git clone command
+    repo: Option<String>,
   },
 }
 
