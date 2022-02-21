@@ -17,6 +17,7 @@ Fully cross platform dotfile manager and dev environment bootstrapper written in
 Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
 
 ## Status
+
 This project is still in development.
 
 Linking dotfiles on windows already works but is not very well tested.
@@ -59,7 +60,7 @@ Run `rotz --help` to see all commands Rotz has.
 
 ### Getting Started
 
-If you already have a `dotfiles` repo you can clone it with the `rotz clone` command. *`[in development]`*
+If you already have a `dotfiles` repo you can clone it with the `rotz clone` command.
 
 To bootstrap your dev environment use `rotz install`. *`[in development]`*
 
