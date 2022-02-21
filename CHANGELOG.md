@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.0] - 2022-02-21
+
+### Added
+
+- Added `clone` command
+
 ### Fixed
 
 - Fixed `link` command default value for Dots not working
@@ -28,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/volllly/rotz/releases/tag/v0.2.0
 [v0.1.1]: https://github.com/volllly/rotz/releases/tag/v0.1.1
 [v0.1.0]: https://github.com/volllly/rotz/releases/tag/v0.1.0
