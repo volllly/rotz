@@ -28,8 +28,6 @@ enum Error {
 }
 
 pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dots: Vec<String>) -> Result<()> {
-  let dotfiles = dotfiles;
-
   let global = match fs::read_to_string(dotfiles.join(format!("dots.{FILE_EXTENSION}"))) {
     Ok(text) => text.parse::<Dot>()?.some(),
     Err(err) => match err.kind() {

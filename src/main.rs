@@ -75,6 +75,7 @@ fn main() -> Result<()> {
 
   match cli.command {
     Command::Link { dots, link_type: _, force } => commands::link::execute(config, force, dots.dots),
+    Command::Clone { repo: _ } => commands::clone::execute(config),
     _ => todo!(),
   }
 }
