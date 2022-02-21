@@ -41,7 +41,7 @@ You can install rotz using cargo.
 cargo install rotz
 ```
 
-### Other File Formars
+### Other File Formats
 
 Rotz uses [`yaml`](https://yaml.org/) configuration files per default. You can also use [`toml`](https://toml.io/) or [`json`](https://www.json.org/) files instead.
 
