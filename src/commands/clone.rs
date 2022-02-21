@@ -1,12 +1,10 @@
 use std::process::Command;
 
 use color_eyre::eyre::{eyre, Result};
-use crossterm::style::{Stylize};
+use crossterm::style::Stylize;
 use somok::Somok;
 
-use crate::{
-  config::Config,
-};
+use crate::config::Config;
 
 #[derive(thiserror::Error, Debug)]
 enum Error {}
@@ -21,6 +19,6 @@ pub fn execute(Config { dotfiles, link_type: _, repo }: Config) -> Result<()> {
     .output()?;
 
   println!("Cloned {}\n    to {}", repo.unwrap().blue(), dotfiles.display().to_string().green());
-  
+
   ().okay()
 }
