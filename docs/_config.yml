@@ -3,7 +3,7 @@ remote_theme: pmarsceill/just-the-docs
 title: Rotz 👃
 
 aux_links:
-  <img height="32" width="32" src="https://unpkg.com/simple-icons@v6/icons/github.svg" />:
+  <img height="20" width="20" src="https://unpkg.com/simple-icons@v6/icons/github.svg" />:
     - //github.com/volllly/rotz
   <img src="https://img.shields.io/crates/v/rotz">:
     - //crates.io/crates/rotz

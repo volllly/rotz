@@ -8,6 +8,9 @@ parent: Configuration
 
 # `dot.yaml`
 
+1. TOC
+{:toc}
+
 The `dot.yaml` file consists of four optional keys:
 
 | key        | requirement | function                                              |

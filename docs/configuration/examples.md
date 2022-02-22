@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Examples
-nav_order: 4
+nav_order: 5
 permalink: /configuration/examples
 parent: Configuration
 ---
