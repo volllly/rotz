@@ -7,8 +7,9 @@ parent: Configuration
 ---
 
 # `dot.yaml`
+{: .no_toc }
 
-1. TOC
+- TOC
 {:toc}
 
 The `dot.yaml` file consists of four optional keys:
