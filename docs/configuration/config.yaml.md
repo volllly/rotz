@@ -3,6 +3,7 @@ layout: default
 title: config.yaml
 nav_order: 1
 permalink: /configuration/config-yaml
+parent: Configuration
 ---
 
 # `config.yaml`

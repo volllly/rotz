@@ -3,6 +3,7 @@ layout: default
 title: OS Specific Configuration
 nav_order: 4
 permalink: /configuration/os-specific-configuration
+parent: Configuration
 ---
 
 # OS Specific Configuration

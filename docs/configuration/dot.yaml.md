@@ -3,6 +3,7 @@ layout: default
 title: dot.yaml
 nav_order: 2
 permalink: /configuration/dot-yaml
+parent: Configuration
 ---
 
 # `dot.yaml`

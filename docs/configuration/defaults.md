@@ -3,6 +3,7 @@ layout: default
 title: Defaults
 nav_order: 3
 permalink: /configuration/defaults
+parent: Configuration
 ---
 
 # Defaults
