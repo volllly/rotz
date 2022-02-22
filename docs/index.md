@@ -8,15 +8,15 @@ permalink: /
 
 # Fully cross platform dotfile manager and dev environment bootstrapper written in Rust
 
-> `Rust Dotfilemanager`<br>
-> `Rust Dotfile manager`<br>
-> `Rust Dotfile s`<br>
-> `Rust Dot s`<br>
-> `R ust Dots`<br>
-> `R ots`<br>
-> `Rot s`<br>
-> `Rotz`
-{: .mx-auto }
+> ```
+> Rust Dotfilemanager
+> Rust Dotfile manager
+> Rust Dotfile s
+> Rust Dot s
+> R ust Dots
+> R ots
+> Rot s
+> ```
 
 Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
 
