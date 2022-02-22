@@ -3,7 +3,7 @@
 ![](https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey)
 [![](https://img.shields.io/crates/l/rotz)](https://github.com/volllly/rotz/blob/main/LICENSE)
 
-Fully cross platform dotfile manager and dev environment bootstrapper written in rust.
+Fully cross platform dotfile manager and dev environment bootstrapper written in Rust.
 
 > `Rust Dotfilemanager`<br>
 > `Rust Dotfile manager`<br>
@@ -25,6 +25,8 @@ Linking dotfiles on windows already works but is not very well tested.
 Expect more features in the next release which should be ready in a few weeks.
 
 ## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
+
+## [Documentation](https://volllly.github.io/rotz/) *`[in development]`*
 
 ## Overview
 
@@ -54,11 +56,7 @@ To use another format install Rotz using one of the following comands:
   cargo install rotz --no-default-features --features json
   ```
 
-## Usage
-
-Run `rotz --help` to see all commands Rotz has.
-
-### Getting Started
+## Getting Started
 
 If you already have a `dotfiles` repo you can clone it with the `rotz clone` command.
 
@@ -67,6 +65,9 @@ To bootstrap your dev environment use `rotz install`. *`[in development]`*
 To link your `dotfiles` use `rotz link`.
 
 ---
+## Usage
+
+Run `rotz --help` to see all commands Rotz has.
 
 ## Configuration
 
