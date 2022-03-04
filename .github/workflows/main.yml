@@ -15,6 +15,7 @@ jobs:
         with:
           node-version: 14.x
           cache: npm
+          cache-dependency-path: ./docs/package-lock.json
       - name: Build docs
         working-directory: docs
         run: |
