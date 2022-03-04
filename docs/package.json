@@ -5,7 +5,6 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "set NODE_ENV=development&& docusaurus start",
-    "build:dev": "set NODE_ENV=development&& docusaurus build",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
