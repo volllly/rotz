@@ -1,16 +1,12 @@
 ---
-layout: default
 title: dot.yaml
-nav_order: 2
-permalink: /configuration/dot-yaml
-parent: Configuration
+sidebar_position: 2
 ---
 
-# `dot.yaml`
-{: .no_toc }
+import TOCInline from '@theme/TOCInline';
 
-- TOC
-{:toc}
+> ## Sections
+> <TOCInline toc={toc} />
 
 The `dot.yaml` file consists of four optional keys:
 
@@ -23,23 +19,22 @@ The `dot.yaml` file consists of four optional keys:
 
 ## `links`
 
-The `links` section specifies where the dotfiles should be linked. **Command `Link-Dots`**
+The `links` section specifies where the dotfiles should be linked.
 
 It consists of multiple `key: value` pairs where the `key` is the filename of the `dotfile` and the `value` is the link path.
 
-> ***Example:***
->
-> *`vscode/dot.yaml`*
-> ```yaml
-> ...
-> links:
->   keybindings.json: ~\AppData\Roaming\Code\User\keybindings.json
->   settings.json: ~\AppData\Roaming\Code\User\settings.json
-> ```
+
+
+```yaml title="Example: vscode/dot.yaml"
+...
+links:
+  keybindings.json: ~\AppData\Roaming\Code\User\keybindings.json
+  settings.json: ~\AppData\Roaming\Code\User\settings.json
+```
 
 ## `installs`
 
-The `installs` section contains the install command and optional install dependencies. **Command `Install-Dots`**
+The `installs` section contains the install command and optional install dependencies.
 
 It can either be a `string` containing the install command or have two sub keys.
 
@@ -48,37 +43,31 @@ It can either be a `string` containing the install command or have two sub keys.
 | `cmd`     | `required`  | Contains the install command.      |
 | `depends` | `optional`  | Contains an array of dependencies. |
 
-> ***Examples:***
->
-> *`nodejs/dot.yaml`*
-> ```yaml
-> ...
-> installs:
->   cmd: scoop install nodejs
->   depends: [scoop]
-> ```
-> *`scoop/dot.yaml`*
->
-> ```yaml
-> ...
-> installs: iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
-> ```
+
+```yaml title="Example: nodejs/dot.yaml"
+...
+installs:
+  cmd: scoop install nodejs
+  depends: [scoop]
+```
+
+```yaml title="Example: scoop/dot.yaml"
+...
+installs: iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
+```
 
 ## `updates`
 
-The `updates` section contains the update command and optional update dependencies. **Command `Update-Dots`**
+The `updates` section contains the update command and optional update dependencies.
 
 It works exactly like the `installs` key described above.
 
-> ***Example:***
->
-> *`nodejs/dot.yaml`*
-> ```yaml
-> ...
-> updates:
->   cmd: scoop update nodejs
->   depends: [scoop]
-> ```
+```yaml  title="Example: nodejs/dot.yaml"
+...
+updates:
+  cmd: scoop update nodejs
+  depends: [scoop]
+```
 
 ## depends
 
@@ -86,10 +75,7 @@ The `depends` section contains an array of dependencies needed for the applicati
 
 These dependencies will also be installed/updated when the application is installed/updated.
 
-> ***Example:***
->
-> *`zsh/dot.yaml`*
-> ```yaml
-> ...
-> depends: [starship]
-> ```
+```yaml  title="Example: zsh/dot.yaml"
+...
+depends: [starship]
+```

@@ -1,36 +1,7 @@
 ---
-layout: default
-title: Home
-nav_order: 1
-description: "Fully cross platform dotfile manager and dev environment bootstrapper written in Rust."
-permalink: /
+sidebar_position: 1
+title: Getting Started
 ---
-
-# Fully cross platform dotfile manager and dev environment bootstrapper written in Rust
-
-> ```
-> Rust Dotfilemanager
-> Rust Dotfile manager
-> Rust Dotfile s
-> Rust Dot s
-> R ust Dots
-> R ots
-> Rot s
-> ```
-
-Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
-
----
-
-## Status
-
-This project is still in development.
-
-Linking dotfiles on windows already works but is not very well tested.
-
-Expect more features in the next release which should be ready in a few weeks.
-
-## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
 
 ## Overview
 
@@ -44,7 +15,7 @@ Rotz has three main functionalities:
 
 You can install rotz using cargo.
 
-```sh
+```bash
 cargo install rotz
 ```
 
@@ -53,12 +24,13 @@ cargo install rotz
 Rotz uses [`yaml`](https://yaml.org/) configuration files per default. You can also use [`toml`](https://toml.io/) or [`json`](https://www.json.org/) files instead.
 
 To use another format install Rotz using one of the following comands:
-* ```sh
-  cargo install rotz --no-default-features --features toml
-  ```
-* ```sh
-  cargo install rotz --no-default-features --features json
-  ```
+```bash title="toml"
+cargo install rotz --no-default-features --features toml
+```
+
+```bash title="json"
+cargo install rotz --no-default-features --features json
+```
 
 ---
 

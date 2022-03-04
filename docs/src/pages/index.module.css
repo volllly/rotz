@@ -1,0 +1,37 @@
+.heroBanner {
+  padding: 4rem 0;
+  padding-bottom: 2em;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2em;
+  margin-bottom: 2em;
+}
+
+.rotzname {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: var(--ifm-h1-font-size);
+  margin-bottom: 1em;
+}
+
+.rotzname > span {
+  font-family: var(--ifm-font-family-monospace);
+  line-height: 1em;
+  text-align: left;
+}
