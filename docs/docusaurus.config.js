@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Rotz',
   tagline: 'Fully cross platform dotfile manager and dev environment bootstrapper written in Rust.',
-  url: 'volllly.github.io',
+  url: 'https://volllly.github.io',
   baseUrl: process.env.NODE_ENV == 'development' ? '/' : '/rotz/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
