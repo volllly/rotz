@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use color_eyre::eyre::{eyre, Result};
+use miette::{miette, Result, IntoDiagnostic};
 use crossterm::style::Stylize;
 use somok::Somok;
 
@@ -13,10 +13,10 @@ pub fn execute(Config { dotfiles, link_type: _, repo }: Config) -> Result<()> {
   Command::new("git")
     .args([
       "clone",
-      repo.as_ref().ok_or_else(|| eyre!("No repo set"))?,
-      dotfiles.as_os_str().to_str().ok_or_else(|| eyre!("Invalid dotfiles path"))?,
+      repo.as_ref().ok_or_else(|| miette!("No repo set"))?,
+      dotfiles.as_os_str().to_str().ok_or_else(|| miette!("Invalid dotfiles path"))?,
     ])
-    .output()?;
+    .output().into_diagnostic()?;
 
   println!("Cloned {}\n    to {}", repo.unwrap().blue(), dotfiles.display().to_string().green());
 

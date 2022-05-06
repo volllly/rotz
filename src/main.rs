@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 
 use clap::Parser;
-use color_eyre::eyre::{eyre, Result, WrapErr};
+use miette::{Result, miette, IntoDiagnostic, Context};
 use directories::{ProjectDirs, UserDirs};
 use figment::{
   providers::{Env, Format, Serialized},
@@ -31,8 +31,8 @@ mod dot;
 
 mod commands;
 
-pub static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or_else(|| eyre!("Could not get application data directory")).unwrap());
-pub static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| UserDirs::new().ok_or_else(|| eyre!("Could not get user directory folder")).unwrap());
+pub static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or_else(|| miette!("Could not get application data directory")).unwrap());
+pub static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| UserDirs::new().ok_or_else(|| miette!("Could not get user directory folder")).unwrap());
 
 #[cfg(feature = "toml")]
 pub const FILE_EXTENSION: &str = "toml";
@@ -42,18 +42,16 @@ pub const FILE_EXTENSION: &str = "yaml";
 pub const FILE_EXTENSION: &str = "json";
 
 fn main() -> Result<()> {
-  color_eyre::install()?;
-
   let cli = Cli::parse();
 
   if !cli.config.0.exists() {
-    fs::create_dir_all(cli.config.0.parent().ok_or_else(|| eyre!("Could parse config file directory"))?).context("Could not create config file directory")?;
-    File::create(&cli.config.0).context("Could not create default config file")?;
+    fs::create_dir_all(cli.config.0.parent().ok_or_else(|| miette!("Could parse config file directory"))?).into_diagnostic().context("Could not create config file directory")?;
+    File::create(&cli.config.0).into_diagnostic().context("Could not create default config file")?;
   }
 
   let mut config = Figment::from(Serialized::defaults(Config::default()));
 
-  let config_str = fs::read_to_string(&cli.config.0).context("Could not read config file")?;
+  let config_str = fs::read_to_string(&cli.config.0).into_diagnostic().context("Could not read config file")?;
   if !cfg!(feature = "yaml") || !config_str.is_empty() {
     #[cfg(feature = "toml")]
     let config_file = Toml::string(&config_str);
@@ -65,7 +63,7 @@ fn main() -> Result<()> {
     config = config.merge(config_file);
   }
 
-  let mut config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().context("Cloud not parse config")?;
+  let mut config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().into_diagnostic().context("Cloud not parse config")?;
 
   if config.dotfiles.starts_with("~/") {
     let mut iter = config.dotfiles.iter();
@@ -75,7 +73,10 @@ fn main() -> Result<()> {
 
   match cli.command {
     Command::Link { dots, link_type: _, force } => commands::link::execute(config, force, dots.dots),
-    Command::Clone { repo: _ } => commands::clone::execute(config),
+    Command::Clone { repo: _ } => {
+      if let Some(repo) = &config.repo { config::create_config_file_with_repo(repo, &cli.config.0)?; }
+      commands::clone::execute(config)
+    },
     _ => todo!(),
   }
 }

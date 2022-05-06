@@ -1,9 +1,9 @@
 use std::{
   fs,
-  path::{Path, PathBuf},
+  path::{Path, PathBuf}
 };
 
-use color_eyre::eyre::{Result, WrapErr};
+use miette::{Result, IntoDiagnostic, Context, Diagnostic, Report};
 use crossterm::style::{Attribute, Stylize};
 use itertools::Itertools;
 use somok::Somok;
@@ -14,30 +14,36 @@ use crate::{
   FILE_EXTENSION, USER_DIRS,
 };
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
   #[error("{0}")]
   Path(String),
+
   #[cfg(feature = "yaml")]
   #[error(transparent)]
   Parse(#[from] serde_yaml::Error),
+
   #[error("Io Error on file {0}")]
   Io(PathBuf, #[source] std::io::Error),
+
   #[error("Could not create link from {0} to {1}")]
   Symlink(PathBuf, PathBuf, #[source] std::io::Error),
 }
 
 pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dots: Vec<String>) -> Result<()> {
   let global = match fs::read_to_string(dotfiles.join(format!("dots.{FILE_EXTENSION}"))) {
-    Ok(text) => text.parse::<Dot>()?.some(),
+    Ok(text) => text.parse::<Dot>().into_diagnostic()?.some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => panic!("{}", err),
     },
   };
+
   let wildcard = dots.contains(&"*".to_string());
+
   let paths = fs::read_dir(&dotfiles)
-    .wrap_err(format!("Could not read dotfiles directory {}", dotfiles.display()))?
+    .into_diagnostic()
+    .context(format!("Could not read dotfiles directory {}", dotfiles.display()))?
     .map_ok(|d| d.path())
     .filter_ok(|p| p.is_dir());
 
@@ -83,7 +89,6 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
     return ().okay();
   }
 
-  let mut errors = Vec::<Error>::new();
   for (name, link) in links.into_iter() {
     println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
 
@@ -99,14 +104,14 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
         }
 
         if let Err(err) = create_link(from, to, &link_type, force) {
-          errors.push(err)
+          eprintln!("{:?}", Report::new(err));
         }
       }
     }
     println!();
   }
 
-  crate::helpers::join_err(errors)
+  Ok(())
 }
 
 fn create_link<T: AsRef<Path>>(from: T, to: T, link_type: &LinkType, force: bool) -> std::result::Result<(), Error> {
