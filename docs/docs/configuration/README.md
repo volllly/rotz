@@ -1,7 +1,4 @@
 ---
-sidebar_position: 3
-sidebar_label: Configuration
-sidebar_class_name: text--capitalize
 title: Configuration
 ---
 

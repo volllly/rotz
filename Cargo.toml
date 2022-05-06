@@ -18,20 +18,20 @@ toml = [ "serde_toml", "figment/toml" ]
 json = [ "serde_json", "figment/json" ]
 
 [dependencies]
-clap = { version = "3.0.12", features = [ "derive" ] }
-serde_yaml = { version = "0.8.23", optional = true }
-serde_toml = { package = "toml", version = "0.5.8", optional = true }
-serde_json = { version = "1.0.78", optional = true }
+clap = { version = "3.1.16", features = [ "derive" ] }
+serde_yaml = { version = "0.8.24", optional = true }
+serde_toml = { package = "toml", version = "0.5.9", optional = true }
+serde_json = { version = "1.0.81", optional = true }
 figment = { version = "0.10.6", default-features = false, features = [ "env" ] }
 directories = "4.0.1"
-once_cell = "1.9.0"
+once_cell = "1.10.0"
 derive_more = "0.99.17"
-serde = { version = "1.0.135", features = ["derive"] }
-crossterm = "0.22.1"
-color-eyre = { version = "0.6", default-features = false, features = [ "issue-url" ] }
+serde = { version = "1.0.137", features = ["derive"] }
+crossterm = "0.23.2"
 itertools = "0.10.3"
-thiserror = "1.0.30"
-somok = "1.2.0"
+thiserror = "1.0.31"
+somok = "1.5.0"
+miette = { version = "4.7.0", features = ["fancy"] }
 
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"

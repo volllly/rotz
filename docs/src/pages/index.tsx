@@ -42,9 +42,7 @@ function HomepageHeader() {
         </div>
         <div className="container">
           <Admontion type={'caution'}>
-            This project is still in development.
-            Linking dotfiles already works but is not very well tested.
-            Expect more features in the next release which should be ready in a few weeks.
+            This project is still in development. Some features are not yet implemented.
           </Admontion>
         </div>
       </div>
