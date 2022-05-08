@@ -45,7 +45,7 @@ pub struct Cli {
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Dots {
   #[clap(default_value = "*")]
-  /// All dots to link
+  /// All dots to process
   pub dots: Vec<String>,
 }
 
@@ -80,6 +80,12 @@ pub enum Command {
     #[clap(long, short)]
     /// The url of the repository passed to the git clone command
     repo: Option<String>,
+  },
+
+  /// Installs applications using the provided commands
+  Install {
+    #[clap(flatten)]
+    dots: Dots,
   },
 }
 
