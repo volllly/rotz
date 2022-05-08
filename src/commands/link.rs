@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf}
 };
 
-use miette::{Result, IntoDiagnostic, Context, Diagnostic, Report};
+use miette::{Result, Diagnostic, Report};
 use crossterm::style::{Attribute, Stylize};
 use itertools::Itertools;
 use somok::Somok;
@@ -16,12 +16,18 @@ use crate::{
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
-  #[error("{0}")]
-  Path(String),
+  #[error("Could not find dot directory {0}")]
+  PathFind(PathBuf),
+
+  #[error("Could not parse dot directory {0}")]
+  PathParse(PathBuf),
+  
+  #[error("Could not read dotfiles directory {0}")]
+  DotfileDir(PathBuf, #[source] std::io::Error),
 
   #[cfg(feature = "yaml")]
-  #[error(transparent)]
-  Parse(#[from] serde_yaml::Error),
+  #[error("Could not parse dot {0}")]
+  ParseDot(PathBuf, #[source] serde_yaml::Error),
 
   #[error("Io Error on file {0}")]
   Io(PathBuf, #[source] std::io::Error),
@@ -31,8 +37,9 @@ enum Error {
 }
 
 pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dots: Vec<String>) -> Result<()> {
-  let global = match fs::read_to_string(dotfiles.join(format!("dots.{FILE_EXTENSION}"))) {
-    Ok(text) => text.parse::<Dot>().into_diagnostic()?.some(),
+  let global = dotfiles.join(format!("dots.{FILE_EXTENSION}"));
+  let global = match fs::read_to_string(global.clone()) {
+    Ok(text) => text.parse::<Dot>().map_err(|e| Error::ParseDot(global, e))?.some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => panic!("{}", err),
@@ -42,19 +49,18 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
   let wildcard = dots.contains(&"*".to_string());
 
   let paths = fs::read_dir(&dotfiles)
-    .into_diagnostic()
-    .context(format!("Could not read dotfiles directory {}", dotfiles.display()))?
+    .map_err(|e| Error::DotfileDir(dotfiles.clone(), e))?
     .map_ok(|d| d.path())
     .filter_ok(|p| p.is_dir());
 
-  let dotsfile = crate::helpers::join_err_result(paths.collect())?
+  let dotsfiles = crate::helpers::join_err_result(paths.collect())?
     .into_iter()
     .map(|p| {
       let name = p
         .file_name()
-        .ok_or_else(|| Error::Path("Could not find dot directory".to_string()))?
+        .ok_or_else(|| Error::PathFind(p.clone()))?
         .to_str()
-        .ok_or_else(|| Error::Path("Could not parse dot directory".to_string()))?
+        .ok_or_else(|| Error::PathParse(p.clone()))?
         .to_string();
       Ok::<(String, PathBuf), Error>((name, p))
     })
@@ -66,10 +72,10 @@ pub fn execute(Config { dotfiles, link_type, repo: _ }: Config, force: bool, dot
       )
     });
 
-  let dots = dotsfile.filter_map(|f| match f {
+  let dots = dotsfiles.filter_map(|f| match f {
     Ok((name, Ok(text))) => match text.parse::<Dot>() {
       Ok(dot) => (name, dot).okay().some(),
-      Err(err) => Error::Parse(err).error().some(),
+      Err(err) => Error::ParseDot(Path::new(&format!("{name}/dot.{FILE_EXTENSION}")).to_path_buf(), err).error().some(),
     },
     Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
