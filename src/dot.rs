@@ -7,13 +7,18 @@ mod repr {
   use serde::Deserialize;
   use somok::Somok;
 
+  #[cfg(test)]
+  use fake::{Dummy, Fake};
+
   #[derive(Deserialize, Debug, Default)]
+  #[cfg_attr(test, derive(Dummy))]
   struct DotSimplified {
     #[serde(flatten)]
     capabilities: Capabilities,
   }
 
   #[derive(Deserialize, Debug, Default)]
+  #[cfg_attr(test, derive(Dummy))]
   pub struct Dot {
     pub global: Option<Box<Capabilities>>,
     pub windows: Option<Box<Capabilities>>,
@@ -28,6 +33,7 @@ mod repr {
   }
 
   #[derive(Deserialize, Clone, Default, Debug)]
+  #[cfg_attr(test, derive(Dummy))]
   pub struct Capabilities {
     pub(super) links: Option<Links>,
     pub(super) installs: Option<Installs>,
@@ -37,6 +43,7 @@ mod repr {
 
   #[derive(Deserialize, Clone, Debug)]
   #[serde(untagged)]
+  #[cfg_attr(test, derive(Dummy))]
   pub enum Links {
     One {
       #[serde(flatten)]
@@ -49,18 +56,21 @@ mod repr {
   }
 
   #[derive(Deserialize, Clone, Debug)]
+  #[cfg_attr(test, derive(Dummy))]
   pub struct Installs {
     pub cmd: String,
     pub depends: HashSet<String>,
   }
 
   #[derive(Deserialize, Clone, Debug)]
+  #[cfg_attr(test, derive(Dummy))]
   pub struct Updates {
     pub cmd: String,
     pub depends: HashSet<String>,
   }
 
   #[derive(Deserialize, Clone, Debug)]
+  #[cfg_attr(test, derive(Dummy))]
   pub struct Depends {
     #[serde(flatten)]
     pub(super) depends: HashSet<String>,

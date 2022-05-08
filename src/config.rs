@@ -10,9 +10,13 @@ use derive_more::{Display, IsVariant};
 use serde::{Deserialize, Serialize};
 use somok::Somok;
 
+#[cfg(test)]
+use fake::{Dummy, Fake};
+
 use crate::USER_DIRS;
 
 #[derive(Debug, ArgEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub enum LinkType {
   /// Uses symbolic links for linking
   Symbolic,
@@ -21,6 +25,7 @@ pub enum LinkType {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Config {
   /// Path to the local dotfiles
   pub dotfiles: PathBuf,
@@ -51,6 +56,7 @@ fn serialize_config(config: &Config) -> Result<String, serde_yaml::Error> {
 }
 
 
+#[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()> {
   let mut config = Config::default();
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
@@ -68,4 +74,27 @@ pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()
   fs::write(config_file, serialize_config(&config).into_diagnostic()?).into_diagnostic()?;
 
   ().okay()
+}
+
+#[cfg(test)]
+mod tests {
+  use fake::{Faker, Fake};
+  use rstest::rstest;
+  use speculoos::prelude::*;
+
+  use super::Config;
+
+  #[rstest]
+  #[case(Faker.fake::<Config>())]
+  #[case(Config::default())]
+  fn ser_de(#[case] config: Config) {
+    let serialized = super::serialize_config(&config);
+    assert_that!(&serialized).is_ok();
+    let serialized = serialized.unwrap();
+
+    let deserialized = super::deserialize_config(&serialized);
+    assert_that!(&deserialized)
+      .is_ok()
+      .is_equal_to(config);
+  }
 }

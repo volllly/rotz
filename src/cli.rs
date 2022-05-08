@@ -9,9 +9,13 @@ use figment::{
 };
 use somok::Somok;
 
+#[cfg(test)]
+use fake::{Dummy, Fake};
+
 use crate::{config::LinkType, FILE_EXTENSION, PROJECT_DIRS};
 
 #[derive(From, Debug, FromStr, Into)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct PathBuf(pub std::path::PathBuf);
 
 impl Display for PathBuf {
@@ -22,6 +26,7 @@ impl Display for PathBuf {
 
 #[derive(Parser, Debug)]
 #[clap(version, about)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Cli {
   #[clap(long, short)]
   /// Overwrites the dotfiles path set in the config file
@@ -37,6 +42,7 @@ pub struct Cli {
 }
 
 #[derive(Debug, Args)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Dots {
   #[clap(default_value = "*")]
   /// All dots to link
@@ -44,6 +50,7 @@ pub struct Dots {
 }
 
 #[derive(Subcommand, Debug)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub enum Command {
   /// Clones a dotfiles git repository
   Clone {

@@ -1,3 +1,5 @@
+#![cfg_attr(all(nightly, coverage), feature(no_coverage))]
+
 use std::fs::{self, File};
 
 use clap::Parser;

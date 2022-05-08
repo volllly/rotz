@@ -27,7 +27,8 @@ where
   }
 }
 
-pub fn join_err<E>(result: Vec<E>) -> Result<(), MultipleErrors>
+#[cfg_attr(all(nightly, coverage), no_coverage)]
+pub fn _join_err<E>(result: Vec<E>) -> Result<(), MultipleErrors>
 where
   E: Error + Send + Sync + 'static,
 {
@@ -36,4 +37,41 @@ where
   };
 
   MultipleErrors(result.into_iter().map(|e| miette!(e)).collect::<Vec<_>>()).error()
+}
+
+#[cfg(test)]
+mod tests {
+  use speculoos::prelude::*;
+
+  use crate::helpers::join_err_result;
+
+  #[derive(thiserror::Error, Debug)]
+  #[error("")]
+  struct Error();
+
+  #[test]
+  fn join_err_result_none() {
+    let joined = join_err_result(vec![
+      Ok::<(), Error>(()),
+      Ok::<(), Error>(()),
+    ]);
+    assert_that!(&joined)
+      .is_ok()
+      .has_length(2);
+  }
+
+  #[test]
+  fn join_err_result_some() {
+    let joined = join_err_result(vec![
+      Ok::<(), Error>(()),
+      Err::<(), Error>(Error()),
+      Err::<(), Error>(Error()),
+      Ok::<(), Error>(()),
+    ]);
+
+    assert_that!(&joined)
+      .is_err()
+      .map(|e| &e.0)
+      .has_length(2);
+  }
 }
