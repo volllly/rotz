@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+ ## [v0.3.0] - 2022-05-09
+
+### Added
+
+- `clone` command creates a config file with the repo configured if it does not exist
+- Started adding unit tests
+
+### Changed
+
+- Better error messages
+- Moved from [eyre](https://crates.io/crates/eyre) to [miette](https://crates.io/crates/miette) for error handline
+
 ## [v0.2.0] - 2022-02-21
 
 ### Added
@@ -34,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/volllly/rotz/releases/tag/v0.3.0
 [v0.2.0]: https://github.com/volllly/rotz/releases/tag/v0.2.0
 [v0.1.1]: https://github.com/volllly/rotz/releases/tag/v0.1.1
 [v0.1.0]: https://github.com/volllly/rotz/releases/tag/v0.1.0
