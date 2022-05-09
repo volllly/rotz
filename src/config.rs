@@ -4,14 +4,13 @@ use std::{
 };
 
 use clap::ArgEnum;
-use miette::{Result, IntoDiagnostic};
 use crossterm::style::Stylize;
 use derive_more::{Display, IsVariant};
-use serde::{Deserialize, Serialize};
-use somok::Somok;
-
 #[cfg(test)]
 use fake::{Dummy, Fake};
+use miette::{IntoDiagnostic, Result};
+use serde::{Deserialize, Serialize};
+use somok::Somok;
 
 use crate::USER_DIRS;
 
@@ -55,7 +54,6 @@ fn serialize_config(config: &Config) -> Result<String, serde_yaml::Error> {
   serde_yaml::to_string(&config)
 }
 
-
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()> {
   let mut config = Config::default();
@@ -78,7 +76,7 @@ pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()
 
 #[cfg(test)]
 mod tests {
-  use fake::{Faker, Fake};
+  use fake::{Fake, Faker};
   use rstest::rstest;
   use speculoos::prelude::*;
 
@@ -93,8 +91,6 @@ mod tests {
     let serialized = serialized.unwrap();
 
     let deserialized = super::deserialize_config(&serialized);
-    assert_that!(&deserialized)
-      .is_ok()
-      .is_equal_to(config);
+    assert_that!(&deserialized).is_ok().is_equal_to(config);
   }
 }

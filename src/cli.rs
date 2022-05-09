@@ -2,15 +2,14 @@ use std::fmt::Display;
 
 use clap::{Args, Parser, Subcommand};
 use derive_more::{From, FromStr, Into};
+#[cfg(test)]
+use fake::{Dummy, Fake};
 use figment::{
   map,
   value::{Dict, Map, Value},
   Error, Metadata, Profile, Provider,
 };
 use somok::Somok;
-
-#[cfg(test)]
-use fake::{Dummy, Fake};
 
 use crate::{config::LinkType, FILE_EXTENSION, PROJECT_DIRS};
 

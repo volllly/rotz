@@ -1,11 +1,11 @@
 use std::{
   fs,
-  path::{Path, PathBuf}
+  path::{Path, PathBuf},
 };
 
-use miette::{Result, Diagnostic, Report};
 use crossterm::style::{Attribute, Stylize};
 use itertools::Itertools;
+use miette::{Diagnostic, Report, Result};
 use somok::Somok;
 
 use crate::{
@@ -21,7 +21,7 @@ enum Error {
 
   #[error("Could not parse dot directory {0}")]
   PathParse(PathBuf),
-  
+
   #[error("Could not read dotfiles directory {0}")]
   DotfileDir(PathBuf, #[source] std::io::Error),
 

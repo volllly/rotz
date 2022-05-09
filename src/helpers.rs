@@ -13,15 +13,7 @@ where
   E: Error + Send + Sync + 'static,
 {
   if result.iter().any(|p| p.is_err()) {
-    MultipleErrors(
-      result
-        .into_iter()
-        .filter(Result::is_err)
-        .map(Result::unwrap_err)
-        .map(|e| miette!(e))
-        .collect::<Vec<_>>(),
-    )
-    .error()
+    MultipleErrors(result.into_iter().filter(Result::is_err).map(Result::unwrap_err).map(|e| miette!(e)).collect::<Vec<_>>()).error()
   } else {
     Ok(result.into_iter().map(Result::unwrap).collect())
   }
@@ -51,27 +43,14 @@ mod tests {
 
   #[test]
   fn join_err_result_none() {
-    let joined = join_err_result(vec![
-      Ok::<(), Error>(()),
-      Ok::<(), Error>(()),
-    ]);
-    assert_that!(&joined)
-      .is_ok()
-      .has_length(2);
+    let joined = join_err_result(vec![Ok::<(), Error>(()), Ok::<(), Error>(())]);
+    assert_that!(&joined).is_ok().has_length(2);
   }
 
   #[test]
   fn join_err_result_some() {
-    let joined = join_err_result(vec![
-      Ok::<(), Error>(()),
-      Err::<(), Error>(Error()),
-      Err::<(), Error>(Error()),
-      Ok::<(), Error>(()),
-    ]);
+    let joined = join_err_result(vec![Ok::<(), Error>(()), Err::<(), Error>(Error()), Err::<(), Error>(Error()), Ok::<(), Error>(())]);
 
-    assert_that!(&joined)
-      .is_err()
-      .map(|e| &e.0)
-      .has_length(2);
+    assert_that!(&joined).is_err().map(|e| &e.0).has_length(2);
   }
 }

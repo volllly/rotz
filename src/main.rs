@@ -3,12 +3,12 @@
 use std::fs::{self, File};
 
 use clap::Parser;
-use miette::{Result, miette, IntoDiagnostic, Context};
 use directories::{ProjectDirs, UserDirs};
 use figment::{
   providers::{Env, Format, Serialized},
   Figment,
 };
+use miette::{miette, Context, IntoDiagnostic, Result};
 use once_cell::sync::Lazy;
 
 #[cfg(any(all(feature = "toml", feature = "yaml"), all(feature = "toml", feature = "json"), all(feature = "json", feature = "yaml")))]
@@ -47,7 +47,9 @@ fn main() -> Result<()> {
   let cli = Cli::parse();
 
   if !cli.config.0.exists() {
-    fs::create_dir_all(cli.config.0.parent().ok_or_else(|| miette!("Could parse config file directory"))?).into_diagnostic().context("Could not create config file directory")?;
+    fs::create_dir_all(cli.config.0.parent().ok_or_else(|| miette!("Could parse config file directory"))?)
+      .into_diagnostic()
+      .context("Could not create config file directory")?;
     File::create(&cli.config.0).into_diagnostic().context("Could not create default config file")?;
   }
 
@@ -76,9 +78,11 @@ fn main() -> Result<()> {
   match cli.command {
     Command::Link { dots, link_type: _, force } => commands::link::execute(config, force, dots.dots),
     Command::Clone { repo: _ } => {
-      if let Some(repo) = &config.repo { config::create_config_file_with_repo(repo, &cli.config.0)?; }
+      if let Some(repo) = &config.repo {
+        config::create_config_file_with_repo(repo, &cli.config.0)?;
+      }
       commands::clone::execute(config)
-    },
+    }
     _ => todo!(),
   }
 }

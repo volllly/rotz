@@ -4,11 +4,10 @@ mod repr {
     path::PathBuf,
   };
 
-  use serde::Deserialize;
-  use somok::Somok;
-
   #[cfg(test)]
   use fake::{Dummy, Fake};
+  use serde::Deserialize;
+  use somok::Somok;
 
   #[derive(Deserialize, Debug, Default)]
   #[cfg_attr(test, derive(Dummy))]
