@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use baker::Bake;
 use clap::{Args, Parser, Subcommand};
 use derive_more::{From, FromStr, Into};
 #[cfg(test)]
@@ -15,7 +16,7 @@ use crate::{config::LinkType, FILE_EXTENSION, PROJECT_DIRS};
 
 #[derive(From, Debug, FromStr, Into)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
-pub struct PathBuf(pub std::path::PathBuf);
+pub struct PathBuf(pub(crate) std::path::PathBuf);
 
 impl Display for PathBuf {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -31,13 +32,13 @@ pub struct Cli {
   /// Overwrites the dotfiles path set in the config file
   ///
   /// If no dotfiles path is provided in the config file the default "~/.dotfiles" is used
-  pub dotfiles: Option<PathBuf>,
+  pub(crate) dotfiles: Option<PathBuf>,
   #[clap(long, short, default_value_t = PROJECT_DIRS.config_dir().join(format!("config.{FILE_EXTENSION}")).into())]
   /// Path to the config file
-  pub config: PathBuf,
+  pub(crate) config: PathBuf,
 
   #[clap(subcommand)]
-  pub command: Command,
+  pub(crate) command: Command,
 }
 
 #[derive(Debug, Args)]
@@ -45,7 +46,34 @@ pub struct Cli {
 pub struct Dots {
   #[clap(default_value = "*")]
   /// All dots to process
-  pub dots: Vec<String>,
+  pub(crate) dots: Vec<String>,
+}
+
+#[derive(Debug, Args, Bake)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[baked(name = "Link")]
+pub struct LinkCli {
+  #[clap(flatten)]
+  #[baked(type = "Vec<String>", map = "self.dots.dots")]
+  pub(crate) dots: Dots,
+
+  #[clap(long, short)]
+  /// Force link creation if file already exists
+  pub(crate) force: bool,
+
+  #[clap(long, short, arg_enum)]
+  #[baked(ignore)]
+  /// Which link type to use for linking dotfiles
+  link_type: Option<LinkType>,
+}
+
+#[derive(Debug, Args, Bake)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[baked(name = "Install")]
+pub struct InstallCli {
+  #[clap(flatten)]
+  #[baked(type = "Vec<String>", map = "self.dots.dots")]
+  pub(crate) dots: Dots,
 }
 
 #[derive(Subcommand, Debug)]
@@ -60,15 +88,7 @@ pub enum Command {
   /// Links dotfiles to the filesystem
   Link {
     #[clap(flatten)]
-    dots: Dots,
-
-    #[clap(long, short, arg_enum)]
-    /// Which link type to use for linking dotfiles
-    link_type: Option<LinkType>,
-
-    #[clap(long, short)]
-    /// Force link creation if file already exists
-    force: bool,
+    link: LinkCli,
   },
 
   /// Syncs dotfiles with the git repository
@@ -84,7 +104,7 @@ pub enum Command {
   /// Installs applications using the provided commands
   Install {
     #[clap(flatten)]
-    dots: Dots,
+    install: InstallCli,
   },
 }
 
@@ -105,9 +125,11 @@ impl Provider for Cli {
     }
 
     if let Command::Link {
-      link_type: Some(link_type),
-      dots: _,
-      force: _,
+      link: LinkCli {
+        dots: _,
+        force: _,
+        link_type: Some(link_type),
+      },
     } = &self.command
     {
       dict.insert("link_type".to_string(), Value::serialize(link_type)?);

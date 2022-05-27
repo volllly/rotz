@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added error codes and help messages
+
+### Changed
+
+- Refactored the command code
+
+### Fixed
+
+- Linking now also creates the parent directory if it's not present
 
  ## [v0.3.0] - 2022-05-09
 

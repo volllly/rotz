@@ -12,7 +12,7 @@ where
   T: Debug,
   E: Error + Send + Sync + 'static,
 {
-  if result.iter().any(|p| p.is_err()) {
+  if result.iter().any(std::result::Result::is_err) {
     MultipleErrors(result.into_iter().filter(Result::is_err).map(Result::unwrap_err).map(|e| miette!(e)).collect::<Vec<_>>()).error()
   } else {
     Ok(result.into_iter().map(Result::unwrap).collect())

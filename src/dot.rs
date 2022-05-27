@@ -57,15 +57,15 @@ mod repr {
   #[derive(Deserialize, Clone, Debug)]
   #[cfg_attr(test, derive(Dummy))]
   pub struct Installs {
-    pub cmd: String,
-    pub depends: HashSet<String>,
+    pub(crate) cmd: String,
+    pub(crate) depends: HashSet<String>,
   }
 
   #[derive(Deserialize, Clone, Debug)]
   #[cfg_attr(test, derive(Dummy))]
   pub struct Updates {
-    pub cmd: String,
-    pub depends: HashSet<String>,
+    pub(crate) cmd: String,
+    pub(crate) depends: HashSet<String>,
   }
 
   #[derive(Deserialize, Clone, Debug)]
@@ -103,7 +103,7 @@ mod repr {
     serde_json::from_str(value)
   }
   impl Dot {
-    pub fn parse(value: &str) -> Result<Self, ParseError> {
+    pub(crate) fn parse(value: &str) -> Result<Self, ParseError> {
       let parsed = parse_inner::<DotSimplified>(value)?;
 
       if let DotSimplified {
@@ -115,9 +115,9 @@ mod repr {
         },
       } = &parsed
       {
-        parse_inner::<Dot>(value)
+        parse_inner::<Self>(value)
       } else {
-        Dot {
+        Self {
           global: parsed.capabilities.boxed().some(),
           ..Default::default()
         }
@@ -140,7 +140,7 @@ mod repr {
     }
   }
 
-  impl Merge<Capabilities> for Capabilities {
+  impl Merge<Self> for Capabilities {
     fn merge(
       mut self,
       Capabilities {
@@ -148,7 +148,7 @@ mod repr {
         installs,
         updates,
         depends,
-      }: Capabilities,
+      }: Self,
     ) -> Self {
       if let Some(self_links) = &mut self.links {
         if let Links::One { links: self_links_one } = self_links {
@@ -157,8 +157,8 @@ mod repr {
               .iter_mut()
               .map(|l| {
                 let mut hs = HashSet::new();
-                hs.insert(l.1.to_owned());
-                (l.0.to_owned(), hs)
+                hs.insert(l.1.clone());
+                (l.0.clone(), hs)
               })
               .collect(),
           };
@@ -172,8 +172,8 @@ mod repr {
               .iter_mut()
               .map(|l| {
                 let mut hs = HashSet::new();
-                hs.insert(l.1.to_owned());
-                (l.0.to_owned(), hs)
+                hs.insert(l.1.clone());
+                (l.0.clone(), hs)
               })
               .collect(),
           };
@@ -183,14 +183,14 @@ mod repr {
         if let Some(merge_links) = &mut links {
           if let Links::Many { links: self_links_many } = self_links {
             if let Links::Many { links: merge_links_many } = merge_links {
-              merge_links_many.iter_mut().for_each(|l| {
-                if !self_links_many.contains_key(l.0) {
-                  self_links_many.insert(l.0.to_owned(), l.1.to_owned());
-                } else {
+              for l in merge_links_many.iter_mut() {
+                if self_links_many.contains_key(l.0) {
                   let self_links_many_value = self_links_many.get_mut(l.0).unwrap();
-                  self_links_many_value.extend(l.1.to_owned());
+                  self_links_many_value.extend(l.1.clone());
+                } else {
+                  self_links_many.insert(l.0.clone(), l.1.clone());
                 }
-              })
+              }
             }
           }
         }
@@ -218,7 +218,7 @@ mod repr {
 
       if let Some(d) = &mut self.depends {
         if let Some(depends) = depends {
-          d.depends.extend(depends.depends)
+          d.depends.extend(depends.depends);
         }
       } else {
         self.depends = depends;
@@ -231,30 +231,35 @@ mod repr {
 
 use std::{
   collections::{HashMap, HashSet},
-  path::PathBuf,
+  fs,
+  path::{Path, PathBuf},
   str::FromStr,
 };
 
+use crossterm::style::Stylize;
+use itertools::Itertools;
+use miette::Diagnostic;
 pub use repr::{Installs, Merge, Updates};
 use somok::Somok;
 
 use self::repr::Capabilities;
+use crate::FILE_EXTENSION;
 
 #[derive(Default, Clone, Debug)]
 pub struct Dot {
-  pub links: Option<HashMap<PathBuf, HashSet<PathBuf>>>,
-  pub installs: Option<Installs>,
-  pub updates: Option<Updates>,
-  pub depends: Option<HashSet<String>>,
+  pub(crate) links: Option<HashMap<PathBuf, HashSet<PathBuf>>>,
+  pub(crate) installs: Option<Installs>,
+  pub(crate) updates: Option<Updates>,
+  pub(crate) depends: Option<HashSet<String>>,
 }
 
-impl Merge<&Dot> for Dot {
-  fn merge(mut self, merge: &Dot) -> Self {
+impl Merge<&Self> for Dot {
+  fn merge(mut self, merge: &Self) -> Self {
     if let Some(links) = &merge.links {
       if let Some(l) = &mut self.links {
-        l.extend(links.clone())
+        l.extend(links.clone());
       } else {
-        self.links = links.to_owned().some()
+        self.links = links.clone().some();
       }
     }
 
@@ -263,7 +268,7 @@ impl Merge<&Dot> for Dot {
         i.cmd = installs.cmd.clone();
         i.depends.extend(installs.depends.clone());
       } else {
-        self.installs = installs.to_owned().some()
+        self.installs = installs.clone().some();
       }
     }
 
@@ -272,15 +277,15 @@ impl Merge<&Dot> for Dot {
         u.cmd = updates.cmd.clone();
         u.depends.extend(updates.depends.clone());
       } else {
-        self.updates = updates.to_owned().some()
+        self.updates = updates.clone().some();
       }
     }
 
     if let Some(depends) = &merge.depends {
       if let Some(d) = &mut self.depends {
-        d.extend(depends.clone())
+        d.extend(depends.clone());
       } else {
-        self.depends = depends.to_owned().some()
+        self.depends = depends.clone().some();
       }
     }
 
@@ -323,7 +328,7 @@ impl FromStr for Dot {
     }
 
     if let Some(capabilities) = capabilities {
-      Dot {
+      Self {
         links: capabilities.links.map(|c| match c {
           repr::Links::One { links } => links
             .into_iter()
@@ -340,8 +345,91 @@ impl FromStr for Dot {
         depends: capabilities.depends.map(|c| c.depends),
       }
     } else {
-      Dot::default()
+      Self::default()
     }
     .okay()
   }
+}
+
+#[derive(thiserror::Error, Diagnostic, Debug)]
+pub enum Error {
+  #[error("Could not find dot directory {0}")]
+  #[diagnostic(code(dot::filename::get), help("Did you enter a valid file?"))]
+  PathFind(PathBuf),
+
+  #[error("Could not parse dot directory {0}")]
+  #[diagnostic(code(dotfiles::filename::parse), help("Did you enter a valid file?"))]
+  PathParse(PathBuf),
+
+  #[error("Could not read dotfiles directory {0}")]
+  #[diagnostic(code(dotfiles::directory::read), help("did you change/set the dotfiles path?"))]
+  DotfileDir(PathBuf, #[source] std::io::Error),
+
+  #[cfg(feature = "yaml")]
+  #[error("Could not parse dot {0}")]
+  #[diagnostic(code(dot::parse))]
+  ParseDot(PathBuf, #[source] serde_yaml::Error),
+
+  #[error("Io Error on file {0}")]
+  #[diagnostic(code(io::generic))]
+  Io(PathBuf, #[source] std::io::Error),
+}
+
+pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(String, Dot)>> {
+  let global = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
+  let global = match fs::read_to_string(global.clone()) {
+    Ok(text) => text.parse::<Dot>().map_err(|e| Error::ParseDot(global, e))?.some(),
+    Err(err) => match err.kind() {
+      std::io::ErrorKind::NotFound => None,
+      _ => panic!("{}", err),
+    },
+  };
+
+  let wildcard = dots.contains(&"*".to_string());
+
+  let paths = fs::read_dir(&dotfiles_path)
+    .map_err(|e| Error::DotfileDir(dotfiles_path.to_path_buf(), e))?
+    .map_ok(|d| d.path())
+    .filter_ok(|p| p.is_dir());
+
+  let dotfiles = crate::helpers::join_err_result(paths.collect())?
+    .into_iter()
+    .map(|p| {
+      let name = p
+        .file_name()
+        .ok_or_else(|| Error::PathFind(p.clone()))?
+        .to_str()
+        .ok_or_else(|| Error::PathParse(p.clone()))?
+        .to_string();
+      Ok::<(String, PathBuf), Error>((name, p))
+    })
+    .filter_ok(|p| wildcard || dots.contains(&p.0))
+    .map_ok(|p| {
+      (
+        p.0,
+        fs::read_to_string(p.1.join(format!("dot.{FILE_EXTENSION}"))).map_err(|e| Error::Io(p.1.join(format!("dot.{FILE_EXTENSION}")), e)),
+      )
+    });
+
+  let dots = dotfiles.filter_map(|f| match f {
+    Ok((name, Ok(text))) => match text.parse::<Dot>() {
+      Ok(dot) => (name, dot).okay().some(),
+      Err(err) => Error::ParseDot(Path::new(&format!("{name}/dot.{FILE_EXTENSION}")).to_path_buf(), err).error().some(),
+    },
+    Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
+      std::io::ErrorKind::NotFound => None,
+      _ => Error::Io(file, err).error().some(),
+    },
+    Ok((_, Err(err))) | Err(err) => err.error().some(),
+  });
+
+  let dots = dots.map_ok(|d| (d.0, if let Some(global) = &global { global.clone().merge(&d.1) } else { d.1 }));
+
+  let dots = crate::helpers::join_err_result(dots.collect())?;
+  if dots.is_empty() {
+    println!("Warning: {}", "No dots found".yellow());
+    return vec![].okay();
+  }
+
+  dots.okay()
 }

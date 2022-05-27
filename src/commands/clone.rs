@@ -1,4 +1,4 @@
-use std::{io, path::PathBuf, process::Command};
+use std::{io, process::Command};
 
 use crossterm::style::Stylize;
 use miette::{miette, Diagnostic, Result};
@@ -8,24 +8,38 @@ use crate::config::Config;
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
-  #[error("Invalid dotfiles path {0}")]
-  InvalidPath(PathBuf),
-
   #[error("Git {0} did not complete successfully")]
+  #[diagnostic(code(clone::git::generic))]
   GitError(String, #[source] io::Error),
 }
 
-pub fn execute(Config { dotfiles, link_type: _, repo }: Config) -> Result<()> {
-  Command::new("git")
-    .args([
-      "clone",
-      repo.as_ref().ok_or_else(|| miette!("No repo set"))?,
-      dotfiles.as_os_str().to_str().ok_or_else(|| Error::InvalidPath(dotfiles.clone()))?,
-    ])
-    .output()
-    .map_err(|e| Error::GitError("clone".to_string(), e))?;
+pub struct Clone {
+  config: Config,
+}
 
-  println!("Cloned {}\n    to {}", repo.unwrap().blue(), dotfiles.display().to_string().green());
+impl Clone {
+  pub const fn new(config: Config) -> Self {
+    Self { config }
+  }
+}
 
-  ().okay()
+impl super::Command for Clone {
+  type Args = ();
+
+  type Result = Result<()>;
+
+  fn execute(&self, _: Self::Args) -> Self::Result {
+    Command::new("git")
+      .args([
+        "clone",
+        self.config.repo.as_ref().ok_or_else(|| miette!("No repo set"))?,
+        self.config.dotfiles.as_os_str().to_str().ok_or_else(|| crate::dot::Error::PathParse(self.config.dotfiles.clone()))?,
+      ])
+      .output()
+      .map_err(|e| Error::GitError("clone".to_string(), e))?;
+
+    println!("Cloned {}\n    to {}", self.config.repo.clone().unwrap().blue(), self.config.dotfiles.display().to_string().green());
+
+    ().okay()
+  }
 }

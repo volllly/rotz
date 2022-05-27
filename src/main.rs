@@ -1,14 +1,18 @@
 #![cfg_attr(all(nightly, coverage), feature(no_coverage))]
 
-use std::fs::{self, File};
+use std::{
+  fs::{self, File},
+  path::PathBuf,
+};
 
 use clap::Parser;
+use commands::Command;
 use directories::{ProjectDirs, UserDirs};
 use figment::{
   providers::{Env, Format, Serialized},
   Figment,
 };
-use miette::{miette, Context, IntoDiagnostic, Result};
+use miette::{Diagnostic, Result};
 use once_cell::sync::Lazy;
 
 #[cfg(any(all(feature = "toml", feature = "yaml"), all(feature = "toml", feature = "json"), all(feature = "json", feature = "yaml")))]
@@ -24,38 +28,58 @@ use figment::providers::Yaml;
 mod helpers;
 
 mod cli;
-use cli::{Cli, Command};
+use cli::Cli;
 
 mod config;
 use config::Config;
 
+mod commands;
 mod dot;
 
-mod commands;
+#[derive(thiserror::Error, Diagnostic, Debug)]
+enum Error {
+  #[error("Could not get {0} directory")]
+  #[diagnostic(code(project_dirs::not_found))]
+  GettingDirs(&'static str),
 
-pub static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or_else(|| miette!("Could not get application data directory")).unwrap());
-pub static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| UserDirs::new().ok_or_else(|| miette!("Could not get user directory folder")).unwrap());
+  #[error("Could parse config file directory {0}")]
+  #[diagnostic(code(config::parent_dir))]
+  ParsingConfigDir(PathBuf),
+
+  #[error("Could not create config file directory {0}")]
+  #[diagnostic(code(config::create))]
+  CreatingConfig(PathBuf, #[source] std::io::Error),
+
+  #[error("Could not read config file {0}")]
+  #[diagnostic(code(config::read), help("Do you have access to the config file?"))]
+  ReadingConfig(PathBuf, #[source] std::io::Error),
+
+  #[error("Cloud not parse config {0}")]
+  #[diagnostic(code(config::parse), help("Is the config in the correct format?"))]
+  ParsingConfig(#[source] figment::Error),
+}
+
+pub(crate) static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or(Error::GettingDirs("application data")).unwrap());
+pub(crate) static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| UserDirs::new().ok_or(Error::GettingDirs("user")).unwrap());
 
 #[cfg(feature = "toml")]
-pub const FILE_EXTENSION: &str = "toml";
+pub(crate) const FILE_EXTENSION: &str = "toml";
 #[cfg(feature = "yaml")]
-pub const FILE_EXTENSION: &str = "yaml";
+pub(crate) const FILE_EXTENSION: &str = "yaml";
 #[cfg(feature = "json")]
-pub const FILE_EXTENSION: &str = "json";
+pub(crate) const FILE_EXTENSION: &str = "json";
 
 fn main() -> Result<()> {
   let cli = Cli::parse();
 
   if !cli.config.0.exists() {
-    fs::create_dir_all(cli.config.0.parent().ok_or_else(|| miette!("Could parse config file directory"))?)
-      .into_diagnostic()
-      .context("Could not create config file directory")?;
-    File::create(&cli.config.0).into_diagnostic().context("Could not create default config file")?;
+    fs::create_dir_all(cli.config.0.parent().ok_or_else(|| Error::ParsingConfigDir(cli.config.0.clone()))?).map_err(|e| Error::CreatingConfig(cli.config.0.clone(), e))?;
+    File::create(&cli.config.0).map_err(|e| Error::CreatingConfig(cli.config.0.clone(), e))?;
   }
 
   let mut config = Figment::from(Serialized::defaults(Config::default()));
 
-  let config_str = fs::read_to_string(&cli.config.0).into_diagnostic().context("Could not read config file")?;
+  let config_str = fs::read_to_string(&cli.config.0).map_err(|e| Error::ReadingConfig(cli.config.0.clone(), e))?;
   if !cfg!(feature = "yaml") || !config_str.is_empty() {
     #[cfg(feature = "toml")]
     let config_file = Toml::string(&config_str);
@@ -67,22 +91,23 @@ fn main() -> Result<()> {
     config = config.merge(config_file);
   }
 
-  let mut config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().into_diagnostic().context("Cloud not parse config")?;
+  let mut config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().map_err(Error::ParsingConfig)?;
 
   if config.dotfiles.starts_with("~/") {
     let mut iter = config.dotfiles.iter();
     iter.next();
-    config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect()
+    config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
   }
 
   match cli.command {
-    Command::Link { dots, link_type: _, force } => commands::link::execute(config, force, dots.dots),
-    Command::Clone { repo: _ } => {
+    cli::Command::Link { link } => commands::Link::new(config).execute(link.bake()),
+    cli::Command::Clone { repo: _ } => {
       if let Some(repo) = &config.repo {
         config::create_config_file_with_repo(repo, &cli.config.0)?;
       }
-      commands::clone::execute(config)
+      commands::Clone::new(config).execute(())
     }
-    _ => todo!(),
+    cli::Command::Install { install } => commands::Install::new(config).execute(install.bake()),
+    cli::Command::Sync { .. } => todo!(),
   }
 }

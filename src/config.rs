@@ -8,7 +8,7 @@ use crossterm::style::Stylize;
 use derive_more::{Display, IsVariant};
 #[cfg(test)]
 use fake::{Dummy, Fake};
-use miette::{IntoDiagnostic, Result};
+use miette::{Diagnostic, Result};
 use serde::{Deserialize, Serialize};
 use somok::Somok;
 
@@ -27,11 +27,11 @@ pub enum LinkType {
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Config {
   /// Path to the local dotfiles
-  pub dotfiles: PathBuf,
+  pub(crate) dotfiles: PathBuf,
   /// Which link type to use for linking dotfiles
-  pub link_type: LinkType,
+  pub(crate) link_type: LinkType,
   /// The url of the repository passed to the git clone command
-  pub repo: Option<String>,
+  pub(crate) repo: Option<String>,
 }
 
 impl Default for Config {
@@ -54,12 +54,24 @@ fn serialize_config(config: &Config) -> Result<String, serde_yaml::Error> {
   serde_yaml::to_string(&config)
 }
 
+#[derive(thiserror::Error, Diagnostic, Debug)]
+pub enum Error {
+  #[cfg(feature = "yaml")]
+  #[error("Could not serialize config")]
+  #[diagnostic(code(config::serialize))]
+  SerializingConfig(#[source] serde_yaml::Error),
+
+  #[error("Could not write config")]
+  #[diagnostic(code(config::write))]
+  WritingConfig(PathBuf, #[source] std::io::Error),
+}
+
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()> {
   let mut config = Config::default();
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
     if let Ok(existing_config) = deserialize_config(&existing_config_str) {
-      if existing_config.repo.as_ref().map(|r| *r != *repo).unwrap_or(false) {
+      if existing_config.repo.as_ref().map_or(false, |r| *r != *repo) {
         println!("Warning: {}", "Config file already exists and contains a different repo".yellow());
         return ().okay();
       }
@@ -69,7 +81,7 @@ pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()
 
   config.repo = repo.to_string().some();
 
-  fs::write(config_file, serialize_config(&config).into_diagnostic()?).into_diagnostic()?;
+  fs::write(config_file, serialize_config(&config).map_err(Error::SerializingConfig)?).map_err(|e| Error::WritingConfig(config_file.to_path_buf(), e))?;
 
   ().okay()
 }
