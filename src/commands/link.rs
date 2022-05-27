@@ -14,12 +14,12 @@ use crate::{
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
-  #[error("Could not create link from {0} to {1}")]
+  #[error("Could not create link from \"{0}\" to \"{1}\"")]
   #[cfg_attr(windows, diagnostic(code(link::linking), help("You may need to run rotz from an admin shell to create file links")))]
   #[cfg_attr(not(windows), diagnostic(code(link::linking),))]
   Symlink(PathBuf, PathBuf, #[source] std::io::Error),
 
-  #[error("The file {0} already exists")]
+  #[error("The file \"{0}\" already exists")]
   #[diagnostic(code(link::already_exists), help("Try using the --force flag"))]
   AlreadyExists(PathBuf),
 }
@@ -58,7 +58,7 @@ impl super::Command for Link {
           }
 
           if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force) {
-            eprintln!("{:?}", Report::new(err));
+            eprintln!("\n Error: {:?}", Report::new(err));
           }
         }
       }

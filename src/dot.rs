@@ -353,24 +353,24 @@ impl FromStr for Dot {
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub enum Error {
-  #[error("Could not find dot directory {0}")]
+  #[error("Could not find dot directory \"{0}\"")]
   #[diagnostic(code(dot::filename::get), help("Did you enter a valid file?"))]
   PathFind(PathBuf),
 
-  #[error("Could not parse dot directory {0}")]
+  #[error("Could not parse dot directory \"{0}\"")]
   #[diagnostic(code(dotfiles::filename::parse), help("Did you enter a valid file?"))]
   PathParse(PathBuf),
 
-  #[error("Could not read dotfiles directory {0}")]
+  #[error("Could not read dotfiles directory \"{0}\"")]
   #[diagnostic(code(dotfiles::directory::read), help("did you change/set the dotfiles path?"))]
   DotfileDir(PathBuf, #[source] std::io::Error),
 
   #[cfg(feature = "yaml")]
-  #[error("Could not parse dot {0}")]
+  #[error("Could not parse dot \"{0}\"")]
   #[diagnostic(code(dot::parse))]
   ParseDot(PathBuf, #[source] serde_yaml::Error),
 
-  #[error("Io Error on file {0}")]
+  #[error("Io Error on file \"{0}\"")]
   #[diagnostic(code(io::generic))]
   Io(PathBuf, #[source] std::io::Error),
 }

@@ -38,23 +38,23 @@ mod dot;
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
-  #[error("Could not get {0} directory")]
+  #[error("Could not get \"{0}\" directory")]
   #[diagnostic(code(project_dirs::not_found))]
   GettingDirs(&'static str),
 
-  #[error("Could parse config file directory {0}")]
+  #[error("Could parse config file directory \"{0}\"")]
   #[diagnostic(code(config::parent_dir))]
   ParsingConfigDir(PathBuf),
 
-  #[error("Could not create config file directory {0}")]
+  #[error("Could not create config file directory \"{0}\"")]
   #[diagnostic(code(config::create))]
   CreatingConfig(PathBuf, #[source] std::io::Error),
 
-  #[error("Could not read config file {0}")]
+  #[error("Could not read config file \"{0}\"")]
   #[diagnostic(code(config::read), help("Do you have access to the config file?"))]
   ReadingConfig(PathBuf, #[source] std::io::Error),
 
-  #[error("Cloud not parse config {0}")]
+  #[error("Cloud not parse config \"{0}\"")]
   #[diagnostic(code(config::parse), help("Is the config in the correct format?"))]
   ParsingConfig(#[source] figment::Error),
 }
