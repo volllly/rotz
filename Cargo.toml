@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = [ "Paul Volavsek <paul.volavsek@gmail.com>" ]
 license = "MIT"
@@ -8,7 +8,7 @@ description = "Fully cross platform dotfile manager written in rust."
 repository = "https://github.com/volllly/rotz"
 readme = "./README.md"
 documentation = "https://docs.rs/rotz/"
-keywords = ["dotfiles", "dotfile", "manager", "dotfile-manager", "cross-platform"]
+keywords = [ "dotfiles", "dotfile", "manager", "dotfile-manager", "cross-platform" ]
 categories = [ "command-line-utilities" ]
 
 [features]
@@ -27,19 +27,19 @@ figment = { version = "0.10.6", default-features = false, features = [ "env" ] }
 directories = "4.0.1"
 once_cell = "1.10.0"
 derive_more = "0.99.17"
-serde = { version = "1.0.137", features = ["derive"] }
+serde = { version = "1.0.137", features = [ "derive" ] }
 crossterm = "0.23.2"
 itertools = "0.10.3"
 thiserror = "1.0.31"
 somok = "1.5.0"
-miette = { version = "4.7.0", features = ["fancy"] }
+miette = { version = "4.7.0", features = [ "fancy" ] }
 baker = "0.1.2"
 
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"
 
 [dev-dependencies]
-fake = { version = "2.4.3", features = ["derive"] }
+fake = { version = "2.4.3", features = [ "derive" ] }
 rand = "0.8.5"
 rstest = "0.13.0"
 speculoos = "0.9.0"
