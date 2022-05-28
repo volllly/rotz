@@ -37,6 +37,7 @@ mod repr {
     pub(super) links: Option<Links>,
     pub(super) installs: Option<Installs>,
     pub(super) updates: Option<Updates>,
+    #[serde(flatten)]
     pub(super) depends: Option<Depends>,
   }
 
@@ -55,23 +56,32 @@ mod repr {
   }
 
   #[derive(Deserialize, Clone, Debug)]
+  #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
-  pub struct Installs {
-    pub(crate) cmd: String,
-    pub(crate) depends: HashSet<String>,
+  pub enum Installs {
+    Simple(String),
+    Full {
+      cmd: String,
+      #[serde(default)]
+      depends: HashSet<String>,
+    },
   }
 
   #[derive(Deserialize, Clone, Debug)]
+  #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
-  pub struct Updates {
-    pub(crate) cmd: String,
-    pub(crate) depends: HashSet<String>,
+  pub enum Updates {
+    Simple(String),
+    Full {
+      cmd: String,
+      #[serde(default)]
+      depends: HashSet<String>,
+    },
   }
 
   #[derive(Deserialize, Clone, Debug)]
   #[cfg_attr(test, derive(Dummy))]
   pub struct Depends {
-    #[serde(flatten)]
     pub(super) depends: HashSet<String>,
   }
 
@@ -200,8 +210,27 @@ mod repr {
 
       if let Some(i) = &mut self.installs {
         if let Some(installs) = installs {
-          i.cmd = installs.cmd;
-          i.depends.extend(installs.depends);
+          let cmd_outer: Option<String>;
+          let mut depends_outer: HashSet<String> = HashSet::new();
+
+          match installs {
+            Installs::Simple(cmd) => cmd_outer = cmd.some(),
+            Installs::Full { cmd, depends } => {
+              cmd_outer = cmd.some();
+              depends_outer = depends;
+            }
+          }
+
+          *i = match i {
+            Installs::Simple(cmd) => Installs::Full {
+              cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
+              depends: depends_outer,
+            },
+            Installs::Full { cmd, depends } => {
+              depends_outer.extend(depends.clone());
+              Installs::Full { cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()), depends: depends_outer }
+            }
+          };
         }
       } else {
         self.installs = installs;
@@ -209,8 +238,27 @@ mod repr {
 
       if let Some(u) = &mut self.updates {
         if let Some(updates) = updates {
-          u.cmd = updates.cmd;
-          u.depends.extend(updates.depends);
+          let cmd_outer: Option<String>;
+          let mut depends_outer: HashSet<String> = HashSet::new();
+
+          match updates {
+            Updates::Simple(cmd) => cmd_outer = cmd.some(),
+            Updates::Full { cmd, depends } => {
+              cmd_outer = cmd.some();
+              depends_outer = depends;
+            }
+          }
+
+          *u = match u {
+            Updates::Simple(cmd) => Updates::Full {
+              cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
+              depends: depends_outer,
+            },
+            Updates::Full { cmd, depends } => {
+              depends_outer.extend(depends.clone());
+              Updates::Full { cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()), depends: depends_outer }
+            }
+          };
         }
       } else {
         self.updates = updates;
@@ -239,11 +287,41 @@ use std::{
 use crossterm::style::Stylize;
 use itertools::Itertools;
 use miette::Diagnostic;
-pub use repr::{Installs, Merge, Updates};
+pub use repr::Merge;
 use somok::Somok;
 
 use self::repr::Capabilities;
 use crate::FILE_EXTENSION;
+
+#[derive(Clone, Debug)]
+pub struct Installs {
+  pub(crate) cmd: String,
+  pub(crate) depends: HashSet<String>,
+}
+
+impl From<repr::Installs> for Installs {
+  fn from(from: repr::Installs) -> Self {
+    match from {
+      repr::Installs::Simple(cmd) => Self { cmd, depends: Default::default() },
+      repr::Installs::Full { cmd, depends } => Self { cmd, depends },
+    }
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct Updates {
+  pub(crate) cmd: String,
+  pub(crate) depends: HashSet<String>,
+}
+
+impl From<repr::Updates> for Updates {
+  fn from(from: repr::Updates) -> Self {
+    match from {
+      repr::Updates::Simple(cmd) => Self { cmd, depends: Default::default() },
+      repr::Updates::Full { cmd, depends } => Self { cmd, depends },
+    }
+  }
+}
 
 #[derive(Default, Clone, Debug)]
 pub struct Dot {
@@ -340,8 +418,8 @@ impl FromStr for Dot {
             .collect(),
           repr::Links::Many { links } => links,
         }),
-        installs: capabilities.installs,
-        updates: capabilities.updates,
+        installs: capabilities.installs.map(|i| i.into()),
+        updates: capabilities.updates.map(|u| u.into()),
         depends: capabilities.depends.map(|c| c.depends),
       }
     } else {
@@ -364,6 +442,10 @@ pub enum Error {
   #[error("Could not read dotfiles directory \"{0}\"")]
   #[diagnostic(code(dotfiles::directory::read), help("did you change/set the dotfiles path?"))]
   DotfileDir(PathBuf, #[source] std::io::Error),
+
+  #[error("Could not read dot file")]
+  #[diagnostic(code(dot::read))]
+  ReadingDot(#[source] std::io::Error),
 
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot \"{0}\"")]
@@ -389,7 +471,10 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(S
 
   let paths = fs::read_dir(&dotfiles_path)
     .map_err(|e| Error::DotfileDir(dotfiles_path.to_path_buf(), e))?
-    .map_ok(|d| d.path())
+    .map(|d| match d {
+      Ok(d) => d.path().okay(),
+      Err(err) => Error::ReadingDot(err).error(),
+    })
     .filter_ok(|p| p.is_dir());
 
   let dotfiles = crate::helpers::join_err_result(paths.collect())?

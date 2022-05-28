@@ -34,6 +34,7 @@ thiserror = "1.0.31"
 somok = "1.5.0"
 miette = { version = "4.7.0", features = [ "fancy" ] }
 baker = "0.1.2"
+indexmap = "1.8.2"
 
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"
