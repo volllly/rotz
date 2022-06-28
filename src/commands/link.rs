@@ -91,6 +91,10 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool) -> std
 
 #[cfg(windows)]
 fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
+  if let Some(parent) = to.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
+  
   use std::os::windows::fs;
   if from.is_dir() {
     fs::symlink_dir(from, to)?;
@@ -112,6 +116,10 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
 
 #[cfg(windows)]
 fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
+  if let Some(parent) = to.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
+
   if from.is_dir() {
     junction::create(from, to)?;
   } else {

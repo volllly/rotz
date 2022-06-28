@@ -6,7 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
- ## [v0.3.1] - 2022-05-27
+## [v0.3.2] - 2022-06-28
+
+### Fixed
+
+- Linking now also creates the parent directory if it's not present on windows
+
+## [v0.3.1] - 2022-05-27
 
 ### Added
 
@@ -60,7 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.3.2...HEAD
+[v0.3.2]: https://github.com/volllly/rotz/releases/tag/v0.3.2
 [v0.3.1]: https://github.com/volllly/rotz/releases/tag/v0.3.1
 [v0.3.0]: https://github.com/volllly/rotz/releases/tag/v0.3.0
 [v0.2.0]: https://github.com/volllly/rotz/releases/tag/v0.2.0
