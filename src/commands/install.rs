@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use indexmap::{indexset, IndexSet};
+use itertools::Itertools;
 use miette::{Diagnostic, Result};
 use somok::Somok;
 
@@ -49,10 +49,9 @@ impl super::Command for Install {
 }
 
 fn install_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<()> {
-  detect_cyclic_dependencies(dots)?;
+  let installed = detect_cyclic_dependencies(dots)?;
 
-  let installed: HashSet<&str> = HashSet::new();
-
+  println!("{:?}", installed.iter().unique().collect_vec());
   // for (name, install, depends) in dots {
 
   //   install_dependencies(name, install)?;
@@ -61,9 +60,9 @@ fn install_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<()> {
   ().okay()
 }
 
-fn detect_cyclic_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<()> {
-  fn recurse_dependencies<'a>(dots: &HashMap<String, InstallsDots>, dot: (&'a String, &InstallsDots), stack: &'a mut IndexSet<&'a String>) -> Result<()> {
-    if stack.contains(dot.0) {
+fn detect_cyclic_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<Vec<&str>> {
+  fn recurse_dependencies<'a>(dots: &'a HashMap<String, InstallsDots>, dot: (&'a String, &'a InstallsDots), mut stack: Vec<&'a str>) -> Result<Vec<&'a str>> {
+    if stack.contains(&dot.0.as_str()) {
       Error::CyclicDependency {
         name: stack.first().unwrap().to_string(),
         through: stack.last().unwrap().to_string(),
@@ -71,40 +70,48 @@ fn detect_cyclic_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<()
       .error()?;
     }
 
-    stack.insert(dot.0);
+    stack.push(dot.0);
+
+    let old_stack = stack.clone();
 
     if let Some(installs) = &dot.1 .0 {
       for dependency in installs.depends.iter() {
-        recurse_dependencies(
+        let mut tmp = recurse_dependencies(
           dots,
           (
             dependency,
             dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(dependency.to_string(), dot.0.clone()))?,
           ),
-          &mut stack.clone(),
-        )?
+          old_stack.clone(),
+        )?;
+        tmp.extend(stack);
+        stack = tmp;
       }
     }
 
     if let Some(depends) = &dot.1 .1 {
       for dependency in depends.iter() {
-        recurse_dependencies(
+        let mut tmp = recurse_dependencies(
           dots,
           (
             dependency,
             dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(dependency.to_string(), dot.0.clone()))?,
           ),
-          &mut stack.clone(),
-        )?
+          old_stack.clone(),
+        )?;
+        tmp.extend(stack);
+        stack = tmp;
       }
     }
 
-    ().okay()
+    stack.okay()
   }
+
+  let mut stack = vec![];
 
   for dot in dots.iter() {
-    recurse_dependencies(dots, dot, &mut indexset![])?
+    stack.extend(recurse_dependencies(dots, dot, vec![])?);
   }
 
-  ().okay()
+  stack.okay()
 }
