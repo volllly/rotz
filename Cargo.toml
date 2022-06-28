@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = [ "Paul Volavsek <paul.volavsek@gmail.com>" ]
 license = "MIT"
@@ -32,7 +32,7 @@ crossterm = "0.23.2"
 itertools = "0.10.3"
 thiserror = "1.0.31"
 somok = "1.5.0"
-miette = { version = "4.7.0", features = [ "fancy" ] }
+miette = { version = "5.1.0", features = [ "fancy" ] }
 baker = "0.1.2"
 indexmap = "1.8.2"
 
@@ -42,5 +42,5 @@ junction = "0.2.0"
 [dev-dependencies]
 fake = { version = "2.4.3", features = [ "derive" ] }
 rand = "0.8.5"
-rstest = "0.13.0"
+rstest = "0.15.0"
 speculoos = "0.9.0"
