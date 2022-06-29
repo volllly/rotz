@@ -35,10 +35,10 @@ impl Link {
 }
 
 impl super::Command for Link {
-  type Args = crate::cli::Link;
+  type Args = (crate::cli::Globals, crate::cli::Link);
   type Result = Result<()>;
 
-  fn execute(&self, link_command: crate::cli::Link) -> Self::Result {
+  fn execute(&self, (globals, link_command): Self::Args) -> Self::Result {
     let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots)?
       .into_iter()
       .filter_map(|d| d.1.links.map(|l| (d.0, l)));
@@ -57,8 +57,10 @@ impl super::Command for Link {
             to = USER_DIRS.home_dir().iter().chain(iter).collect();
           }
 
-          if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force) {
-            eprintln!("\n Error: {:?}", Report::new(err));
+          if !globals.dry_run {
+            if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force) {
+              eprintln!("\n Error: {:?}", Report::new(err));
+            }
           }
         }
       }
@@ -94,7 +96,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
   }
-  
+
   use std::os::windows::fs;
   if from.is_dir() {
     fs::symlink_dir(from, to)?;

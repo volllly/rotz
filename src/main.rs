@@ -2,7 +2,7 @@
 
 use std::{
   fs::{self, File},
-  path::PathBuf,
+  path::{Path, PathBuf},
 };
 
 use clap::Parser;
@@ -12,6 +12,7 @@ use figment::{
   providers::{Env, Format, Serialized},
   Figment,
 };
+use helpers::os;
 use miette::{Diagnostic, Result};
 use once_cell::sync::Lazy;
 
@@ -32,6 +33,7 @@ use cli::Cli;
 
 mod config;
 use config::Config;
+use somok::Somok;
 
 mod commands;
 mod dot;
@@ -77,10 +79,41 @@ fn main() -> Result<()> {
     File::create(&cli.config.0).map_err(|e| Error::CreatingConfig(cli.config.0.clone(), e))?;
   }
 
-  let mut config = Figment::from(Serialized::defaults(Config::default()));
+  let mut config_figment = Figment::from(Serialized::defaults(Config::default()));
 
-  let config_str = fs::read_to_string(&cli.config.0).map_err(|e| Error::ReadingConfig(cli.config.0.clone(), e))?;
-  if !cfg!(feature = "yaml") || !config_str.is_empty() {
+  config_figment = merge_global_config(&cli.config.0, config_figment)?.merge(Env::prefixed("ROTZ_")).merge(&cli);
+
+  let mut config: Config = config_figment.extract().map_err(Error::ParsingConfig)?;
+
+  if config.dotfiles.starts_with("~/") {
+    let mut iter = config.dotfiles.iter();
+    iter.next();
+    config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
+  }
+  config = join_repo_config(&config.dotfiles.join(format!("config.{FILE_EXTENSION}")), config_figment)?
+    .select(format!("{}", os::OS).to_ascii_lowercase())
+    .extract()
+    .map_err(Error::ParsingConfig)?;
+
+  match cli.command.clone() {
+    cli::Command::Link { link } => commands::Link::new(config).execute((cli.bake(), link.bake())),
+    cli::Command::Clone { repo: _ } => {
+      let globals = cli.view();
+      if !globals.dry_run {
+        if let Some(repo) = &config.repo {
+          config::create_config_file_with_repo(repo, &cli.config.0)?;
+        }
+      }
+      commands::Clone::new(config).execute(cli.bake())
+    }
+    cli::Command::Install { install } => commands::Install::new(config).execute((cli.bake(), install.bake())),
+    cli::Command::Sync { .. } => todo!(),
+  }
+}
+
+fn merge_global_config(path: &Path, config: Figment) -> Result<Figment, Error> {
+  let config_str = fs::read_to_string(path).map_err(|e| Error::ReadingConfig(path.to_path_buf(), e))?;
+  if !config_str.is_empty() {
     #[cfg(feature = "toml")]
     let config_file = Toml::string(&config_str);
     #[cfg(feature = "yaml")]
@@ -88,26 +121,26 @@ fn main() -> Result<()> {
     #[cfg(feature = "json")]
     let config_file = Json::string(&config_str);
 
-    config = config.merge(config_file);
+    config.merge(config_file)
+  } else {
+    config
   }
+  .okay()
+}
 
-  let mut config: Config = config.merge(Env::prefixed("ROTZ_")).merge(&cli).extract().map_err(Error::ParsingConfig)?;
+fn join_repo_config(path: &Path, config: Figment) -> Result<Figment, Error> {
+  if path.exists() {
+    let config_str = fs::read_to_string(path).map_err(|e| Error::ReadingConfig(path.to_path_buf(), e))?;
+    if !config_str.is_empty() {
+      #[cfg(feature = "toml")]
+      let config_file = Toml::string(&config_str).nested();
+      #[cfg(feature = "yaml")]
+      let config_file = Yaml::string(&config_str).nested();
+      #[cfg(feature = "json")]
+      let config_file = Json::string(&config_str).nested();
 
-  if config.dotfiles.starts_with("~/") {
-    let mut iter = config.dotfiles.iter();
-    iter.next();
-    config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
-  }
-
-  match cli.command {
-    cli::Command::Link { link } => commands::Link::new(config).execute(link.bake()),
-    cli::Command::Clone { repo: _ } => {
-      if let Some(repo) = &config.repo {
-        config::create_config_file_with_repo(repo, &cli.config.0)?;
-      }
-      commands::Clone::new(config).execute(())
+      return config.join(config_file).okay();
     }
-    cli::Command::Install { install } => commands::Install::new(config).execute(install.bake()),
-    cli::Command::Sync { .. } => todo!(),
   }
+  config.okay()
 }

@@ -1,10 +1,20 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  io, process,
+};
 
-use itertools::Itertools;
+use crossterm::style::{Attribute, Stylize};
+use handlebars::Handlebars;
+use indexmap::IndexSet;
 use miette::{Diagnostic, Result};
+use once_cell::sync::Lazy;
+use serde_json::json;
 use somok::Somok;
 
+use super::Command;
 use crate::{config::Config, dot::Installs};
+
+pub(crate) static HANDLEBARS: Lazy<Handlebars> = Lazy::new(handlebars_misc_helpers::new_hbs);
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
@@ -12,9 +22,29 @@ enum Error {
   #[diagnostic(code(dependency::cyclic), help("{name} depends on itsself through {through}"))]
   CyclicDependency { name: String, through: String },
 
+  #[error("{name} has a cyclic installation dependency")]
+  #[diagnostic(code(dependency::cyclic::install), help("{name} depends on itsself through {through}"))]
+  CyclicInstallDependency { name: String, through: String },
+
   #[error("Dependency {0} of {1} was not found")]
   #[diagnostic(code(dependency::not_found))]
   DependencyNotFound(String, String),
+
+  #[error("Install command for {0} did not complete successfully. (Exitcode {1:?})")]
+  #[diagnostic(code(install::command::execute))]
+  InstallExecute(String, Option<i32>),
+
+  #[error("Could not spawn install command for {0}")]
+  #[diagnostic(code(install::command::spawn))]
+  InstallSpawn(String, #[source] io::Error),
+
+  #[error("Could not render command templeate for {0}")]
+  #[diagnostic(code(install::command::render))]
+  RenderingTemplate(String, #[source] handlebars::RenderError),
+
+  #[error("Could not parse install command for {0}")]
+  #[diagnostic(code(install::command::parse))]
+  ParsingInstallCommand(String, #[source] shellwords::MismatchedQuotes),
 }
 
 pub struct Install {
@@ -25,93 +55,134 @@ impl Install {
   pub const fn new(config: crate::config::Config) -> Self {
     Self { config }
   }
+
+  fn install<'a>(
+    &self,
+    dots: &'a HashMap<String, InstallsDots>,
+    entry: (&'a String, &'a InstallsDots),
+    installed: &mut HashSet<&'a str>,
+    mut stack: IndexSet<&'a str>,
+    (globals, link_command): (&crate::cli::Globals, &crate::cli::Install),
+  ) -> Result<(), Error> {
+    if installed.contains(entry.0.as_str()) {
+      return ().okay();
+    }
+
+    stack.insert(entry.0.as_str());
+
+    if let Some(installs) = &entry.1 .0 {
+      for dependency in &installs.depends {
+        if stack.contains(dependency.as_str()) {
+          return Error::CyclicInstallDependency {
+            name: dependency.to_string(),
+            through: entry.0.to_string(),
+          }
+          .error();
+        }
+
+        self.install(
+          dots,
+          (
+            dependency,
+            dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
+          ),
+          installed,
+          stack.clone(),
+          (globals, link_command),
+        )?;
+      }
+
+      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
+
+      let inner_cmd = HANDLEBARS
+        .render_template(
+          &installs.cmd.to_string(),
+          &json!({
+            "name": entry.0
+          }),
+        )
+        .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?;
+
+      let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
+        HANDLEBARS
+          .render_template(
+            shell_command,
+            &json!({
+              "name": entry.0,
+              "cmd": &inner_cmd
+            }),
+          )
+          .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
+      } else {
+        inner_cmd.clone()
+      };
+
+      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_string(), err))?;
+
+      println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
+
+      if !globals.dry_run {
+        let output = process::Command::new(&cmd[0])
+          .args(&cmd[1..])
+          .stdin(process::Stdio::null())
+          .stdout(process::Stdio::inherit())
+          .stderr(process::Stdio::inherit())
+          .output()
+          .map_err(|e| Error::InstallSpawn(entry.0.to_string(), e))?;
+
+        if !link_command.continue_on_error && !output.status.success() {
+          return Error::InstallExecute(entry.0.to_string(), output.status.code()).error();
+        }
+      }
+
+      installed.insert(entry.0.as_str());
+    }
+
+    if let Some(dependencies) = &entry.1 .1 {
+      for dependency in dependencies {
+        if stack.contains(dependency.as_str()) {
+          return Error::CyclicDependency {
+            name: dependency.to_string(),
+            through: entry.0.to_string(),
+          }
+          .error();
+        }
+
+        self.install(
+          dots,
+          (
+            dependency,
+            dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
+          ),
+          installed,
+          stack.clone(),
+          (globals, link_command),
+        )?;
+      }
+    }
+
+    ().okay()
+  }
 }
 
 type InstallsDots = (Option<Installs>, Option<HashSet<String>>);
 
-impl super::Command for Install {
-  type Args = crate::cli::Install;
+impl Command for Install {
+  type Args = (crate::cli::Globals, crate::cli::Install);
   type Result = Result<()>;
 
-  fn execute(&self, link_command: Self::Args) -> Self::Result {
+  fn execute(&self, (globals, link_command): Self::Args) -> Self::Result {
     let dots = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots)?
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))
       .collect::<HashMap<String, InstallsDots>>();
 
-    install_dependencies(&dots)?;
-
-    todo!();
+    let mut installed: HashSet<&str> = HashSet::new();
+    for dot in dots.iter() {
+      self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &link_command))?;
+    }
 
     ().okay()
   }
-}
-
-fn install_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<()> {
-  let installed = detect_cyclic_dependencies(dots)?;
-
-  println!("{:?}", installed.iter().unique().collect_vec());
-  // for (name, install, depends) in dots {
-
-  //   install_dependencies(name, install)?;
-  // }
-
-  ().okay()
-}
-
-fn detect_cyclic_dependencies(dots: &HashMap<String, InstallsDots>) -> Result<Vec<&str>> {
-  fn recurse_dependencies<'a>(dots: &'a HashMap<String, InstallsDots>, dot: (&'a String, &'a InstallsDots), mut stack: Vec<&'a str>) -> Result<Vec<&'a str>> {
-    if stack.contains(&dot.0.as_str()) {
-      Error::CyclicDependency {
-        name: stack.first().unwrap().to_string(),
-        through: stack.last().unwrap().to_string(),
-      }
-      .error()?;
-    }
-
-    stack.push(dot.0);
-
-    let old_stack = stack.clone();
-
-    if let Some(installs) = &dot.1 .0 {
-      for dependency in installs.depends.iter() {
-        let mut tmp = recurse_dependencies(
-          dots,
-          (
-            dependency,
-            dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(dependency.to_string(), dot.0.clone()))?,
-          ),
-          old_stack.clone(),
-        )?;
-        tmp.extend(stack);
-        stack = tmp;
-      }
-    }
-
-    if let Some(depends) = &dot.1 .1 {
-      for dependency in depends.iter() {
-        let mut tmp = recurse_dependencies(
-          dots,
-          (
-            dependency,
-            dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(dependency.to_string(), dot.0.clone()))?,
-          ),
-          old_stack.clone(),
-        )?;
-        tmp.extend(stack);
-        stack = tmp;
-      }
-    }
-
-    stack.okay()
-  }
-
-  let mut stack = vec![];
-
-  for dot in dots.iter() {
-    stack.extend(recurse_dependencies(dots, dot, vec![])?);
-  }
-
-  stack.okay()
 }

@@ -32,6 +32,10 @@ pub struct Config {
   pub(crate) link_type: LinkType,
   /// The url of the repository passed to the git clone command
   pub(crate) repo: Option<String>,
+  /// The command used to spawn processess.
+  /// Use handlebars templates `{{ cmd }}` as placeholder for the cmd set in the dot.
+  /// E.g. `"bash -c {{ quote "" cmd }}"`.
+  pub(crate) shell_command: Option<String>,
 }
 
 impl Default for Config {
@@ -40,6 +44,7 @@ impl Default for Config {
       dotfiles: USER_DIRS.home_dir().join(".dotfiles"),
       link_type: LinkType::Symbolic,
       repo: None,
+      shell_command: None,
     }
   }
 }

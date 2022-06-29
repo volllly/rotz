@@ -24,24 +24,33 @@ impl Display for PathBuf {
   }
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Bake)]
 #[clap(version, about)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
+#[baked(name = "Globals")]
 pub struct Cli {
   #[clap(long, short)]
+  #[baked(ignore)]
   /// Overwrites the dotfiles path set in the config file
   ///
   /// If no dotfiles path is provided in the config file the default "~/.dotfiles" is used
   pub(crate) dotfiles: Option<PathBuf>,
+
   #[clap(long, short, default_value_t = PROJECT_DIRS.config_dir().join(format!("config.{FILE_EXTENSION}")).into())]
+  #[baked(ignore)]
   /// Path to the config file
   pub(crate) config: PathBuf,
 
+  #[clap(long)]
+  /// When this switch is set no changes will be made.
+  pub(crate) dry_run: bool,
+
   #[clap(subcommand)]
+  #[baked(ignore)]
   pub(crate) command: Command,
 }
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Dots {
   #[clap(default_value = "*")]
@@ -49,7 +58,7 @@ pub struct Dots {
   pub(crate) dots: Vec<String>,
 }
 
-#[derive(Debug, Args, Bake)]
+#[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 #[baked(name = "Link")]
 pub struct LinkCli {
@@ -67,16 +76,20 @@ pub struct LinkCli {
   link_type: Option<LinkType>,
 }
 
-#[derive(Debug, Args, Bake)]
+#[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 #[baked(name = "Install")]
 pub struct InstallCli {
   #[clap(flatten)]
   #[baked(type = "Vec<String>", map = "self.dots.dots")]
   pub(crate) dots: Dots,
+
+  /// Continues installation when an error occurs during installation
+  #[clap(long, short)]
+  pub(crate) continue_on_error: bool,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub enum Command {
   /// Clones a dotfiles git repository

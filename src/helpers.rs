@@ -19,6 +19,7 @@ where
     Ok(result.into_iter().map(Result::unwrap).collect())
   }
 }
+
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
   if result.is_empty() {
@@ -26,6 +27,25 @@ pub fn join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
   };
 
   MultipleErrors(result.into_iter().collect_vec()).error()
+}
+
+pub(crate) mod os {
+  use derive_more::{Display, IsVariant};
+
+  #[derive(IsVariant, Display)]
+  #[allow(dead_code)]
+  pub enum Os {
+    Windows,
+    Linux,
+    Darwin,
+  }
+
+  #[cfg(windows)]
+  pub const OS: Os = Os::Windows;
+  #[cfg(target_os = "macos")]
+  pub const OS: Os = Os::Linux;
+  #[cfg(all(not(target_os = "macos"), unix))]
+  pub const OS: Os = Os::Darwin;
 }
 
 #[cfg(test)]

@@ -228,7 +228,10 @@ mod repr {
             },
             Installs::Full { cmd, depends } => {
               depends_outer.extend(depends.clone());
-              Installs::Full { cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()), depends: depends_outer }
+              Installs::Full {
+                cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
+                depends: depends_outer,
+              }
             }
           };
         }
@@ -256,7 +259,10 @@ mod repr {
             },
             Updates::Full { cmd, depends } => {
               depends_outer.extend(depends.clone());
-              Updates::Full { cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()), depends: depends_outer }
+              Updates::Full {
+                cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
+                depends: depends_outer,
+              }
             }
           };
         }
@@ -291,7 +297,7 @@ pub use repr::Merge;
 use somok::Somok;
 
 use self::repr::Capabilities;
-use crate::FILE_EXTENSION;
+use crate::{helpers::os, FILE_EXTENSION};
 
 #[derive(Clone, Debug)]
 pub struct Installs {
@@ -385,21 +391,17 @@ impl FromStr for Dot {
       darwin_windows,
     } = repr::Dot::parse(s)?;
 
-    let is_windows = cfg!(windows);
-    let is_macos = cfg!(target_os = "macos");
-    let is_unix = !is_macos && cfg!(unix);
-
     let mut capabilities: Option<Capabilities> = None;
 
-    if is_windows {
+    if os::OS.is_windows() {
       capabilities = windows.map(|g| *g).merge(global);
       capabilities = capabilities.merge(windows_linux);
       capabilities = capabilities.merge(darwin_windows);
-    } else if is_unix {
+    } else if os::OS.is_linux() {
       capabilities = linux.map(|g| *g).merge(global);
       capabilities = capabilities.merge(windows_linux);
       capabilities = capabilities.merge(linux_darwin);
-    } else if is_macos {
+    } else if os::OS.is_darwin() {
       capabilities = darwin.map(|g| *g).merge(global);
       capabilities = capabilities.merge(linux_darwin);
       capabilities = capabilities.merge(darwin_windows);
