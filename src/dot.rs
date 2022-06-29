@@ -36,7 +36,6 @@ mod repr {
   pub struct Capabilities {
     pub(super) links: Option<Links>,
     pub(super) installs: Option<Installs>,
-    pub(super) updates: Option<Updates>,
     #[serde(flatten)]
     pub(super) depends: Option<Depends>,
   }
@@ -59,18 +58,6 @@ mod repr {
   #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
   pub enum Installs {
-    Simple(String),
-    Full {
-      cmd: String,
-      #[serde(default)]
-      depends: HashSet<String>,
-    },
-  }
-
-  #[derive(Deserialize, Clone, Debug)]
-  #[serde(untagged)]
-  #[cfg_attr(test, derive(Dummy))]
-  pub enum Updates {
     Simple(String),
     Full {
       cmd: String,
@@ -120,7 +107,6 @@ mod repr {
         capabilities: Capabilities {
           links: None,
           installs: None,
-          updates: None,
           depends: None,
         },
       } = &parsed
@@ -151,15 +137,7 @@ mod repr {
   }
 
   impl Merge<Self> for Capabilities {
-    fn merge(
-      mut self,
-      Capabilities {
-        mut links,
-        installs,
-        updates,
-        depends,
-      }: Self,
-    ) -> Self {
+    fn merge(mut self, Capabilities { mut links, installs, depends }: Self) -> Self {
       if let Some(self_links) = &mut self.links {
         if let Links::One { links: self_links_one } = self_links {
           *self_links = Links::Many {
@@ -239,37 +217,6 @@ mod repr {
         self.installs = installs;
       }
 
-      if let Some(u) = &mut self.updates {
-        if let Some(updates) = updates {
-          let cmd_outer: Option<String>;
-          let mut depends_outer: HashSet<String> = HashSet::new();
-
-          match updates {
-            Updates::Simple(cmd) => cmd_outer = cmd.some(),
-            Updates::Full { cmd, depends } => {
-              cmd_outer = cmd.some();
-              depends_outer = depends;
-            }
-          }
-
-          *u = match u {
-            Updates::Simple(cmd) => Updates::Full {
-              cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
-              depends: depends_outer,
-            },
-            Updates::Full { cmd, depends } => {
-              depends_outer.extend(depends.clone());
-              Updates::Full {
-                cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
-                depends: depends_outer,
-              }
-            }
-          };
-        }
-      } else {
-        self.updates = updates;
-      }
-
       if let Some(d) = &mut self.depends {
         if let Some(depends) = depends {
           d.depends.extend(depends.depends);
@@ -314,26 +261,10 @@ impl From<repr::Installs> for Installs {
   }
 }
 
-#[derive(Clone, Debug)]
-pub struct Updates {
-  pub(crate) cmd: String,
-  pub(crate) depends: HashSet<String>,
-}
-
-impl From<repr::Updates> for Updates {
-  fn from(from: repr::Updates) -> Self {
-    match from {
-      repr::Updates::Simple(cmd) => Self { cmd, depends: Default::default() },
-      repr::Updates::Full { cmd, depends } => Self { cmd, depends },
-    }
-  }
-}
-
 #[derive(Default, Clone, Debug)]
 pub struct Dot {
   pub(crate) links: Option<HashMap<PathBuf, HashSet<PathBuf>>>,
   pub(crate) installs: Option<Installs>,
-  pub(crate) updates: Option<Updates>,
   pub(crate) depends: Option<HashSet<String>>,
 }
 
@@ -353,15 +284,6 @@ impl Merge<&Self> for Dot {
         i.depends.extend(installs.depends.clone());
       } else {
         self.installs = installs.clone().some();
-      }
-    }
-
-    if let Some(updates) = &merge.updates {
-      if let Some(u) = &mut self.updates {
-        u.cmd = updates.cmd.clone();
-        u.depends.extend(updates.depends.clone());
-      } else {
-        self.updates = updates.clone().some();
       }
     }
 
@@ -421,7 +343,6 @@ impl FromStr for Dot {
           repr::Links::Many { links } => links,
         }),
         installs: capabilities.installs.map(|i| i.into()),
-        updates: capabilities.updates.map(|u| u.into()),
         depends: capabilities.depends.map(|c| c.depends),
       }
     } else {
