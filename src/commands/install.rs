@@ -71,25 +71,27 @@ impl Install {
     stack.insert(entry.0.as_str());
 
     if let Some(installs) = &entry.1 .0 {
-      for dependency in &installs.depends {
-        if stack.contains(dependency.as_str()) {
-          return Error::CyclicInstallDependency {
-            name: dependency.to_string(),
-            through: entry.0.to_string(),
+      if !(link_command.skip_all_dependencies || link_command.skip_installation_dependencies) {
+        for dependency in &installs.depends {
+          if stack.contains(dependency.as_str()) {
+            return Error::CyclicInstallDependency {
+              name: dependency.to_string(),
+              through: entry.0.to_string(),
+            }
+            .error();
           }
-          .error();
-        }
 
-        self.install(
-          dots,
-          (
-            dependency,
-            dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
-          ),
-          installed,
-          stack.clone(),
-          (globals, link_command),
-        )?;
+          self.install(
+            dots,
+            (
+              dependency,
+              dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
+            ),
+            installed,
+            stack.clone(),
+            (globals, link_command),
+          )?;
+        }
       }
 
       println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
@@ -138,26 +140,28 @@ impl Install {
       installed.insert(entry.0.as_str());
     }
 
-    if let Some(dependencies) = &entry.1 .1 {
-      for dependency in dependencies {
-        if stack.contains(dependency.as_str()) {
-          return Error::CyclicDependency {
-            name: dependency.to_string(),
-            through: entry.0.to_string(),
+    if !(link_command.skip_all_dependencies || link_command.skip_dependencies) {
+      if let Some(dependencies) = &entry.1 .1 {
+        for dependency in dependencies {
+          if stack.contains(dependency.as_str()) {
+            return Error::CyclicDependency {
+              name: dependency.to_string(),
+              through: entry.0.to_string(),
+            }
+            .error();
           }
-          .error();
-        }
 
-        self.install(
-          dots,
-          (
-            dependency,
-            dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
-          ),
-          installed,
-          stack.clone(),
-          (globals, link_command),
-        )?;
+          self.install(
+            dots,
+            (
+              dependency,
+              dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
+            ),
+            installed,
+            stack.clone(),
+            (globals, link_command),
+          )?;
+        }
       }
     }
 

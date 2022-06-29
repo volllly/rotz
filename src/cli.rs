@@ -87,6 +87,18 @@ pub struct InstallCli {
   /// Continues installation when an error occurs during installation
   #[clap(long, short)]
   pub(crate) continue_on_error: bool,
+
+  /// Do not install dependencies
+  #[clap(long, short = 'd')]
+  pub(crate) skip_dependencies: bool,
+
+  /// Do not install installation dependencies
+  #[clap(long, short = 'i')]
+  pub(crate) skip_installation_dependencies: bool,
+
+  /// Do not install any dependencies
+  #[clap(long, short = 'a')]
+  pub(crate) skip_all_dependencies: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
