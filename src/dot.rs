@@ -58,6 +58,7 @@ mod repr {
   #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
   pub enum Installs {
+    None(bool),
     Simple(String),
     Full {
       cmd: String,
@@ -192,6 +193,7 @@ mod repr {
           let mut depends_outer: HashSet<String> = HashSet::new();
 
           match installs {
+            Installs::None(t) => cmd_outer = if !t { "".to_string().some() } else { None },
             Installs::Simple(cmd) => cmd_outer = cmd.some(),
             Installs::Full { cmd, depends } => {
               cmd_outer = cmd.some();
@@ -200,6 +202,10 @@ mod repr {
           }
 
           *i = match i {
+            Installs::None(_) => Installs::Full {
+              cmd: cmd_outer.unwrap_or_else(|| "".to_string()),
+              depends: depends_outer,
+            },
             Installs::Simple(cmd) => Installs::Full {
               cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
               depends: depends_outer,
@@ -255,6 +261,7 @@ pub struct Installs {
 impl From<repr::Installs> for Installs {
   fn from(from: repr::Installs) -> Self {
     match from {
+      repr::Installs::None(t) => Self { cmd: "".to_string(), depends: Default::default() },
       repr::Installs::Simple(cmd) => Self { cmd, depends: Default::default() },
       repr::Installs::Full { cmd, depends } => Self { cmd, depends },
     }

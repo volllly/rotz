@@ -42,9 +42,9 @@ pub(crate) mod os {
 
   #[cfg(windows)]
   pub const OS: Os = Os::Windows;
-  #[cfg(target_os = "macos")]
-  pub const OS: Os = Os::Linux;
   #[cfg(all(not(target_os = "macos"), unix))]
+  pub const OS: Os = Os::Linux;
+  #[cfg(target_os = "macos")]
   pub const OS: Os = Os::Darwin;
 }
 

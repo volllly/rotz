@@ -26,7 +26,7 @@ enum Error {
   #[diagnostic(code(dependency::cyclic::install), help("{name} depends on itsself through {through}"))]
   CyclicInstallDependency { name: String, through: String },
 
-  #[error("Dependency {0} of {1} was not found")]
+  #[error("Dependency {1} of {0} was not found")]
   #[diagnostic(code(dependency::not_found))]
   DependencyNotFound(String, String),
 
@@ -62,7 +62,7 @@ impl Install {
     entry: (&'a String, &'a InstallsDots),
     installed: &mut HashSet<&'a str>,
     mut stack: IndexSet<&'a str>,
-    (globals, link_command): (&crate::cli::Globals, &crate::cli::Install),
+    (globals, install_command): (&crate::cli::Globals, &crate::cli::Install),
   ) -> Result<(), Error> {
     if installed.contains(entry.0.as_str()) {
       return ().okay();
@@ -71,7 +71,7 @@ impl Install {
     stack.insert(entry.0.as_str());
 
     if let Some(installs) = &entry.1 .0 {
-      if !(link_command.skip_all_dependencies || link_command.skip_installation_dependencies) {
+      if !(install_command.skip_all_dependencies || install_command.skip_installation_dependencies) {
         for dependency in &installs.depends {
           if stack.contains(dependency.as_str()) {
             return Error::CyclicInstallDependency {
@@ -89,58 +89,60 @@ impl Install {
             ),
             installed,
             stack.clone(),
-            (globals, link_command),
+            (globals, install_command),
           )?;
         }
       }
 
-      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
+      if !installs.cmd.is_empty() {
+        println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
 
-      let inner_cmd = HANDLEBARS
-        .render_template(
-          &installs.cmd.to_string(),
-          &json!({
-            "name": entry.0
-          }),
-        )
-        .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?;
-
-      let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
-        HANDLEBARS
+        let inner_cmd = HANDLEBARS
           .render_template(
-            shell_command,
+            &installs.cmd.to_string(),
             &json!({
-              "name": entry.0,
-              "cmd": &inner_cmd
+              "name": entry.0
             }),
           )
-          .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
-      } else {
-        inner_cmd.clone()
-      };
+          .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?;
 
-      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_string(), err))?;
+        let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
+          HANDLEBARS
+            .render_template(
+              shell_command,
+              &json!({
+                "name": entry.0,
+                "cmd": &inner_cmd
+              }),
+            )
+            .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
+        } else {
+          inner_cmd.clone()
+        };
 
-      println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
+        let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_string(), err))?;
 
-      if !globals.dry_run {
-        let output = process::Command::new(&cmd[0])
-          .args(&cmd[1..])
-          .stdin(process::Stdio::null())
-          .stdout(process::Stdio::inherit())
-          .stderr(process::Stdio::inherit())
-          .output()
-          .map_err(|e| Error::InstallSpawn(entry.0.to_string(), e))?;
+        println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
 
-        if !link_command.continue_on_error && !output.status.success() {
-          return Error::InstallExecute(entry.0.to_string(), output.status.code()).error();
+        if !globals.dry_run {
+          let output = process::Command::new(&cmd[0])
+            .args(&cmd[1..])
+            .stdin(process::Stdio::null())
+            .stdout(process::Stdio::inherit())
+            .stderr(process::Stdio::inherit())
+            .output()
+            .map_err(|e| Error::InstallSpawn(entry.0.to_string(), e))?;
+
+          if !install_command.continue_on_error && !output.status.success() {
+            return Error::InstallExecute(entry.0.to_string(), output.status.code()).error();
+          }
         }
-      }
 
-      installed.insert(entry.0.as_str());
+        installed.insert(entry.0.as_str());
+      }
     }
 
-    if !(link_command.skip_all_dependencies || link_command.skip_dependencies) {
+    if !(install_command.skip_all_dependencies || install_command.skip_dependencies) {
       if let Some(dependencies) = &entry.1 .1 {
         for dependency in dependencies {
           if stack.contains(dependency.as_str()) {
@@ -159,7 +161,7 @@ impl Install {
             ),
             installed,
             stack.clone(),
-            (globals, link_command),
+            (globals, install_command),
           )?;
         }
       }
@@ -175,8 +177,8 @@ impl Command for Install {
   type Args = (crate::cli::Globals, crate::cli::Install);
   type Result = Result<()>;
 
-  fn execute(&self, (globals, link_command): Self::Args) -> Self::Result {
-    let dots = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots)?
+  fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
+    let dots = crate::dot::read_dots(&self.config.dotfiles, &["*".to_string()])?
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))
@@ -184,7 +186,9 @@ impl Command for Install {
 
     let mut installed: HashSet<&str> = HashSet::new();
     for dot in dots.iter() {
-      self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &link_command))?;
+      if install_command.dots.contains(&"".to_string()) || install_command.dots.contains(dot.0) {
+        self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;
+      }
     }
 
     ().okay()

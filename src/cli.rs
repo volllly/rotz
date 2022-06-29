@@ -41,7 +41,7 @@ pub struct Cli {
   /// Path to the config file
   pub(crate) config: PathBuf,
 
-  #[clap(long)]
+  #[clap(long, short = 'r')]
   /// When this switch is set no changes will be made.
   pub(crate) dry_run: bool,
 

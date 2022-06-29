@@ -28,10 +28,13 @@ pub enum LinkType {
 pub struct Config {
   /// Path to the local dotfiles
   pub(crate) dotfiles: PathBuf,
+
   /// Which link type to use for linking dotfiles
   pub(crate) link_type: LinkType,
+
   /// The url of the repository passed to the git clone command
   pub(crate) repo: Option<String>,
+
   /// The command used to spawn processess.
   /// Use handlebars templates `{{ cmd }}` as placeholder for the cmd set in the dot.
   /// E.g. `"bash -c {{ quote "" cmd }}"`.
@@ -44,7 +47,12 @@ impl Default for Config {
       dotfiles: USER_DIRS.home_dir().join(".dotfiles"),
       link_type: LinkType::Symbolic,
       repo: None,
-      shell_command: None,
+      #[cfg(windows)]
+      shell_command: Some("pwsh -NoProfile -C {{ quote \"\" cmd }}".to_string()),
+      #[cfg(all(not(target_os = "macos"), unix))]
+      shell_command: Some("bash -c {{ quote \"\" cmd }}".to_string()),
+      #[cfg(target_os = "macos")]
+      shell_command: Some("zsh -c {{ quote \"\" cmd }}".to_string()),
     }
   }
 }

@@ -15,7 +15,7 @@ use crate::{
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
   #[error("Could not create link from \"{0}\" to \"{1}\"")]
-  #[cfg_attr(windows, diagnostic(code(link::linking), help("You may need to run rotz from an admin shell to create file links")))]
+  #[cfg_attr(windows, diagnostic(code(link::linking), help("You may need to run Rotz from an admin shell to create file links")))]
   #[cfg_attr(not(windows), diagnostic(code(link::linking),))]
   Symlink(PathBuf, PathBuf, #[source] std::io::Error),
 
