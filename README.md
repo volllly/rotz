@@ -20,9 +20,7 @@ Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
 
 This project is still in development.
 
-Linking dotfiles on windows already works but is not very well tested.
-
-Expect more features in the next release which should be ready in a few weeks.
+Expect more features in the next release.
 
 ## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
 
