@@ -84,7 +84,7 @@ let commandList: FeatureItem[] = [
 let featureList: FeatureItem[] = [
   {
     emoji: '⚙️',
-    title: 'Versatile Configuration',
+    title: 'Versatile configuration',
     description: (
       <>
         You can specify where to link your dotfiles to and what software to install in <code>yaml</code>, <code>toml</code> or <code>json</code> config files.

@@ -55,13 +55,18 @@ installs:
 installs: iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
 ```
 
+:::note
+The command can also be set to `false`. This overwrites the value set in the [defaults `dots.yaml`](./defaults) file.
+:::
+
+
 ## depends
 
 The `depends` section contains an array of dependencies needed for the application to work correctly.
 
 These dependencies will also be installed when the application is installed.
 
-```yaml  title="Example: zsh/dot.yaml"
+```yaml title="Example: zsh/dot.yaml"
 ...
 depends: [starship]
 ```

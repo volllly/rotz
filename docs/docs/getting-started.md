@@ -13,7 +13,7 @@ Rotz has three main functionalities:
 
 ## Installation
 
-You can install rotz using cargo.
+You can install Rotz using cargo.
 
 ```bash
 cargo install rotz
@@ -37,6 +37,10 @@ cargo install rotz --no-default-features --features json
 ## Getting Started
 
 If you already have a `dotfiles` repo you can clone it with the `rotz clone` command.
+
+```sh title="Clone command"
+rotz clone git@github.com:<user>/<repo>.git
+```
 
 To bootstrap your dev environment use `rotz install`.
 

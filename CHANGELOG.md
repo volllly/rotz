@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 - Global `--dry-run` cli parameter
-- Install command
+- Implemented install command functionality
+- Option to skip installing dependences in install command
+- Option to continue on installation error in install command
 - Support for a repo level config file. You can now add a `config.(yaml|toml|json)` file containing os specific defaults to the root of your dotfiles repo.
+- `shell_command` configuration parameter
 
 ### Changed
 

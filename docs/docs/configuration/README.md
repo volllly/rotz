@@ -2,7 +2,7 @@
 title: Configuration
 ---
 
-Rotz uses a git repo containing the`dotfiles` and [`yaml`](https://yaml.org/) files for configuration.
+Rotz uses a git repo containing the `dotfiles` and [`yaml`](https://yaml.org/) files for configuration.
 
 :::tip
 To use another file format see [Other File Formats](#other-file-formats).

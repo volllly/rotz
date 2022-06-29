@@ -38,7 +38,7 @@ Rotz has three main functionalities:
 
 ## Installation
 
-You can install rotz using cargo.
+You can install Rotz using cargo.
 
 ```sh
 cargo install rotz
