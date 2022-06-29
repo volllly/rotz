@@ -8,7 +8,7 @@ title: Getting Started
 Rotz has three main functionalities:
 
 1. Linking dotfiles from a common repository to your system
-2. Installing the applications you need to start working on an new/empty machine *`[in development]`*
+2. Installing the applications you need to start working on an new/empty machine
 3. Full Cross platform functionality [See Configuration](#os-specific-configuration)
 
 ## Installation
@@ -38,6 +38,6 @@ cargo install rotz --no-default-features --features json
 
 If you already have a `dotfiles` repo you can clone it with the `rotz clone` command.
 
-To bootstrap your dev environment use `rotz install`. *`[in development]`*
+To bootstrap your dev environment use `rotz install`.
 
 To link your `dotfiles` use `rotz link`.

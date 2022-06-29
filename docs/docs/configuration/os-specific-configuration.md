@@ -16,17 +16,9 @@ windows:
     depends:
       - scoop
       - extras
-  updates:
-    cmd: scoop update {{ name }}
-    depends:
-      - scoop
 darwin:
   installs:
     cmd: brew install {{ name }}
-    depends:
-      - brew
-  updates:
-    cmd: brew upgrade {{ name }}
     depends:
       - brew
 ```

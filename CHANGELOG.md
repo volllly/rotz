@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+
+- Global `--dry-run` cli parameter
+- Install command
+- Support for a repo level config file. You can now add a `config.(yaml|toml|json)` file containing os specific defaults to the root of your dotfiles repo.
+
+### Changed
+
+- Improved Error messages
+
+### Fixed
+
+- Parsing of `dot.(yaml|toml|json)` files in the `installs` section
+
+### Removed
+
+- Removed the `update` command. Updates to the applications should be performed by your packagemanager.
+
 ## [v0.3.2] - 2022-06-28
 
 ### Fixed

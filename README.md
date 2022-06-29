@@ -33,7 +33,7 @@ Expect more features in the next release which should be ready in a few weeks.
 Rotz has three main functionalities:
 
 1. Linking dotfiles from a common repository to your system
-2. Installing the applications you need to start working on an new/empty machine *`[in development]`*
+2. Installing the applications you need to start working on an new/empty machine
 3. Full Cross platform functionality [See Configuration](#os-specific-configuration)
 
 ## Installation
@@ -89,7 +89,7 @@ Each managed application has a subfolder containing its `dotfiles` and a `dot.ya
 >     └── settings.json
 > ```
 
-The file `dot.yaml` contains information about how to install and update the application and where to link the dotfiles.
+The file `dot.yaml` contains information about how to install the application and where to link the dotfiles.
 
 ## `config.yaml`
 
@@ -111,7 +111,6 @@ The `dot.yaml` file consists of four optional keys:
 |------------|-------------|-------------------------------------------------------|
 | `links`    | `optional`  | Defines where to link which `dotfile`                 |
 | `installs` | `optional`  | Defines the install command and install dependencies. |
-| `updates`  | `optional`  | Defines the update command and update dependencies.   |
 | `depends`  | `optional`  | Defines dependencies this application needs to work.  |
 
 ### `links`
@@ -157,27 +156,11 @@ It can either be a `string` containing the install command or have two sub keys.
 > installs: iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
 > ```
 
-### `updates`
-
-The `updates` section contains the update command and optional update dependencies.
-
-It works exactly like the `installs` key described above.
-
-> ***Example:***
->
-> *`nodejs/dot.yaml`*
-> ```yaml
-> ...
-> updates:
->   cmd: scoop update nodejs
->   depends: [scoop]
-> ```
-
 ### depends
 
 The `depends` section contains an array of dependencies needed for the application to work correctly.
 
-These dependencies will also be installed/updated when the application is installed/updated.
+These dependencies will also be installed when the application is installed.
 
 > ***Example:***
 >
@@ -204,10 +187,6 @@ You can use template strings (`{{ name }}`) to substitute the name of the applic
 >   depends:
 >     - scoop
 >     - extras
-> updates:
->   cmd: scoop update {{ name }}
->   depends:
->     - scoop
 > ```
 
 ## OS Specific Configuration
@@ -228,17 +207,9 @@ To specify OS Specific behavior you need to add top level keys named `linux`, `w
 >     depends:
 >       - scoop
 >       - extras
->   updates:
->     cmd: scoop update {{ name }}
->     depends:
->       - scoop
 > darwin:
 >   installs:
 >     cmd: brew install {{ name }}
->     depends:
->       - brew
->   updates:
->     cmd: brew upgrade {{ name }}
 >     depends:
 >       - brew
 > ```

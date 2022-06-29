@@ -14,7 +14,6 @@ The `dot.yaml` file consists of four optional keys:
 |------------|-------------|-------------------------------------------------------|
 | `links`    | `optional`  | Defines where to link which `dotfile`                 |
 | `installs` | `optional`  | Defines the install command and install dependencies. |
-| `updates`  | `optional`  | Defines the update command and update dependencies.   |
 | `depends`  | `optional`  | Defines dependencies this application needs to work.  |
 
 ## `links`
@@ -56,24 +55,11 @@ installs:
 installs: iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
 ```
 
-## `updates`
-
-The `updates` section contains the update command and optional update dependencies.
-
-It works exactly like the `installs` key described above.
-
-```yaml  title="Example: nodejs/dot.yaml"
-...
-updates:
-  cmd: scoop update nodejs
-  depends: [scoop]
-```
-
 ## depends
 
 The `depends` section contains an array of dependencies needed for the application to work correctly.
 
-These dependencies will also be installed/updated when the application is installed/updated.
+These dependencies will also be installed when the application is installed.
 
 ```yaml  title="Example: zsh/dot.yaml"
 ...

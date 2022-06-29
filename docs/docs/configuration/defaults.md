@@ -15,8 +15,4 @@ installs:
   depends:
     - scoop
     - extras
-updates:
-  cmd: scoop update {{ name }}
-  depends:
-    - scoop
 ```

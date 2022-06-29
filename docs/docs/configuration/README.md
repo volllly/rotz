@@ -23,4 +23,4 @@ Each managed application has a subfolder containing its `dotfiles` and a `dot.ya
     └── settings.json
 ```
 
-The file `dot.yaml` contains information about how to install and update the application and where to link the dotfiles.
+The file `dot.yaml` contains information about how to install the application and where to link the dotfiles.

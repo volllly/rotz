@@ -42,7 +42,7 @@ function HomepageHeader() {
         </div>
         <div className="container">
           <Admontion type={'caution'}>
-            This project is still in development. Some features are not yet implemented.
+            This project is still in development. Most features are already implemented.
           </Admontion>
         </div>
       </div>
