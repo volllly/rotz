@@ -4,10 +4,13 @@ mod repr {
     path::PathBuf,
   };
 
+  use derive_more::IsVariant;
   #[cfg(test)]
   use fake::{Dummy, Fake};
   use serde::Deserialize;
   use somok::Somok;
+
+  use crate::helpers::os;
 
   #[derive(Deserialize, Debug, Default)]
   #[cfg_attr(test, derive(Dummy))]
@@ -16,7 +19,7 @@ mod repr {
     capabilities: Capabilities,
   }
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Deserialize, Debug, Default, Clone)]
   #[cfg_attr(test, derive(Dummy))]
   pub struct Dot {
     pub global: Option<Box<Capabilities>>,
@@ -54,7 +57,7 @@ mod repr {
     },
   }
 
-  #[derive(Deserialize, Clone, Debug)]
+  #[derive(Deserialize, Clone, Debug, IsVariant)]
   #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
   pub enum Installs {
@@ -120,6 +123,38 @@ mod repr {
         }
         .okay()
       }
+    }
+  }
+
+  impl From<Dot> for Capabilities {
+    fn from(
+      Dot {
+        global,
+        windows,
+        linux,
+        darwin,
+        windows_linux,
+        linux_darwin,
+        darwin_windows,
+      }: Dot,
+    ) -> Self {
+      let mut capabilities: Option<Capabilities> = global.map(|g| (*g).clone());
+
+      if os::OS.is_windows() {
+        capabilities = capabilities.merge(windows_linux);
+        capabilities = capabilities.merge(darwin_windows);
+        capabilities = capabilities.merge(windows);
+      } else if os::OS.is_linux() {
+        capabilities = capabilities.merge(windows_linux);
+        capabilities = capabilities.merge(linux_darwin);
+        capabilities = capabilities.merge(linux);
+      } else if os::OS.is_darwin() {
+        capabilities = capabilities.merge(linux_darwin);
+        capabilities = capabilities.merge(darwin_windows);
+        capabilities = capabilities.merge(darwin);
+      }
+
+      capabilities.unwrap_or_default()
     }
   }
 
@@ -189,35 +224,39 @@ mod repr {
 
       if let Some(i) = &mut self.installs {
         if let Some(installs) = installs {
-          let cmd_outer: Option<String>;
-          let mut depends_outer: HashSet<String> = HashSet::new();
+          if installs.is_none() {
+            self.installs = None;
+          } else {
+            let cmd_outer: String;
+            let mut depends_outer: HashSet<String> = HashSet::new();
 
-          match installs {
-            Installs::None(t) => cmd_outer = if !t { "".to_string().some() } else { None },
-            Installs::Simple(cmd) => cmd_outer = cmd.some(),
-            Installs::Full { cmd, depends } => {
-              cmd_outer = cmd.some();
-              depends_outer = depends;
-            }
-          }
-
-          *i = match i {
-            Installs::None(_) => Installs::Full {
-              cmd: cmd_outer.unwrap_or_else(|| "".to_string()),
-              depends: depends_outer,
-            },
-            Installs::Simple(cmd) => Installs::Full {
-              cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
-              depends: depends_outer,
-            },
-            Installs::Full { cmd, depends } => {
-              depends_outer.extend(depends.clone());
-              Installs::Full {
-                cmd: cmd_outer.unwrap_or_else(|| cmd.to_string()),
-                depends: depends_outer,
+            match installs {
+              Installs::Simple(cmd) => cmd_outer = cmd,
+              Installs::Full { cmd, depends } => {
+                cmd_outer = cmd;
+                depends_outer = depends;
               }
+              Installs::None(_) => panic!(),
             }
-          };
+
+            *i = match i {
+              Installs::None(_) => Installs::Full {
+                cmd: cmd_outer,
+                depends: depends_outer,
+              },
+              Installs::Simple(_) => Installs::Full {
+                cmd: cmd_outer,
+                depends: depends_outer,
+              },
+              Installs::Full { cmd: _, depends } => {
+                depends_outer.extend(depends.clone());
+                Installs::Full {
+                  cmd: cmd_outer,
+                  depends: depends_outer,
+                }
+              }
+            };
+          }
         }
       } else {
         self.installs = installs;
@@ -258,12 +297,12 @@ pub struct Installs {
   pub(crate) depends: HashSet<String>,
 }
 
-impl From<repr::Installs> for Installs {
+impl From<repr::Installs> for Option<Installs> {
   fn from(from: repr::Installs) -> Self {
     match from {
-      repr::Installs::None(t) => Self { cmd: "".to_string(), depends: Default::default() },
-      repr::Installs::Simple(cmd) => Self { cmd, depends: Default::default() },
-      repr::Installs::Full { cmd, depends } => Self { cmd, depends },
+      repr::Installs::None(_) => None,
+      repr::Installs::Simple(cmd) => Installs { cmd, depends: Default::default() }.some(),
+      repr::Installs::Full { cmd, depends } => Installs { cmd, depends }.some(),
     }
   }
 }
@@ -306,56 +345,62 @@ impl Merge<&Self> for Dot {
   }
 }
 
+fn from_str_with_defaults(s: &str, defaults: Option<&Capabilities>) -> Result<Dot, repr::ParseError> {
+  let repr::Dot {
+    global,
+    windows,
+    linux,
+    darwin,
+    windows_linux,
+    linux_darwin,
+    darwin_windows,
+  } = repr::Dot::parse(s)?;
+
+  let capabilities: Option<Capabilities> = if let Some(defaults) = defaults { (*defaults).clone().some() } else { None };
+
+  let mut capabilities: Option<Capabilities> = global.map_or(capabilities.clone(), |g| capabilities.merge(g.some()));
+
+  if os::OS.is_windows() {
+    capabilities = capabilities.merge(windows_linux);
+    capabilities = capabilities.merge(darwin_windows);
+    capabilities = capabilities.merge(windows);
+  } else if os::OS.is_linux() {
+    capabilities = capabilities.merge(windows_linux);
+    capabilities = capabilities.merge(linux_darwin);
+    capabilities = capabilities.merge(linux);
+  } else if os::OS.is_darwin() {
+    capabilities = capabilities.merge(linux_darwin);
+    capabilities = capabilities.merge(darwin_windows);
+    capabilities = capabilities.merge(darwin);
+  }
+
+  if let Some(capabilities) = capabilities {
+    Dot {
+      links: capabilities.links.map(|c| match c {
+        repr::Links::One { links } => links
+          .into_iter()
+          .map(|l| {
+            let mut hs = HashSet::<PathBuf>::new();
+            hs.insert(l.1);
+            (l.0, hs)
+          })
+          .collect(),
+        repr::Links::Many { links } => links,
+      }),
+      installs: capabilities.installs.and_then(|i| i.into()),
+      depends: capabilities.depends.map(|c| c.depends),
+    }
+  } else {
+    Dot::default()
+  }
+  .okay()
+}
+
 impl FromStr for Dot {
   type Err = repr::ParseError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    let repr::Dot {
-      global,
-      windows,
-      linux,
-      darwin,
-      windows_linux,
-      linux_darwin,
-      darwin_windows,
-    } = repr::Dot::parse(s)?;
-
-    let mut capabilities: Option<Capabilities> = None;
-
-    if os::OS.is_windows() {
-      capabilities = windows.map(|g| *g).merge(global);
-      capabilities = capabilities.merge(windows_linux);
-      capabilities = capabilities.merge(darwin_windows);
-    } else if os::OS.is_linux() {
-      capabilities = linux.map(|g| *g).merge(global);
-      capabilities = capabilities.merge(windows_linux);
-      capabilities = capabilities.merge(linux_darwin);
-    } else if os::OS.is_darwin() {
-      capabilities = darwin.map(|g| *g).merge(global);
-      capabilities = capabilities.merge(linux_darwin);
-      capabilities = capabilities.merge(darwin_windows);
-    }
-
-    if let Some(capabilities) = capabilities {
-      Self {
-        links: capabilities.links.map(|c| match c {
-          repr::Links::One { links } => links
-            .into_iter()
-            .map(|l| {
-              let mut hs = HashSet::<PathBuf>::new();
-              hs.insert(l.1);
-              (l.0, hs)
-            })
-            .collect(),
-          repr::Links::Many { links } => links,
-        }),
-        installs: capabilities.installs.map(|i| i.into()),
-        depends: capabilities.depends.map(|c| c.depends),
-      }
-    } else {
-      Self::default()
-    }
-    .okay()
+    from_str_with_defaults(s, None)
   }
 }
 
@@ -388,14 +433,15 @@ pub enum Error {
 }
 
 pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(String, Dot)>> {
-  let global = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
-  let global = match fs::read_to_string(global.clone()) {
-    Ok(text) => text.parse::<Dot>().map_err(|e| Error::ParseDot(global, e))?.some(),
+  let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
+  let defaults = match fs::read_to_string(defaults.clone()) {
+    Ok(text) => repr::Dot::parse(&text).map_err(|e| Error::ParseDot(defaults, e))?.some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => panic!("{}", err),
     },
   };
+  let defaults = defaults.map(Into::<Capabilities>::into);
 
   let wildcard = dots.contains(&"*".to_string());
 
@@ -427,7 +473,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(S
     });
 
   let dots = dotfiles.filter_map(|f| match f {
-    Ok((name, Ok(text))) => match text.parse::<Dot>() {
+    Ok((name, Ok(text))) => match from_str_with_defaults(&text, defaults.as_ref()) {
       Ok(dot) => (name, dot).okay().some(),
       Err(err) => Error::ParseDot(Path::new(&format!("{name}/dot.{FILE_EXTENSION}")).to_path_buf(), err).error().some(),
     },
@@ -437,8 +483,6 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(S
     },
     Ok((_, Err(err))) | Err(err) => err.error().some(),
   });
-
-  let dots = dots.map_ok(|d| (d.0, if let Some(global) = &global { global.clone().merge(&d.1) } else { d.1 }));
 
   let dots = crate::helpers::join_err_result(dots.collect())?;
   if dots.is_empty() {

@@ -94,52 +94,50 @@ impl Install {
         }
       }
 
-      if !installs.cmd.is_empty() {
-        println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
+      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
 
-        let inner_cmd = HANDLEBARS
+      let inner_cmd = HANDLEBARS
+        .render_template(
+          &installs.cmd.to_string(),
+          &json!({
+            "name": entry.0
+          }),
+        )
+        .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?;
+
+      let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
+        HANDLEBARS
           .render_template(
-            &installs.cmd.to_string(),
+            shell_command,
             &json!({
-              "name": entry.0
+              "name": entry.0,
+              "cmd": &inner_cmd
             }),
           )
-          .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?;
+          .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
+      } else {
+        inner_cmd.clone()
+      };
 
-        let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
-          HANDLEBARS
-            .render_template(
-              shell_command,
-              &json!({
-                "name": entry.0,
-                "cmd": &inner_cmd
-              }),
-            )
-            .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
-        } else {
-          inner_cmd.clone()
-        };
+      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_string(), err))?;
 
-        let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_string(), err))?;
+      println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
 
-        println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
+      if !globals.dry_run {
+        let output = process::Command::new(&cmd[0])
+          .args(&cmd[1..])
+          .stdin(process::Stdio::null())
+          .stdout(process::Stdio::inherit())
+          .stderr(process::Stdio::inherit())
+          .output()
+          .map_err(|e| Error::InstallSpawn(entry.0.to_string(), e))?;
 
-        if !globals.dry_run {
-          let output = process::Command::new(&cmd[0])
-            .args(&cmd[1..])
-            .stdin(process::Stdio::null())
-            .stdout(process::Stdio::inherit())
-            .stderr(process::Stdio::inherit())
-            .output()
-            .map_err(|e| Error::InstallSpawn(entry.0.to_string(), e))?;
-
-          if !install_command.continue_on_error && !output.status.success() {
-            return Error::InstallExecute(entry.0.to_string(), output.status.code()).error();
-          }
+        if !install_command.continue_on_error && !output.status.success() {
+          return Error::InstallExecute(entry.0.to_string(), output.status.code()).error();
         }
-
-        installed.insert(entry.0.as_str());
       }
+
+      installed.insert(entry.0.as_str());
     }
 
     if !(install_command.skip_all_dependencies || install_command.skip_dependencies) {
@@ -186,7 +184,7 @@ impl Command for Install {
 
     let mut installed: HashSet<&str> = HashSet::new();
     for dot in dots.iter() {
-      if install_command.dots.contains(&"".to_string()) || install_command.dots.contains(dot.0) {
+      if install_command.dots.contains(&"*".to_string()) || install_command.dots.contains(dot.0) {
         self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;
       }
     }
