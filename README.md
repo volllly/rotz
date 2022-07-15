@@ -16,15 +16,9 @@ Fully cross platform dotfile manager and dev environment bootstrapper written in
 
 Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
 
-## Status
-
-This project is still in development.
-
-Expect more features in the next release.
-
 ## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
 
-## [Documentation](https://volllly.github.io/rotz/) *`[in development]`*
+## [Documentation](https://volllly.github.io/rotz/)
 
 ## Overview
 

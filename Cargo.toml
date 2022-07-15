@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 authors = [ "Paul Volavsek <paul.volavsek@gmail.com>" ]
 license = "MIT"
@@ -8,7 +8,7 @@ description = "Fully cross platform dotfile manager written in rust."
 repository = "https://github.com/volllly/rotz"
 readme = "./README.md"
 documentation = "https://docs.rs/rotz/"
-keywords = [ "dotfiles", "dotfile", "manager", "dotfile-manager", "cross-platform" ]
+keywords = [ "dotfiles", "dotfile", "manager", "dotfiles-manager", "dotfile-manager", "cross-platform" ]
 categories = [ "command-line-utilities" ]
 
 [features]
@@ -19,7 +19,7 @@ toml = [ "serde_toml", "figment/toml" ]
 json = [ "figment/json" ]
 
 [dependencies]
-clap = { version = "3.2.11", features = [ "derive" ] }
+clap = { version = "3.2.12", features = [ "derive" ] }
 serde_yaml = { version = "0.8.25", optional = true }
 serde_toml = { package = "toml", version = "0.5.9", optional = true }
 serde_json = "1.0.82"

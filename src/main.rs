@@ -71,7 +71,7 @@ pub(crate) const FILE_EXTENSION: &str = "yaml";
 #[cfg(feature = "json")]
 pub(crate) const FILE_EXTENSION: &str = "json";
 
-fn main() -> Result<()> {
+fn main() -> Result<(), miette::Report> {
   let cli = Cli::parse();
 
   if !cli.config.0.exists() {
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
       commands::Clone::new(config).execute(cli.bake())
     }
     cli::Command::Install { install } => commands::Install::new(config).execute((cli.bake(), install.bake())),
-    cli::Command::Sync { .. } => todo!(),
+    cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
   }
 }
 
