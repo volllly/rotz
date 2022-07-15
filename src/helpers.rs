@@ -21,7 +21,7 @@ where
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
-pub fn join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
+pub fn _join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
   if result.is_empty() {
     return ().okay();
   };
