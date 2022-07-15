@@ -7,6 +7,10 @@ on:
       - docs/**
       - .github/workflows/main.yml
 
+concurrency: 
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     name: Deploy to GitHub Pages
