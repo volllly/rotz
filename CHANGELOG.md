@@ -6,20 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [v0.5.0] - 2022-07-15
+## [0.5.0] - 2022-07-15
 
 ### Added
 
 - Implemented install command functionality
 
-## [v0.4.1] - 2022-06-30
+## [0.4.1] - 2022-06-30
 
 ### Fixed
 
 - Wildcard "*" in install command not working 
 - Defaults and global values in `dot.(yaml|toml|json)` files not working correctly
 
-## [v0.4.0] - 2022-06-29
+## [0.4.0] - 2022-06-29
 
 ### Added
 
@@ -42,13 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed the `update` command. Updates to the applications should be performed by your packagemanager.
 
-## [v0.3.2] - 2022-06-28
+## [0.3.2] - 2022-06-28
 
 ### Fixed
 
 - Linking now also creates the parent directory if it's not present on windows
 
-## [v0.3.1] - 2022-05-27
+## [0.3.1] - 2022-05-27
 
 ### Added
 
@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Linking now also creates the parent directory if it's not present
 
- ## [v0.3.0] - 2022-05-09
+ ## [0.3.0] - 2022-05-09
 
 ### Added
 
@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better error messages
 - Moved from [eyre](https://crates.io/crates/eyre) to [miette](https://crates.io/crates/miette) for error handline
 
-## [v0.2.0] - 2022-02-21
+## [0.2.0] - 2022-02-21
 
 ### Added
 
@@ -84,13 +84,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed `link` command default value for Dots not working
 
-## [v0.1.1] - 2022-02-18
+## [0.1.1] - 2022-02-18
 
 ### Changed
 
 - Updated Readme
 
-## [v0.1.0] - 2022-02-18
+## [0.1.0] - 2022-02-18
 
 ### Added
 
@@ -103,12 +103,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error handling
 
 [Unreleased]: https://github.com/volllly/rotz/compare/v0.5.0...HEAD
-[v0.5.0]: https://github.com/volllly/rotz/releases/tag/v0.5.0
-[v0.4.1]: https://github.com/volllly/rotz/releases/tag/v0.4.1
-[v0.4.0]: https://github.com/volllly/rotz/releases/tag/v0.4.0
-[v0.3.2]: https://github.com/volllly/rotz/releases/tag/v0.3.2
-[v0.3.1]: https://github.com/volllly/rotz/releases/tag/v0.3.1
-[v0.3.0]: https://github.com/volllly/rotz/releases/tag/v0.3.0
-[v0.2.0]: https://github.com/volllly/rotz/releases/tag/v0.2.0
-[v0.1.1]: https://github.com/volllly/rotz/releases/tag/v0.1.1
-[v0.1.0]: https://github.com/volllly/rotz/releases/tag/v0.1.0
+[0.5.0]: https://github.com/volllly/rotz/releases/tag/v0.5.0
+[0.4.1]: https://github.com/volllly/rotz/releases/tag/v0.4.1
+[0.4.0]: https://github.com/volllly/rotz/releases/tag/v0.4.0
+[0.3.2]: https://github.com/volllly/rotz/releases/tag/v0.3.2
+[0.3.1]: https://github.com/volllly/rotz/releases/tag/v0.3.1
+[0.3.0]: https://github.com/volllly/rotz/releases/tag/v0.3.0
+[0.2.0]: https://github.com/volllly/rotz/releases/tag/v0.2.0
+[0.1.1]: https://github.com/volllly/rotz/releases/tag/v0.1.1
+[0.1.0]: https://github.com/volllly/rotz/releases/tag/v0.1.0
