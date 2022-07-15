@@ -41,7 +41,8 @@ impl Command for Sync {
           &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("add"), OsStr::new("*"), OsStr::new("-v")],
           true,
           globals.dry_run,
-        ).map_err(|err| Error::CommandExecute("Add *".to_string(), err))?;
+        )
+        .map_err(|err| Error::CommandExecute("Add *".to_string(), err))?;
       } else {
         for dot in sync.dots {
           helpers::run_command(
@@ -49,7 +50,8 @@ impl Command for Sync {
             &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("add"), OsStr::new(&format!("{dot}/*")), OsStr::new("-v")],
             true,
             globals.dry_run,
-          ).map_err(|err| Error::CommandExecute("Add".to_string(), err))?;
+          )
+          .map_err(|err| Error::CommandExecute("Add".to_string(), err))?;
         }
       }
     }
@@ -66,7 +68,8 @@ impl Command for Sync {
       ],
       true,
       globals.dry_run,
-    ).map_err(|err| Error::CommandExecute("Commit".to_string(), err))?;
+    )
+    .map_err(|err| Error::CommandExecute("Commit".to_string(), err))?;
 
     println!("{}Pulling{}\n", Attribute::Bold, Attribute::Reset);
     helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("pull")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Pull".to_string(), err))?;

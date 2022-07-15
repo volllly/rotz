@@ -73,11 +73,7 @@ pub(crate) fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, d
     return ().okay();
   }
 
-  let output = process::Command::new(cmd)
-    .args(args)
-    .stdin(process::Stdio::null())
-    .output()
-    .map_err(RunError::Spawn)?;
+  let output = process::Command::new(cmd).args(args).stdin(process::Stdio::null()).output().map_err(RunError::Spawn)?;
 
   if !silent {
     std::io::stdout().write_all(&output.stdout)?;
