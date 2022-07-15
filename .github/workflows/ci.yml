@@ -142,10 +142,6 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - uses: dtolnay/install@master
-        with:
-          crate: cargo-workspaces
-
       - run: cargo publish --dry-run
 
       - name: Create github Release
