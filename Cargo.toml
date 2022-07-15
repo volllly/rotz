@@ -8,7 +8,7 @@ description = "Fully cross platform dotfile manager written in rust."
 repository = "https://github.com/volllly/rotz"
 readme = "./README.md"
 documentation = "https://docs.rs/rotz/"
-keywords = [ "dotfiles", "dotfile", "manager", "dotfile-manager", "cross-platform" ]
+keywords = [ "dotfiles", "dotfile", "manager", "dotfiles-manager", "dotfile-manager", "cross-platform" ]
 categories = [ "command-line-utilities" ]
 
 [features]
