@@ -1,4 +1,9 @@
-use std::fmt::Debug;
+use std::{
+  ffi::OsStr,
+  fmt::Debug,
+  io::{self, Write},
+  process,
+};
 
 use itertools::Itertools;
 use miette::{Diagnostic, Result};
@@ -46,6 +51,48 @@ pub(crate) mod os {
   pub const OS: Os = Os::Linux;
   #[cfg(target_os = "macos")]
   pub const OS: Os = Os::Darwin;
+}
+
+#[derive(thiserror::Error, Diagnostic, Debug)]
+pub(crate) enum RunError {
+  #[error("Cloud not spawn command")]
+  #[diagnostic(code(process::command::spawn))]
+  Spawn(#[source] io::Error),
+
+  #[error("Command did not complete successfully. (Exitcode {0:?})")]
+  #[diagnostic(code(process::command::execute))]
+  Execute(Option<i32>),
+
+  #[error("Could not write output")]
+  #[diagnostic(code(process::command::output))]
+  Write(#[from] io::Error),
+}
+
+pub(crate) fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<(), RunError> {
+  if dry_run {
+    return ().okay();
+  }
+
+  let output = process::Command::new(cmd)
+    .args(args)
+    .stdin(process::Stdio::null())
+    .output()
+    .map_err(RunError::Spawn)?;
+
+  if !silent {
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stdout().write_all(&output.stderr)?;
+  }
+
+  if !output.status.success() {
+    if silent {
+      std::io::stdout().write_all(&output.stdout)?;
+      std::io::stdout().write_all(&output.stderr)?;
+    }
+    RunError::Execute(output.status.code()).error()?;
+  };
+
+  ().okay()
 }
 
 #[cfg(test)]

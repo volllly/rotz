@@ -101,6 +101,28 @@ pub struct InstallCli {
   pub(crate) skip_all_dependencies: bool,
 }
 
+#[derive(Debug, Args, Bake, Clone)]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[baked(name = "Sync")]
+pub struct SyncCli {
+  #[clap(flatten)]
+  #[baked(type = "Vec<String>", map = "self.dots.dots")]
+  pub(crate) dots: Dots,
+
+  #[clap(long, short)]
+  #[baked(ignore)]
+  /// The url of the repository passed to the git clone command
+  repo: Option<String>,
+
+  #[clap(long, short)]
+  /// Do not push changes
+  pub(crate) no_push: bool,
+
+  #[clap(long, short)]
+  /// Specify commit message
+  pub(crate) message: Option<String>,
+}
+
 #[derive(Subcommand, Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub enum Command {
@@ -119,11 +141,7 @@ pub enum Command {
   /// Syncs dotfiles with the git repository
   Sync {
     #[clap(flatten)]
-    dots: Dots,
-
-    #[clap(long, short)]
-    /// The url of the repository passed to the git clone command
-    repo: Option<String>,
+    sync: SyncCli,
   },
 
   /// Installs applications using the provided commands

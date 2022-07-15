@@ -1,7 +1,4 @@
-use std::{
-  collections::{HashMap, HashSet},
-  io, process,
-};
+use std::collections::{HashMap, HashSet};
 
 use crossterm::style::{Attribute, Stylize};
 use handlebars::Handlebars;
@@ -12,7 +9,7 @@ use serde_json::json;
 use somok::Somok;
 
 use super::Command;
-use crate::{config::Config, dot::Installs};
+use crate::{config::Config, dot::Installs, helpers};
 
 pub(crate) static HANDLEBARS: Lazy<Handlebars> = Lazy::new(handlebars_misc_helpers::new_hbs);
 
@@ -30,13 +27,9 @@ enum Error {
   #[diagnostic(code(dependency::not_found))]
   DependencyNotFound(String, String),
 
-  #[error("Install command for {0} did not complete successfully. (Exitcode {1:?})")]
-  #[diagnostic(code(install::command::execute))]
-  InstallExecute(String, Option<i32>),
-
-  #[error("Could not spawn install command for {0}")]
-  #[diagnostic(code(install::command::spawn))]
-  InstallSpawn(String, #[source] io::Error),
+  #[error("Install command for {0} did not run successfully")]
+  #[diagnostic(code(install::command::run))]
+  InstallExecute(String, #[source] helpers::RunError),
 
   #[error("Could not render command templeate for {0}")]
   #[diagnostic(code(install::command::render))]
@@ -123,17 +116,9 @@ impl Install {
 
       println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
 
-      if !globals.dry_run {
-        let output = process::Command::new(&cmd[0])
-          .args(&cmd[1..])
-          .stdin(process::Stdio::null())
-          .stdout(process::Stdio::inherit())
-          .stderr(process::Stdio::inherit())
-          .output()
-          .map_err(|e| Error::InstallSpawn(entry.0.to_string(), e))?;
-
-        if !install_command.continue_on_error && !output.status.success() {
-          return Error::InstallExecute(entry.0.to_string(), output.status.code()).error();
+      if let Err(err) = helpers::run_command(&cmd[0], &cmd[1..], false, globals.dry_run) {
+        if !install_command.continue_on_error {
+          return Error::InstallExecute(entry.0.to_string(), err).error();
         }
       }
 
