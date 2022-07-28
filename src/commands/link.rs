@@ -39,7 +39,7 @@ impl super::Command for Link {
   type Result = Result<()>;
 
   fn execute(&self, (globals, link_command): Self::Args) -> Self::Result {
-    let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots)?
+    let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots, &self.config)?
       .into_iter()
       .filter_map(|d| d.1.links.map(|l| (d.0, l)));
 

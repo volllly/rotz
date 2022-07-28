@@ -37,6 +37,7 @@ use somok::Somok;
 
 mod commands;
 mod dot;
+mod templating;
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {

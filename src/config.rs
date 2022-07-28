@@ -1,4 +1,5 @@
 use std::{
+  collections::HashMap,
   fs,
   path::{Path, PathBuf},
 };
@@ -39,6 +40,9 @@ pub struct Config {
   /// Use handlebars templates `{{ cmd }}` as placeholder for the cmd set in the dot.
   /// E.g. `"bash -c {{ quote "" cmd }}"`.
   pub(crate) shell_command: Option<String>,
+
+  /// Variables can be used for templating in dot.(yaml|toml|json) files.
+  pub(crate) variables: HashMap<String, String>,
 }
 
 impl Default for Config {
@@ -53,6 +57,7 @@ impl Default for Config {
       shell_command: Some("bash -c {{ quote \"\" cmd }}".to_string()),
       #[cfg(target_os = "macos")]
       shell_command: Some("zsh -c {{ quote \"\" cmd }}".to_string()),
+      variables: HashMap::new(),
     }
   }
 }
