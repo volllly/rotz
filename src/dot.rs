@@ -284,7 +284,7 @@ use std::{
 
 use crossterm::style::Stylize;
 use itertools::Itertools;
-use miette::Diagnostic;
+use miette::{Diagnostic, NamedSource, SourceSpan};
 pub use repr::Merge;
 use somok::Somok;
 
@@ -428,14 +428,14 @@ pub enum Error {
   ReadingDot(#[source] std::io::Error),
 
   #[cfg(feature = "yaml")]
-  #[error("Could not parse dot \"{0}\"")]
+  #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
-  ParseDot(PathBuf, #[source] serde_yaml::Error),
+  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] serde_yaml::Error),
 
   #[cfg(feature = "yaml")]
-  #[error("Could not render template for dot \"{0}\"")]
+  #[error("Could not render template for dot")]
   #[diagnostic(code(dot::render))]
-  RenderDot(PathBuf, #[source] templating::Error),
+  RenderDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] templating::Error),
 
   #[error("Io Error on file \"{0}\"")]
   #[diagnostic(code(io::generic))]
@@ -447,7 +447,9 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
 
   let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
   let defaults = match fs::read_to_string(defaults.clone()) {
-    Ok(text) => repr::Dot::parse(&text).map_err(|e| Error::ParseDot(defaults, e))?.some(),
+    Ok(text) => repr::Dot::parse(&text)
+      .map_err(|e| Error::ParseDot(NamedSource::new(defaults.to_str().unwrap_or_default(), text.to_string()), (0, text.len()).into(), e))?
+      .some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => panic!("{}", err),
@@ -489,12 +491,18 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       let parameters = Parameters { name: &name, parameters: &parameters };
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
-        Err(err) => return Error::RenderDot(Path::new(&format!("{name}/dot.{FILE_EXTENSION}")).to_path_buf(), err).error().some(),
+        Err(err) => {
+          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), text.to_string()), (0, text.len()).into(), err)
+            .error()
+            .some()
+        }
       };
 
       match from_str_with_defaults(&text, defaults.as_ref()) {
         Ok(dot) => (name, dot).okay().some(),
-        Err(err) => Error::ParseDot(Path::new(&format!("{name}/dot.{FILE_EXTENSION}")).to_path_buf(), err).error().some(),
+        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), text.to_string()), (0, text.len()).into(), err)
+          .error()
+          .some(),
       }
     }
     Ok((_, Err(Error::Io(file, err)))) => match err.kind() {

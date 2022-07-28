@@ -92,7 +92,7 @@ fn main() -> Result<(), miette::Report> {
     config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
   }
   config = join_repo_config(&config.dotfiles.join(format!("config.{FILE_EXTENSION}")), config_figment)?
-    .select(format!("{}", os::OS).to_ascii_lowercase())
+    .select(os::OS.to_string().to_ascii_lowercase())
     .extract()
     .map_err(Error::ParsingConfig)?;
 

@@ -24,6 +24,22 @@ pub enum LinkType {
   Hard,
 }
 
+#[cfg(test)]
+struct ValueFaker;
+
+#[cfg(test)]
+impl Dummy<ValueFaker> for HashMap<String, serde_json::Value> {
+  fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &ValueFaker, rng: &mut R) -> Self {
+    let mut map = HashMap::new();
+
+    for _ in 0..10.fake_with_rng(rng) {
+      map.insert((0..10).fake_with_rng(rng), serde_json::Value::String((0..10).fake_with_rng::<String, R>(rng)));
+    }
+
+    map
+  }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Config {
@@ -42,7 +58,8 @@ pub struct Config {
   pub(crate) shell_command: Option<String>,
 
   /// Variables can be used for templating in dot.(yaml|toml|json) files.
-  pub(crate) variables: HashMap<String, String>,
+  #[cfg_attr(test, dummy(faker = "ValueFaker"))]
+  pub(crate) variables: HashMap<String, serde_json::Value>,
 }
 
 impl Default for Config {
