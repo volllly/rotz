@@ -2,13 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
     tags:
       - v*
+    paths:
+      - '.'
+      - '!docs/**'
+      - '!.github/**'
+      - '.github/workflows/CI.yml'
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
-concurrency: 
+concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 

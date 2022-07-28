@@ -13,8 +13,6 @@ concurrency:
 
 jobs:
   build:
-    name: Deploy to GitHub Pages
-
     runs-on: ubuntu-latest
 
     steps:
