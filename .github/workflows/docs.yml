@@ -5,16 +5,18 @@ on:
     branches: [main]
     paths:
       - docs/**
-      - .github/workflows/main.yml
+      - .github/workflows/docs.yml
 
-concurrency: 
-  group: ${{ github.ref }}
+concurrency:
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     name: Deploy to GitHub Pages
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
@@ -30,8 +32,25 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/build
+          path: ./docs/build
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
