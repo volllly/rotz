@@ -6,6 +6,8 @@ on:
     paths:
       - docs/**
       - .github/workflows/docs.yml
+  pull_request:
+    branches: [main]
 
 concurrency:
   group: pages
@@ -45,6 +47,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
+    if: github.ref == 'refs/heads/master'
 
     runs-on: ubuntu-latest
 

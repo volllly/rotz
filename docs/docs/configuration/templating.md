@@ -1,5 +1,5 @@
 ---
-title: dot.yaml
+title: Templating
 sidebar_position: 5
 ---
 
