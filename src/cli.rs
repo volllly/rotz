@@ -110,11 +110,6 @@ pub struct SyncCli {
   pub(crate) dots: Dots,
 
   #[clap(long, short)]
-  #[baked(ignore)]
-  /// The url of the repository passed to the git clone command
-  repo: Option<String>,
-
-  #[clap(long, short)]
   /// Do not push changes
   pub(crate) no_push: bool,
 
@@ -129,12 +124,12 @@ pub enum Command {
   /// Clones a dotfiles git repository
   Clone {
     /// The url of the repository passed to the git clone command
-    repo: Option<String>,
+    repo: String,
   },
 
   /// Creates a dotfiles git repository and config
   Init {
-    /// The url of the repository passed to the git clone command
+    /// The url of the repository passed to the git init command
     repo: Option<String>,
   },
 

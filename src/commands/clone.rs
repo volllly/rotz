@@ -12,10 +12,6 @@ use crate::{
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
-  #[error("No repo is configured")]
-  #[diagnostic(code(clone::config::repo), help("Run the clone command with the --repo argument"))]
-  NoRepoConfigured,
-
   #[error("Clone command did not run successfully")]
   #[diagnostic(code(clone::command::run))]
   CloneExecute(#[from] helpers::RunError),
@@ -32,7 +28,7 @@ impl Clone {
 }
 
 impl Command for Clone {
-  type Args = (crate::cli::Cli, Option<String>);
+  type Args = (crate::cli::Cli, String);
 
   type Result = Result<()>;
 
@@ -40,8 +36,6 @@ impl Command for Clone {
     if !cli.dry_run {
       config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
     }
-
-    let repo = repo.as_ref().ok_or(Error::NoRepoConfigured)?;
 
     println!(
       "{}Cloning \"{}\" to \"{}\"{}\n",
@@ -51,7 +45,7 @@ impl Command for Clone {
       Attribute::Reset
     );
 
-    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(repo), self.config.dotfiles.as_os_str()], false, cli.dry_run)?;
+    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(&repo), self.config.dotfiles.as_os_str()], false, cli.dry_run)?;
 
     println!("\n{}Cloned repo{}", Attribute::Bold, Attribute::Reset);
 

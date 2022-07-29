@@ -8,7 +8,6 @@ The following settings are configurable in the config file like so:
 ```yaml title="config.yaml"
 dotfiles: <path to dotfiles>
 link_type: <"symbolic"|"hard">
-repo: <git repo url>
 shell_command: <shell command template used for the install command>
 variables: <map of variables which can be used in templates>
 ```

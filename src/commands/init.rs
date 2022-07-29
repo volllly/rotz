@@ -37,25 +37,19 @@ impl Command for Init {
       config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
     }
 
+    std::fs::create_dir_all(&self.config.dotfiles).map_err(|err| Error::CreatingDir(self.config.dotfiles.clone(), err))?;
+
+    println!("\n{}Initializing repo in \"{}\"{}\n", Attribute::Bold, self.config.dotfiles.to_string_lossy().green(), Attribute::Reset);
+
+    helpers::run_command(
+      "git",
+      &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("init"), OsStr::new("-b"), OsStr::new("main")],
+      false,
+      cli.dry_run,
+    )?;
+
     if let Some(repo) = repo.as_ref() {
-      std::fs::create_dir_all(&self.config.dotfiles).map_err(|err| Error::CreatingDir(self.config.dotfiles.clone(), err))?;
-
-      println!(
-        "\n{}Initializing repo \"{}\" with remote \"{}\"{}\n",
-        Attribute::Bold,
-        self.config.dotfiles.to_string_lossy().green(),
-        repo.as_str().blue(),
-        Attribute::Reset
-      );
-
-      helpers::run_command(
-        "git",
-        &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("init"), OsStr::new("-b"), OsStr::new("main")],
-        false,
-        cli.dry_run,
-      )?;
-
-      println!("\n{}Adding remote{}\n", Attribute::Bold, Attribute::Reset);
+      println!("\n{}Adding remote \"{}\"{}\n", Attribute::Bold, repo.as_str().blue(), Attribute::Reset);
 
       helpers::run_command(
         "git",
