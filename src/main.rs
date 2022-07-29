@@ -98,17 +98,10 @@ fn main() -> Result<(), miette::Report> {
 
   match cli.command.clone() {
     cli::Command::Link { link } => commands::Link::new(config).execute((cli.bake(), link.bake())),
-    cli::Command::Clone { repo: _ } => {
-      let globals = cli.view();
-      if !globals.dry_run {
-        if let Some(repo) = &config.repo {
-          config::create_config_file_with_repo(repo, &cli.config.0)?;
-        }
-      }
-      commands::Clone::new(config).execute(cli.bake())
-    }
+    cli::Command::Clone { repo: _ } => commands::Clone::new(config).execute(cli),
     cli::Command::Install { install } => commands::Install::new(config).execute((cli.bake(), install.bake())),
     cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
+    cli::Command::Init { repo: _ } => commands::Init::new(config).execute(cli),
   }
 }
 

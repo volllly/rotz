@@ -132,6 +132,12 @@ pub enum Command {
     repo: Option<String>,
   },
 
+  /// Creates a dotfiles git repository and config
+  Init {
+    /// The url of the repository passed to the git clone command
+    repo: Option<String>,
+  },
+
   /// Links dotfiles to the filesystem
   Link {
     #[clap(flatten)]

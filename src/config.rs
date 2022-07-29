@@ -5,11 +5,10 @@ use std::{
 };
 
 use clap::ArgEnum;
-use crossterm::style::Stylize;
 use derive_more::{Display, IsVariant};
 #[cfg(test)]
 use fake::{Dummy, Fake};
-use miette::{Diagnostic, Result};
+use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use serde::{Deserialize, Serialize};
 use somok::Somok;
 
@@ -85,8 +84,35 @@ fn deserialize_config(config: &str) -> Result<Config, serde_yaml::Error> {
 }
 
 #[cfg(feature = "yaml")]
-fn serialize_config(config: &Config) -> Result<String, serde_yaml::Error> {
+fn serialize(config: &impl Serialize) -> Result<String, serde_yaml::Error> {
   serde_yaml::to_string(&config)
+}
+
+#[derive(thiserror::Error, Diagnostic, Debug)]
+#[error("Config file already exists")]
+#[diagnostic(code(config::write))]
+pub struct AlreadyExistsError {
+  name: String,
+  #[label("{name} is already set")]
+  span: SourceSpan,
+}
+
+impl AlreadyExistsError {
+  pub fn new(name: &str, content: &str) -> Self {
+    let pat = format!("{name}: ");
+    let span: SourceSpan = if content.starts_with(&pat) {
+      (0, pat.len()).into()
+    } else {
+      let starts = content.match_indices(&format!("\n{pat}")).collect::<Vec<_>>();
+      if starts.len() == 1 {
+        (starts[0].0, pat.len()).into()
+      } else {
+        (0, content.len()).into()
+      }
+    };
+
+    Self { name: name.to_string(), span }
+  }
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -99,24 +125,45 @@ pub enum Error {
   #[error("Could not write config")]
   #[diagnostic(code(config::write))]
   WritingConfig(PathBuf, #[source] std::io::Error),
+
+  #[error("Config file already exists")]
+  #[diagnostic(code(config::write))]
+  AlreadyExists(#[source_code] NamedSource, #[related] Vec<AlreadyExistsError>),
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
-pub fn create_config_file_with_repo(repo: &str, config_file: &Path) -> Result<()> {
-  let mut config = Config::default();
+pub fn create_config_file(repo: Option<&str>, dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
     if let Ok(existing_config) = deserialize_config(&existing_config_str) {
-      if existing_config.repo.as_ref().map_or(false, |r| *r != *repo) {
-        println!("Warning: {}", "Config file already exists and contains a different repo".yellow());
-        return ().okay();
+      let mut errors: Vec<AlreadyExistsError> = vec![];
+
+      if let Some(repo) = repo {
+        if existing_config.repo.as_ref().map_or(false, |r| *r != *repo) {
+          errors.push(AlreadyExistsError::new("repo", &existing_config_str));
+        }
       }
-      config = existing_config;
+
+      if let Some(dotfiles) = dotfiles {
+        if existing_config.dotfiles != dotfiles {
+          errors.push(AlreadyExistsError::new("dotfiles", &existing_config_str));
+        }
+      }
+
+      return Error::AlreadyExists(NamedSource::new(config_file.to_string_lossy(), existing_config_str), errors).error();
     }
   }
 
-  config.repo = repo.to_string().some();
+  let mut map = HashMap::new();
 
-  fs::write(config_file, serialize_config(&config).map_err(Error::SerializingConfig)?).map_err(|e| Error::WritingConfig(config_file.to_path_buf(), e))?;
+  if let Some(repo) = repo {
+    map.insert("repo", repo.to_string());
+  }
+
+  if let Some(dotfiles) = dotfiles {
+    map.insert("dotfiles", dotfiles.display().to_string());
+  }
+
+  fs::write(config_file, serialize(&map).map_err(Error::SerializingConfig)?).map_err(|e| Error::WritingConfig(config_file.to_path_buf(), e))?;
 
   ().okay()
 }
@@ -133,7 +180,7 @@ mod tests {
   #[case(Faker.fake::<Config>())]
   #[case(Config::default())]
   fn ser_de(#[case] config: Config) {
-    let serialized = super::serialize_config(&config);
+    let serialized = super::serialize(&config);
     assert_that!(&serialized).is_ok();
     let serialized = serialized.unwrap();
 

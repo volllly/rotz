@@ -448,7 +448,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
   let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
   let defaults = match fs::read_to_string(defaults.clone()) {
     Ok(text) => repr::Dot::parse(&text)
-      .map_err(|e| Error::ParseDot(NamedSource::new(defaults.to_str().unwrap_or_default(), text.to_string()), (0, text.len()).into(), e))?
+      .map_err(|e| Error::ParseDot(NamedSource::new(defaults.to_string_lossy(), text.to_string()), (0, text.len()).into(), e))?
       .some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
