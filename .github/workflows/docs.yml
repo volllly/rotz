@@ -8,6 +8,9 @@ on:
       - .github/workflows/docs.yml
   pull_request:
     branches: [main]
+    paths:
+      - docs/**
+      - .github/workflows/docs.yml
 
 concurrency:
   group: pages

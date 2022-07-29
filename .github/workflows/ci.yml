@@ -2,16 +2,21 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
       - v*
     paths:
-      - '.'
-      - '!docs/**'
-      - '!.github/**'
-      - '.github/workflows/CI.yml'
+      - "."
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/CI.yml"
   pull_request:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - "."
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/CI.yml"
 
 concurrency:
   group: ${{ github.ref }}
@@ -128,7 +133,7 @@ jobs:
     needs: [test-linux, test-macos, test-windows]
     environment: crates
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    
+
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
