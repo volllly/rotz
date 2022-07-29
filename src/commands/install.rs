@@ -89,12 +89,7 @@ impl Install {
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
         HANDLEBARS
-          .render_template(
-            shell_command,
-            &json!({
-              "cmd": &inner_cmd
-            }),
-          )
+          .render_template(shell_command, &json!({ "cmd": &inner_cmd }))
           .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
       } else {
         inner_cmd.clone()

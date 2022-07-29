@@ -5,10 +5,12 @@ use std::{
 };
 
 use clap::ArgEnum;
+use crossterm::style::Stylize;
 use derive_more::{Display, IsVariant};
 #[cfg(test)]
 use fake::{Dummy, Fake};
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
+use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
 use somok::Somok;
 
@@ -48,9 +50,6 @@ pub struct Config {
   /// Which link type to use for linking dotfiles
   pub(crate) link_type: LinkType,
 
-  /// The url of the repository passed to the git clone command
-  pub(crate) repo: Option<String>,
-
   /// The command used to spawn processess.
   /// Use handlebars templates `{{ cmd }}` as placeholder for the cmd set in the dot.
   /// E.g. `"bash -c {{ quote "" cmd }}"`.
@@ -66,7 +65,6 @@ impl Default for Config {
     Self {
       dotfiles: USER_DIRS.home_dir().join(".dotfiles"),
       link_type: LinkType::Symbolic,
-      repo: None,
       #[cfg(windows)]
       shell_command: Some("pwsh -NoProfile -C {{ quote \"\" cmd }}".to_string()),
       #[cfg(all(not(target_os = "macos"), unix))]
@@ -89,11 +87,11 @@ fn serialize(config: &impl Serialize) -> Result<String, serde_yaml::Error> {
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
-#[error("Config file already exists")]
-#[diagnostic(code(config::write))]
+#[error("{name} is already set")]
+#[diagnostic(code(config::exists::value))]
 pub struct AlreadyExistsError {
   name: String,
-  #[label("{name} is already set")]
+  #[label("{name} is set here")]
   span: SourceSpan,
 }
 
@@ -105,7 +103,7 @@ impl AlreadyExistsError {
     } else {
       let starts = content.match_indices(&format!("\n{pat}")).collect::<Vec<_>>();
       if starts.len() == 1 {
-        (starts[0].0, pat.len()).into()
+        (starts[0].0 + 1, pat.len()).into()
       } else {
         (0, content.len()).into()
       }
@@ -126,22 +124,24 @@ pub enum Error {
   #[diagnostic(code(config::write))]
   WritingConfig(PathBuf, #[source] std::io::Error),
 
+  #[error("Could not get absolute path")]
+  #[diagnostic(code(config::canonicalize))]
+  Canonicalize(#[source] std::io::Error),
+
   #[error("Config file already exists")]
-  #[diagnostic(code(config::write))]
-  AlreadyExists(#[source_code] NamedSource, #[related] Vec<AlreadyExistsError>),
+  #[diagnostic(code(config::exists))]
+  AlreadyExists(#[label] Option<SourceSpan>, #[source_code] NamedSource, #[related] Vec<AlreadyExistsError>),
+
+  #[error("Could not parse dotfiles directory \"{0}\"")]
+  #[diagnostic(code(config::filename::parse), help("Did you enter a valid file?"))]
+  PathParse(PathBuf),
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
-pub fn create_config_file(repo: Option<&str>, dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
+pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
     if let Ok(existing_config) = deserialize_config(&existing_config_str) {
       let mut errors: Vec<AlreadyExistsError> = vec![];
-
-      if let Some(repo) = repo {
-        if existing_config.repo.as_ref().map_or(false, |r| *r != *repo) {
-          errors.push(AlreadyExistsError::new("repo", &existing_config_str));
-        }
-      }
 
       if let Some(dotfiles) = dotfiles {
         if existing_config.dotfiles != dotfiles {
@@ -149,21 +149,32 @@ pub fn create_config_file(repo: Option<&str>, dotfiles: Option<&Path>, config_fi
         }
       }
 
-      return Error::AlreadyExists(NamedSource::new(config_file.to_string_lossy(), existing_config_str), errors).error();
+      return Error::AlreadyExists(
+        errors.is_empty().then(|| (0, existing_config_str.len()).into()),
+        NamedSource::new(config_file.to_string_lossy(), existing_config_str),
+        errors,
+      )
+      .error();
     }
   }
 
   let mut map = HashMap::new();
 
-  if let Some(repo) = repo {
-    map.insert("repo", repo.to_string());
-  }
-
   if let Some(dotfiles) = dotfiles {
-    map.insert("dotfiles", dotfiles.display().to_string());
+    map.insert(
+      "dotfiles",
+      dotfiles
+        .absolutize()
+        .map_err(Error::Canonicalize)?
+        .to_str()
+        .ok_or_else(|| Error::PathParse(dotfiles.to_path_buf()))?
+        .to_string(),
+    );
   }
 
   fs::write(config_file, serialize(&map).map_err(Error::SerializingConfig)?).map_err(|e| Error::WritingConfig(config_file.to_path_buf(), e))?;
+
+  println!("Created config file at {}", config_file.to_string_lossy().green());
 
   ().okay()
 }

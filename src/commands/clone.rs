@@ -1,3 +1,5 @@
+use std::ffi::OsStr;
+
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Result};
 use somok::Somok;
@@ -13,9 +15,6 @@ enum Error {
   #[error("No repo is configured")]
   #[diagnostic(code(clone::config::repo), help("Run the clone command with the --repo argument"))]
   NoRepoConfigured,
-
-  #[error(transparent)]
-  PathParse(#[from] crate::dot::Error),
 
   #[error("Clone command did not run successfully")]
   #[diagnostic(code(clone::command::run))]
@@ -33,28 +32,28 @@ impl Clone {
 }
 
 impl Command for Clone {
-  type Args = crate::cli::Cli;
+  type Args = (crate::cli::Cli, Option<String>);
 
   type Result = Result<()>;
 
-  fn execute(&self, cli: Self::Args) -> Self::Result {
+  fn execute(&self, (cli, repo): Self::Args) -> Self::Result {
     if !cli.dry_run {
-      config::create_config_file(self.config.repo.as_deref(), cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
+      config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
     }
 
-    let repo = self.config.repo.as_ref().ok_or(Error::NoRepoConfigured)?;
-    let path = self
-      .config
-      .dotfiles
-      .as_os_str()
-      .to_str()
-      .ok_or_else(|| Error::from(crate::dot::Error::PathParse(self.config.dotfiles.clone())))?;
+    let repo = repo.as_ref().ok_or(Error::NoRepoConfigured)?;
 
-    println!("{}Cloning \"{}\" to \"{}\"{}\n", Attribute::Bold, repo.as_str().blue(), path.blue(), Attribute::Reset);
+    println!(
+      "{}Cloning \"{}\" to \"{}\"{}\n",
+      Attribute::Bold,
+      repo.as_str().blue(),
+      self.config.dotfiles.to_string_lossy().green(),
+      Attribute::Reset
+    );
 
-    helpers::run_command("git", &["clone", repo, path], false, cli.dry_run)?;
+    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(repo), self.config.dotfiles.as_os_str()], false, cli.dry_run)?;
 
-    println!("Cloned {}\n    to {}", self.config.repo.clone().unwrap().blue(), self.config.dotfiles.display().to_string().green());
+    println!("\n{}Cloned repo{}", Attribute::Bold, Attribute::Reset);
 
     ().okay()
   }

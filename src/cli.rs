@@ -169,10 +169,6 @@ impl Provider for Cli {
       dict.insert("dotfiles".to_string(), Value::serialize(dotfiles.to_string())?);
     }
 
-    if let Command::Clone { repo: Some(repo) } = &self.command {
-      dict.insert("repo".to_string(), Value::serialize(repo)?);
-    }
-
     if let Command::Link {
       link: LinkCli {
         dots: _,

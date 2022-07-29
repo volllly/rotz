@@ -49,7 +49,7 @@ impl super::Command for Link {
       let base_path = self.config.dotfiles.join(name);
       for (from, tos) in link {
         for mut to in tos {
-          println!("  {} -> {}", from.display().to_string().green(), to.display().to_string().green());
+          println!("  {} -> {}", from.to_string_lossy().green(), to.to_string_lossy().green());
           let from = base_path.join(&from);
           if to.starts_with("~/") {
             let mut iter = to.iter();
