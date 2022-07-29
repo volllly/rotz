@@ -292,7 +292,7 @@ use self::repr::Capabilities;
 use crate::{
   config::Config,
   helpers::os,
-  templating::{self, GlobalParameters, Parameters},
+  templating::{self, Parameters},
   FILE_EXTENSION,
 };
 
@@ -443,19 +443,14 @@ pub enum Error {
 }
 
 pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(String, Dot)>> {
-  let parameters = GlobalParameters { config };
-
   let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
-  let defaults = match fs::read_to_string(defaults.clone()) {
-    Ok(text) => repr::Dot::parse(&text)
-      .map_err(|e| Error::ParseDot(NamedSource::new(defaults.to_string_lossy(), text.to_string()), (0, text.len()).into(), e))?
-      .some(),
+  let defaults = match fs::read_to_string(defaults) {
+    Ok(text) => text.some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
-      _ => panic!("{}", err),
+      _ => Error::ReadingDot(err).error()?,
     },
   };
-  let defaults = defaults.map(Into::<Capabilities>::into);
 
   let wildcard = dots.contains(&"*".to_string());
 
@@ -488,7 +483,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
 
   let dots = dotfiles.filter_map(|f| match f {
     Ok((name, Ok(text))) => {
-      let parameters = Parameters { name: &name, parameters: &parameters };
+      let parameters = Parameters { config, name: &name };
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
@@ -496,6 +491,22 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
             .error()
             .some()
         }
+      };
+
+      let defaults = if let Some(defaults) = defaults.as_ref() {
+        match templating::render(defaults, &parameters) {
+          Ok(rendered) => match repr::Dot::parse(&rendered) {
+            Ok(parsed) => Into::<Capabilities>::into(parsed).some(),
+            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).error().some(),
+          },
+          Err(err) => {
+            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), defaults.to_string()), (0, defaults.len()).into(), err)
+              .error()
+              .some()
+          }
+        }
+      } else {
+        None
       };
 
       match from_str_with_defaults(&text, defaults.as_ref()) {

@@ -7,7 +7,12 @@ use serde::Serialize;
 
 use crate::{config::Config, helpers};
 
-pub(crate) static HANDLEBARS: Lazy<Handlebars> = Lazy::new(handlebars_misc_helpers::new_hbs);
+pub(crate) static HANDLEBARS: Lazy<Handlebars> = Lazy::new(|| {
+  let mut hb = handlebars_misc_helpers::new_hbs();
+  hb.set_strict_mode(false);
+  hb
+});
+
 pub(crate) static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -18,15 +23,9 @@ pub enum Error {
 }
 
 #[derive(Serialize)]
-pub struct GlobalParameters<'a> {
-  pub config: &'a Config,
-}
-
-#[derive(Serialize)]
 pub struct Parameters<'a> {
+  pub config: &'a Config,
   pub name: &'a str,
-  #[serde(flatten)]
-  pub parameters: &'a GlobalParameters<'a>,
 }
 
 #[derive(Serialize)]

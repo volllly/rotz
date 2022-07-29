@@ -3,7 +3,7 @@ title: dot.yaml
 sidebar_position: 5
 ---
 
-You can use [handlebars](https://handlebarsjs.com/guide/) template syntax in `dot.yaml` files.
+You can use [handlebars](https://handlebarsjs.com/guide/) template syntax in [`dot.yaml`](dot.yaml.mdx) files and the [defaults file](defaults.md).
 
 This allows for e.g. access to environment variables.
 
@@ -15,9 +15,3 @@ This allows for e.g. access to environment variables.
 | `env`    | A map of Environment variables                         | `some.file: {{ env.HOME }}/some.file`                                   |
 | `name`   | The name of the current dot.                           | `installs: apt install {{ name }}`                                      |
 | `os`     | The current os (either `windows`, `linux` or `darwin`) | `{{#if (eq os "windows")}}some: value{{/if}}`                           |
-
-:::caution
-
-At the moment this is only available in the `dots.yaml` files. In the 1.0 release this will also become available in the [defaults](defaults.md).
-
-:::
