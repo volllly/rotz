@@ -9,14 +9,14 @@ on:
       - "**"
       - "!docs/**"
       - "!.github/**"
-      - ".github/workflows/CI.yml"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "**"
       - "!docs/**"
       - "!.github/**"
-      - ".github/workflows/CI.yml"
+      - ".github/workflows/ci.yml"
 
 concurrency:
   group: ${{ github.ref }}
