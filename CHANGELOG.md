@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Implemented init command which initializes the config
+- Added templating to `dot.(yaml|toml|json)` files
+
+### Removed
+
+- Removed the `repo` key from the config as its not needed
+
+### Changed
+
+- The `repo` argument is now required for the clone command
+
 ## [0.5.0] - 2022-07-15
 
 ### Added

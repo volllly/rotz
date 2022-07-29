@@ -10,6 +10,9 @@ pub use link::Link;
 pub mod sync;
 pub use sync::Sync;
 
+pub mod init;
+pub use init::Init;
+
 pub trait Command {
   type Args;
   type Result;

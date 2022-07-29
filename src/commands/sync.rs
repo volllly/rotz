@@ -56,7 +56,7 @@ impl Command for Sync {
       }
     }
 
-    println!("{}Commiting{}\n", Attribute::Bold, Attribute::Reset);
+    println!("\n{}Commiting{}\n", Attribute::Bold, Attribute::Reset);
     helpers::run_command(
       "git",
       &[
@@ -71,15 +71,15 @@ impl Command for Sync {
     )
     .map_err(|err| Error::CommandExecute("Commit".to_string(), err))?;
 
-    println!("{}Pulling{}\n", Attribute::Bold, Attribute::Reset);
+    println!("\n{}Pulling{}\n", Attribute::Bold, Attribute::Reset);
     helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("pull")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Pull".to_string(), err))?;
 
     if !sync.no_push {
-      println!("{}Pushing{}\n", Attribute::Bold, Attribute::Reset);
+      println!("\n{}Pushing{}\n", Attribute::Bold, Attribute::Reset);
       helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("push")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Push".to_string(), err))?;
     }
 
-    println!("{}Sync complete{}\n", Attribute::Bold, Attribute::Reset);
+    println!("\n{}Sync complete{}\n", Attribute::Bold, Attribute::Reset);
 
     ().okay()
   }

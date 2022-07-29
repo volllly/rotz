@@ -1,17 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use crossterm::style::{Attribute, Stylize};
-use handlebars::Handlebars;
 use indexmap::IndexSet;
 use miette::{Diagnostic, Result};
-use once_cell::sync::Lazy;
 use serde_json::json;
 use somok::Somok;
 
 use super::Command;
-use crate::{config::Config, dot::Installs, helpers};
-
-pub(crate) static HANDLEBARS: Lazy<Handlebars> = Lazy::new(handlebars_misc_helpers::new_hbs);
+use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
@@ -89,24 +85,11 @@ impl Install {
 
       println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
 
-      let inner_cmd = HANDLEBARS
-        .render_template(
-          &installs.cmd.to_string(),
-          &json!({
-            "name": entry.0
-          }),
-        )
-        .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?;
+      let inner_cmd = installs.cmd.to_string();
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
         HANDLEBARS
-          .render_template(
-            shell_command,
-            &json!({
-              "name": entry.0,
-              "cmd": &inner_cmd
-            }),
-          )
+          .render_template(shell_command, &json!({ "cmd": &inner_cmd }))
           .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
       } else {
         inner_cmd.clone()
@@ -161,7 +144,7 @@ impl Command for Install {
   type Result = Result<()>;
 
   fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
-    let dots = crate::dot::read_dots(&self.config.dotfiles, &["*".to_string()])?
+    let dots = crate::dot::read_dots(&self.config.dotfiles, &["*".to_string()], &self.config)?
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))

@@ -37,6 +37,7 @@ use somok::Somok;
 
 mod commands;
 mod dot;
+mod templating;
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
@@ -91,23 +92,16 @@ fn main() -> Result<(), miette::Report> {
     config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
   }
   config = join_repo_config(&config.dotfiles.join(format!("config.{FILE_EXTENSION}")), config_figment)?
-    .select(format!("{}", os::OS).to_ascii_lowercase())
+    .select(os::OS.to_string().to_ascii_lowercase())
     .extract()
     .map_err(Error::ParsingConfig)?;
 
   match cli.command.clone() {
     cli::Command::Link { link } => commands::Link::new(config).execute((cli.bake(), link.bake())),
-    cli::Command::Clone { repo: _ } => {
-      let globals = cli.view();
-      if !globals.dry_run {
-        if let Some(repo) = &config.repo {
-          config::create_config_file_with_repo(repo, &cli.config.0)?;
-        }
-      }
-      commands::Clone::new(config).execute(cli.bake())
-    }
+    cli::Command::Clone { repo } => commands::Clone::new(config).execute((cli, repo)),
     cli::Command::Install { install } => commands::Install::new(config).execute((cli.bake(), install.bake())),
     cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
+    cli::Command::Init { repo } => commands::Init::new(config).execute((cli, repo)),
   }
 }
 

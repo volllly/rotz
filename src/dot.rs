@@ -284,12 +284,17 @@ use std::{
 
 use crossterm::style::Stylize;
 use itertools::Itertools;
-use miette::Diagnostic;
+use miette::{Diagnostic, NamedSource, SourceSpan};
 pub use repr::Merge;
 use somok::Somok;
 
 use self::repr::Capabilities;
-use crate::{helpers::os, FILE_EXTENSION};
+use crate::{
+  config::Config,
+  helpers::os,
+  templating::{self, Parameters},
+  FILE_EXTENSION,
+};
 
 #[derive(Clone, Debug)]
 pub struct Installs {
@@ -423,25 +428,29 @@ pub enum Error {
   ReadingDot(#[source] std::io::Error),
 
   #[cfg(feature = "yaml")]
-  #[error("Could not parse dot \"{0}\"")]
+  #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
-  ParseDot(PathBuf, #[source] serde_yaml::Error),
+  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] serde_yaml::Error),
+
+  #[cfg(feature = "yaml")]
+  #[error("Could not render template for dot")]
+  #[diagnostic(code(dot::render))]
+  RenderDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] templating::Error),
 
   #[error("Io Error on file \"{0}\"")]
   #[diagnostic(code(io::generic))]
   Io(PathBuf, #[source] std::io::Error),
 }
 
-pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(String, Dot)>> {
+pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(String, Dot)>> {
   let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
-  let defaults = match fs::read_to_string(defaults.clone()) {
-    Ok(text) => repr::Dot::parse(&text).map_err(|e| Error::ParseDot(defaults, e))?.some(),
+  let defaults = match fs::read_to_string(defaults) {
+    Ok(text) => text.some(),
     Err(err) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
-      _ => panic!("{}", err),
+      _ => Error::ReadingDot(err).error()?,
     },
   };
-  let defaults = defaults.map(Into::<Capabilities>::into);
 
   let wildcard = dots.contains(&"*".to_string());
 
@@ -473,10 +482,40 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String]) -> miette::Result<Vec<(S
     });
 
   let dots = dotfiles.filter_map(|f| match f {
-    Ok((name, Ok(text))) => match from_str_with_defaults(&text, defaults.as_ref()) {
-      Ok(dot) => (name, dot).okay().some(),
-      Err(err) => Error::ParseDot(Path::new(&format!("{name}/dot.{FILE_EXTENSION}")).to_path_buf(), err).error().some(),
-    },
+    Ok((name, Ok(text))) => {
+      let parameters = Parameters { config, name: &name };
+      let text = match templating::render(&text, &parameters) {
+        Ok(text) => text,
+        Err(err) => {
+          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), text.to_string()), (0, text.len()).into(), err)
+            .error()
+            .some()
+        }
+      };
+
+      let defaults = if let Some(defaults) = defaults.as_ref() {
+        match templating::render(defaults, &parameters) {
+          Ok(rendered) => match repr::Dot::parse(&rendered) {
+            Ok(parsed) => Into::<Capabilities>::into(parsed).some(),
+            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).error().some(),
+          },
+          Err(err) => {
+            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), defaults.to_string()), (0, defaults.len()).into(), err)
+              .error()
+              .some()
+          }
+        }
+      } else {
+        None
+      };
+
+      match from_str_with_defaults(&text, defaults.as_ref()) {
+        Ok(dot) => (name, dot).okay().some(),
+        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), text.to_string()), (0, text.len()).into(), err)
+          .error()
+          .some(),
+      }
+    }
     Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => Error::Io(file, err).error().some(),
