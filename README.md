@@ -26,7 +26,7 @@ Rotz has three main functionalities:
 
 1. Linking dotfiles from a common repository to your system
 2. Installing the applications you need to start working on an new/empty machine
-3. Full Cross platform functionality [See Configuration](#os-specific-configuration)
+3. Full Cross platform functionality [See Configuration](https://volllly.github.io/rotz/docs/configuration/os-specific-configuration)
 
 ## Installation
 
