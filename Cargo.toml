@@ -20,7 +20,7 @@ json = ["figment/json"]
 
 [dependencies]
 clap = { version = "3.2.17", features = ["derive"] }
-serde_yaml = { version = "0.9.4", optional = true }
+serde_yaml = { version = "0.9.6", optional = true }
 serde_toml = { package = "toml", version = "0.5.9", optional = true }
 serde_json = "1.0.83"
 figment = { version = "0.10.6", default-features = false, features = ["env"] }
