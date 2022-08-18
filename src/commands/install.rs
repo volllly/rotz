@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
-use miette::{Diagnostic, Result};
+use miette::{Diagnostic, Report, Result};
 use serde_json::json;
 use somok::Somok;
 
@@ -100,8 +100,18 @@ impl Install {
       println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
 
       if let Err(err) = helpers::run_command(&cmd[0], &cmd[1..], false, globals.dry_run) {
+        if let helpers::RunError::Spawn(err) = &err {
+          if let std::io::ErrorKind::NotFound = err.kind() {
+            println!("kek");
+          }
+        }
+
+        let error = Error::InstallExecute(entry.0.to_string(), err);
+
         if !install_command.continue_on_error {
-          return Error::InstallExecute(entry.0.to_string(), err).error();
+          return error.error();
+        } else {
+          eprintln!("\n Error: {:?}", Report::new(error));
         }
       }
 

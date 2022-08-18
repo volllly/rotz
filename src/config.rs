@@ -17,7 +17,7 @@ use somok::Somok;
 use crate::USER_DIRS;
 
 #[derive(Debug, ArgEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum LinkType {
   /// Uses symbolic links for linking
   Symbolic,
@@ -42,7 +42,7 @@ impl Dummy<ValueFaker> for HashMap<String, serde_json::Value> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub struct Config {
   /// Path to the local dotfiles
   pub(crate) dotfiles: PathBuf,
@@ -66,7 +66,7 @@ impl Default for Config {
       dotfiles: USER_DIRS.home_dir().join(".dotfiles"),
       link_type: LinkType::Symbolic,
       #[cfg(windows)]
-      shell_command: Some("pwsh -NoProfile -C {{ quote \"\" cmd }}".to_string()),
+      shell_command: Some("powershell -NoProfile -C {{ quote \"\" cmd }}".to_string()),
       #[cfg(all(not(target_os = "macos"), unix))]
       shell_command: Some("bash -c {{ quote \"\" cmd }}".to_string()),
       #[cfg(target_os = "macos")]
