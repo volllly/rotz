@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The repo level config file now uses the key `global` instead of `default`
-- The defualt `shell_command` on windows now correctly uses PowerShell instead of PowerShell Core.
+- The default `shell_command` on windows now correctly uses PowerShell instead of PowerShell Core.
 
 ### Fixed
 
