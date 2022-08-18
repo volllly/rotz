@@ -91,8 +91,13 @@ fn main() -> Result<(), miette::Report> {
     iter.next();
     config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
   }
-  config = join_repo_config(&config.dotfiles.join(format!("config.{FILE_EXTENSION}")), config_figment)?
-    .select(os::OS.to_string().to_ascii_lowercase())
+
+  config_figment = join_repo_config(&config.dotfiles.join(format!("config.{FILE_EXTENSION}")), config_figment)?;
+
+  config = config_figment
+    .clone()
+    .select("global")
+    .merge(config_figment.select(os::OS.to_string().to_ascii_lowercase()))
     .extract()
     .map_err(Error::ParsingConfig)?;
 

@@ -21,7 +21,7 @@ This settig allows to specify how Rotz should launch the install command.
 If this is not set the default values are used.
 
 ```yaml title="Windows"
-shell_command: pwsh -NoProfile -C {{ quote "" cmd }}
+shell_command: powershell -NoProfile -C {{ quote "" cmd }}
 ```
 
 ```yaml title="Linux"
@@ -49,7 +49,7 @@ variables:
 It is possible to put a config file in your repo conatining default values depending on the OS. These are overridden by the config file on the machine.
 
 ```yaml title=".dotfiles/config.yaml"
-default:
+global:
   link_type: <globalDefault>
 
 windows:

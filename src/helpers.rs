@@ -55,7 +55,7 @@ pub(crate) mod os {
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub(crate) enum RunError {
-  #[error("Cloud not spawn command")]
+  #[error("Could not spawn command")]
   #[diagnostic(code(process::command::spawn))]
   Spawn(#[source] io::Error),
 
