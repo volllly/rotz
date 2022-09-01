@@ -8,6 +8,7 @@ use std::{
 use itertools::Itertools;
 use miette::{Diagnostic, Result};
 use somok::Somok;
+use wax::{Any, BuildError, Glob};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 #[error("Encountered multiple errors")]
@@ -89,6 +90,23 @@ pub(crate) fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, d
   };
 
   ().okay()
+}
+
+#[derive(thiserror::Error, Diagnostic, Debug)]
+pub(crate) enum GlobError {
+  #[error("Could not build GlobSet")]
+  #[diagnostic(code(glob::set::parse))]
+  Build(#[from] wax::BuildError<'static>),
+}
+
+pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'static>> {
+  let globs = from
+    .iter()
+    .map(|g| format!("{}{}", g, postfix))
+    .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(|e| GlobError::Build(BuildError::into_owned(e))))
+    .collect_vec();
+
+  wax::any::<'static, Glob, _>(join_err_result(globs)?).unwrap().okay()
 }
 
 #[cfg(test)]

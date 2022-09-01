@@ -15,7 +15,7 @@ use somok::Somok;
 use crate::{config::LinkType, FILE_EXTENSION, PROJECT_DIRS};
 
 #[derive(From, Debug, FromStr, Into)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub struct PathBuf(pub(crate) std::path::PathBuf);
 
 impl Display for PathBuf {
@@ -26,7 +26,7 @@ impl Display for PathBuf {
 
 #[derive(Parser, Debug, Bake)]
 #[clap(version, about)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Globals")]
 pub struct Cli {
   #[clap(long, short)]
@@ -51,15 +51,15 @@ pub struct Cli {
 }
 
 #[derive(Debug, Args, Clone)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub struct Dots {
-  #[clap(default_value = "*")]
-  /// All dots to process
+  #[clap(default_value = "**")]
+  /// All dots to process. Accepts glob patterns.
   pub(crate) dots: Vec<String>,
 }
 
 #[derive(Debug, Args, Bake, Clone)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Link")]
 pub struct LinkCli {
   #[clap(flatten)]
@@ -77,7 +77,7 @@ pub struct LinkCli {
 }
 
 #[derive(Debug, Args, Bake, Clone)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Install")]
 pub struct InstallCli {
   #[clap(flatten)]
@@ -102,7 +102,7 @@ pub struct InstallCli {
 }
 
 #[derive(Debug, Args, Bake, Clone)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Sync")]
 pub struct SyncCli {
   #[clap(flatten)]
@@ -119,7 +119,7 @@ pub struct SyncCli {
 }
 
 #[derive(Subcommand, Debug, Clone)]
-#[cfg_attr(test, derive(Dummy, PartialEq))]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum Command {
   /// Clones a dotfiles git repository
   Clone {

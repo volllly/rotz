@@ -1,10 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  path::{Path, PathBuf},
+};
 
 use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
 use miette::{Diagnostic, Report, Result};
 use serde_json::json;
 use somok::Somok;
+use wax::Pattern;
 
 use super::Command;
 use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
@@ -12,28 +16,28 @@ use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
   #[error("{name} has a cyclic dependency")]
-  #[diagnostic(code(dependency::cyclic), help("{name} depends on itsself through {through}"))]
-  CyclicDependency { name: String, through: String },
+  #[diagnostic(code(dependency::cyclic), help("{} depends on itsself through {}", name.to_string_lossy(), through.to_string_lossy()))]
+  CyclicDependency { name: PathBuf, through: PathBuf },
 
   #[error("{name} has a cyclic installation dependency")]
-  #[diagnostic(code(dependency::cyclic::install), help("{name} depends on itsself through {through}"))]
-  CyclicInstallDependency { name: String, through: String },
+  #[diagnostic(code(dependency::cyclic::install), help("{} depends on itsself through {}", name.to_string_lossy(), through.to_string_lossy()))]
+  CyclicInstallDependency { name: PathBuf, through: PathBuf },
 
   #[error("Dependency {1} of {0} was not found")]
   #[diagnostic(code(dependency::not_found))]
-  DependencyNotFound(String, String),
+  DependencyNotFound(PathBuf, PathBuf),
 
   #[error("Install command for {0} did not run successfully")]
   #[diagnostic(code(install::command::run))]
-  InstallExecute(String, #[source] helpers::RunError),
+  InstallExecute(PathBuf, #[source] helpers::RunError),
 
   #[error("Could not render command templeate for {0}")]
   #[diagnostic(code(install::command::render))]
-  RenderingTemplate(String, #[source] handlebars::RenderError),
+  RenderingTemplate(PathBuf, #[source] handlebars::RenderError),
 
   #[error("Could not parse install command for {0}")]
   #[diagnostic(code(install::command::parse))]
-  ParsingInstallCommand(String, #[source] shellwords::MismatchedQuotes),
+  ParsingInstallCommand(PathBuf, #[source] shellwords::MismatchedQuotes),
 }
 
 pub struct Install {
@@ -47,25 +51,25 @@ impl Install {
 
   fn install<'a>(
     &self,
-    dots: &'a HashMap<String, InstallsDots>,
-    entry: (&'a String, &'a InstallsDots),
-    installed: &mut HashSet<&'a str>,
-    mut stack: IndexSet<&'a str>,
+    dots: &'a HashMap<PathBuf, InstallsDots>,
+    entry: (&'a PathBuf, &'a InstallsDots),
+    installed: &mut HashSet<&'a Path>,
+    mut stack: IndexSet<&'a Path>,
     (globals, install_command): (&crate::cli::Globals, &crate::cli::Install),
   ) -> Result<(), Error> {
-    if installed.contains(entry.0.as_str()) {
+    if installed.contains(entry.0.as_path()) {
       return ().okay();
     }
 
-    stack.insert(entry.0.as_str());
+    stack.insert(entry.0.as_path());
 
     if let Some(installs) = &entry.1 .0 {
       if !(install_command.skip_all_dependencies || install_command.skip_installation_dependencies) {
         for dependency in &installs.depends {
-          if stack.contains(dependency.as_str()) {
+          if stack.contains(dependency.as_path()) {
             return Error::CyclicInstallDependency {
-              name: dependency.to_string(),
-              through: entry.0.to_string(),
+              name: dependency.to_path_buf(),
+              through: entry.0.to_path_buf(),
             }
             .error();
           }
@@ -74,7 +78,9 @@ impl Install {
             dots,
             (
               dependency,
-              dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
+              dots
+                .get(dependency.as_path())
+                .ok_or_else(|| Error::DependencyNotFound(entry.0.to_path_buf(), dependency.to_path_buf()))?,
             ),
             installed,
             stack.clone(),
@@ -83,19 +89,19 @@ impl Install {
         }
       }
 
-      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
+      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.to_string_lossy().blue(), Attribute::Reset);
 
       let inner_cmd = installs.cmd.to_string();
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
         HANDLEBARS
           .render_template(shell_command, &json!({ "cmd": &inner_cmd }))
-          .map_err(|err| Error::RenderingTemplate(entry.0.to_string(), err))?
+          .map_err(|err| Error::RenderingTemplate(entry.0.to_path_buf(), err))?
       } else {
         inner_cmd.clone()
       };
 
-      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_string(), err))?;
+      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_path_buf(), err))?;
 
       println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
 
@@ -106,7 +112,7 @@ impl Install {
           }
         }
 
-        let error = Error::InstallExecute(entry.0.to_string(), err);
+        let error = Error::InstallExecute(entry.0.to_path_buf(), err);
 
         if !install_command.continue_on_error {
           return error.error();
@@ -115,16 +121,16 @@ impl Install {
         }
       }
 
-      installed.insert(entry.0.as_str());
+      installed.insert(entry.0.as_path());
     }
 
     if !(install_command.skip_all_dependencies || install_command.skip_dependencies) {
       if let Some(dependencies) = &entry.1 .1 {
         for dependency in dependencies {
-          if stack.contains(dependency.as_str()) {
+          if stack.contains(dependency.as_path()) {
             return Error::CyclicDependency {
-              name: dependency.to_string(),
-              through: entry.0.to_string(),
+              name: dependency.to_path_buf(),
+              through: entry.0.to_path_buf(),
             }
             .error();
           }
@@ -133,7 +139,9 @@ impl Install {
             dots,
             (
               dependency,
-              dots.get(dependency.as_str()).ok_or_else(|| Error::DependencyNotFound(entry.0.to_string(), dependency.to_string()))?,
+              dots
+                .get(dependency.as_path())
+                .ok_or_else(|| Error::DependencyNotFound(entry.0.to_path_buf(), dependency.to_path_buf()))?,
             ),
             installed,
             stack.clone(),
@@ -147,22 +155,23 @@ impl Install {
   }
 }
 
-type InstallsDots = (Option<Installs>, Option<HashSet<String>>);
+type InstallsDots = (Option<Installs>, Option<HashSet<PathBuf>>);
 
 impl Command for Install {
   type Args = (crate::cli::Globals, crate::cli::Install);
   type Result = Result<()>;
 
   fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
-    let dots = crate::dot::read_dots(&self.config.dotfiles, &["*".to_string()], &self.config)?
+    let dots = crate::dot::read_dots(&self.config.dotfiles, &["**".to_string()], &self.config)?
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))
-      .collect::<HashMap<String, InstallsDots>>();
+      .collect::<HashMap<PathBuf, InstallsDots>>();
 
-    let mut installed: HashSet<&str> = HashSet::new();
+    let mut installed: HashSet<&Path> = HashSet::new();
+    let globs = helpers::glob_from_vec(&install_command.dots, "/dot.{ya?ml,toml,json}")?;
     for dot in dots.iter() {
-      if install_command.dots.contains(&"*".to_string()) || install_command.dots.contains(dot.0) {
+      if globs.is_match(dot.0.as_path()) {
         self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;
       }
     }

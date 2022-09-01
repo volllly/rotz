@@ -6,12 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `whoami` variable to templating
+- Added `directories` variable to templating
+- The dotfiles can now be nested in subdirectories
+
 ## [0.6.1] - 2022-08-18
 
 ### Changed
 
 - The repo level config file now uses the key `global` instead of `default`
-- The default `shell_command` on windows now correctly uses PowerShell instead of PowerShell Core.
+- The default `shell_command` on windows now correctly uses PowerShell instead of PowerShell Core
 
 ### Fixed
 

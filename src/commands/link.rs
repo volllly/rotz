@@ -44,7 +44,7 @@ impl super::Command for Link {
       .filter_map(|d| d.1.links.map(|l| (d.0, l)));
 
     for (name, link) in links {
-      println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
+      println!("{}Linking {}{}\n", Attribute::Bold, name.to_string_lossy().blue(), Attribute::Reset);
 
       let base_path = self.config.dotfiles.join(name);
       for (from, tos) in link {

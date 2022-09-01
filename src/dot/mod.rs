@@ -66,14 +66,14 @@ mod repr {
     Full {
       cmd: String,
       #[serde(default)]
-      depends: HashSet<String>,
+      depends: HashSet<PathBuf>,
     },
   }
 
   #[derive(Deserialize, Clone, Debug)]
   #[cfg_attr(test, derive(Dummy))]
   pub struct Depends {
-    pub(super) depends: HashSet<String>,
+    pub(super) depends: HashSet<PathBuf>,
   }
 
   #[cfg(feature = "toml")]
@@ -228,7 +228,7 @@ mod repr {
             self.installs = None;
           } else {
             let cmd_outer: String;
-            let mut depends_outer: HashSet<String> = HashSet::new();
+            let mut depends_outer: HashSet<PathBuf> = HashSet::new();
 
             match installs {
               Installs::Simple(cmd) => cmd_outer = cmd,
@@ -287,11 +287,13 @@ use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, SourceSpan};
 pub use repr::Merge;
 use somok::Somok;
+use walkdir::WalkDir;
+use wax::Pattern;
 
 use self::repr::Capabilities;
 use crate::{
   config::Config,
-  helpers::os,
+  helpers::{self, os},
   templating::{self, Parameters},
   FILE_EXTENSION,
 };
@@ -299,7 +301,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct Installs {
   pub(crate) cmd: String,
-  pub(crate) depends: HashSet<String>,
+  pub(crate) depends: HashSet<PathBuf>,
 }
 
 impl From<repr::Installs> for Option<Installs> {
@@ -316,7 +318,7 @@ impl From<repr::Installs> for Option<Installs> {
 pub struct Dot {
   pub(crate) links: Option<HashMap<PathBuf, HashSet<PathBuf>>>,
   pub(crate) installs: Option<Installs>,
-  pub(crate) depends: Option<HashSet<String>>,
+  pub(crate) depends: Option<HashSet<PathBuf>>,
 }
 
 impl Merge<&Self> for Dot {
@@ -411,21 +413,17 @@ impl FromStr for Dot {
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub enum Error {
-  #[error("Could not find dot directory \"{0}\"")]
-  #[diagnostic(code(dot::filename::get), help("Did you enter a valid file?"))]
-  PathFind(PathBuf),
-
-  #[error("Could not parse dot directory \"{0}\"")]
-  #[diagnostic(code(dotfiles::filename::parse), help("Did you enter a valid file?"))]
-  PathParse(PathBuf),
-
-  #[error("Could not read dotfiles directory \"{0}\"")]
-  #[diagnostic(code(dotfiles::directory::read), help("did you change/set the dotfiles path?"))]
-  DotfileDir(PathBuf, #[source] std::io::Error),
+  #[error("Could not get relative dot directory")]
+  #[diagnostic(code(dotfiles::filename::strip))]
+  PathStrip(#[source] std::path::StripPrefixError),
 
   #[error("Could not read dot file")]
   #[diagnostic(code(dot::read))]
   ReadingDot(#[source] std::io::Error),
+
+  #[error("Error walking dotfiles")]
+  #[diagnostic(code(dotfiles::walk))]
+  WalkingDotfiles(#[source] walkdir::Error),
 
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
@@ -442,7 +440,7 @@ pub enum Error {
   Io(PathBuf, #[source] std::io::Error),
 }
 
-pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(String, Dot)>> {
+pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(PathBuf, Dot)>> {
   let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
   let defaults = match fs::read_to_string(defaults) {
     Ok(text) => text.some(),
@@ -452,34 +450,24 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
     },
   };
 
-  let wildcard = dots.contains(&"*".to_string());
+  let dots = helpers::glob_from_vec(dots, "/dot.{y<a>ml,toml,json}")?;
 
-  let paths = fs::read_dir(&dotfiles_path)
-    .map_err(|e| Error::DotfileDir(dotfiles_path.to_path_buf(), e))?
+  let paths = WalkDir::new(&dotfiles_path)
+    .into_iter()
+    .filter_ok(|e| e.file_type().is_file())
     .map(|d| match d {
-      Ok(d) => d.path().okay(),
-      Err(err) => Error::ReadingDot(err).error(),
+      Ok(d) => d.path().strip_prefix(dotfiles_path).map(|p| p.to_path_buf()).map_err(Error::PathStrip),
+      Err(err) => Error::WalkingDotfiles(err).error(),
     })
-    .filter_ok(|p| p.is_dir());
+    .filter_ok(|e| dots.is_match(e.as_path()));
 
   let dotfiles = crate::helpers::join_err_result(paths.collect())?
     .into_iter()
     .map(|p| {
-      let name = p
-        .file_name()
-        .ok_or_else(|| Error::PathFind(p.clone()))?
-        .to_str()
-        .ok_or_else(|| Error::PathParse(p.clone()))?
-        .to_string();
-      Ok::<(String, PathBuf), Error>((name, p))
+      let name = p.parent().unwrap().to_path_buf();
+      Ok::<(PathBuf, PathBuf), Error>((name, p))
     })
-    .filter_ok(|p| wildcard || dots.contains(&p.0))
-    .map_ok(|p| {
-      (
-        p.0,
-        fs::read_to_string(p.1.join(format!("dot.{FILE_EXTENSION}"))).map_err(|e| Error::Io(p.1.join(format!("dot.{FILE_EXTENSION}")), e)),
-      )
-    });
+    .map_ok(|p| (p.0, fs::read_to_string(dotfiles_path.join(&p.1)).map_err(|e| Error::Io(dotfiles_path.join(p.1), e))));
 
   let dots = dotfiles.filter_map(|f| match f {
     Ok((name, Ok(text))) => {
@@ -487,7 +475,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
-          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), text.to_string()), (0, text.len()).into(), err)
+          return Error::RenderDot(NamedSource::new(name.join("dot.{y<a>ml,toml,json}").to_string_lossy(), text.to_string()), (0, text.len()).into(), err)
             .error()
             .some()
         }
@@ -500,9 +488,13 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
             Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).error().some(),
           },
           Err(err) => {
-            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), defaults.to_string()), (0, defaults.len()).into(), err)
-              .error()
-              .some()
+            return Error::RenderDot(
+              NamedSource::new(name.join("dot.{y<a>ml,toml,json}").to_string_lossy(), defaults.to_string()),
+              (0, defaults.len()).into(),
+              err,
+            )
+            .error()
+            .some()
           }
         }
       } else {
@@ -510,8 +502,8 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       };
 
       match from_str_with_defaults(&text, defaults.as_ref()) {
-        Ok(dot) => (name, dot).okay().some(),
-        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{FILE_EXTENSION}"), text.to_string()), (0, text.len()).into(), err)
+        Ok(dot) => (name.to_path_buf(), dot).okay().some(),
+        Err(err) => Error::ParseDot(NamedSource::new(name.join("dot.{y<a>ml,toml,json}").to_string_lossy(), text.to_string()), (0, text.len()).into(), err)
           .error()
           .some(),
       }
@@ -531,3 +523,6 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
 
   dots.okay()
 }
+
+#[cfg(test)]
+mod test;
