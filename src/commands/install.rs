@@ -6,6 +6,7 @@ use std::{
 use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
 use miette::{Diagnostic, Report, Result};
+use path_slash::PathBufExt;
 use serde_json::json;
 use somok::Somok;
 use wax::Pattern;
@@ -16,11 +17,11 @@ use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
   #[error("{name} has a cyclic dependency")]
-  #[diagnostic(code(dependency::cyclic), help("{} depends on itsself through {}", name.to_string_lossy(), through.to_string_lossy()))]
+  #[diagnostic(code(dependency::cyclic), help("{} depends on itsself through {}", name.to_slash_lossy(), through.to_slash_lossy()))]
   CyclicDependency { name: PathBuf, through: PathBuf },
 
   #[error("{name} has a cyclic installation dependency")]
-  #[diagnostic(code(dependency::cyclic::install), help("{} depends on itsself through {}", name.to_string_lossy(), through.to_string_lossy()))]
+  #[diagnostic(code(dependency::cyclic::install), help("{} depends on itsself through {}", name.to_slash_lossy(), through.to_slash_lossy()))]
   CyclicInstallDependency { name: PathBuf, through: PathBuf },
 
   #[error("Dependency {1} of {0} was not found")]

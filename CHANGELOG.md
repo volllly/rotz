@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `whoami` variable to templating
 - Added `directories` variable to templating
-- The dotfiles can now be nested in subdirectories
+- Add ability to recurse into subdirectories
 
 ## [0.6.1] - 2022-08-18
 
