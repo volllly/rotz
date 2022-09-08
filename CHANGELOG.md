@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changes
+
+- Rotz can now automatically detect the filetype and parse the format if the feature (`yaml`, `toml` or `json`) is enabled
+- The features `yaml`, `toml` and `json` can now be enabled simultaneously
+
 ### Added
 
 - Added `whoami` variable to templating

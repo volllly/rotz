@@ -7,7 +7,7 @@ use speculoos::prelude::*;
 fn read_all_dots() {
   let dots = read_dots(
     std::path::Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
-    &["**".to_string()],
+    &["**".to_owned()],
     &Default::default(),
   )
   .unwrap();
@@ -23,7 +23,7 @@ fn read_all_dots() {
 fn read_sub_dots() {
   let dots = read_dots(
     std::path::Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
-    &["test03/*".to_string()],
+    &["test03/*".to_owned()],
     &Default::default(),
   )
   .unwrap();
@@ -37,7 +37,7 @@ fn read_sub_dots() {
 fn read_non_sub_dots() {
   let dots = read_dots(
     std::path::Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
-    &["*".to_string()],
+    &["*".to_owned()],
     &Default::default(),
   )
   .unwrap();

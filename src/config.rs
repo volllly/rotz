@@ -29,9 +29,10 @@ pub enum LinkType {
 struct ValueFaker;
 
 #[cfg(test)]
+#[allow(clippy::implicit_hasher)]
 impl Dummy<ValueFaker> for HashMap<String, serde_json::Value> {
   fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &ValueFaker, rng: &mut R) -> Self {
-    let mut map = HashMap::new();
+    let mut map = Self::new();
 
     for _ in 0..10.fake_with_rng(rng) {
       map.insert((0..10).fake_with_rng(rng), serde_json::Value::String((0..10).fake_with_rng::<String, R>(rng)));
@@ -66,11 +67,11 @@ impl Default for Config {
       dotfiles: USER_DIRS.home_dir().join(".dotfiles"),
       link_type: LinkType::Symbolic,
       #[cfg(windows)]
-      shell_command: Some("powershell -NoProfile -C {{ quote \"\" cmd }}".to_string()),
+      shell_command: Some("powershell -NoProfile -C {{ quote \"\" cmd }}".to_owned()),
       #[cfg(all(not(target_os = "macos"), unix))]
-      shell_command: Some("bash -c {{ quote \"\" cmd }}".to_string()),
+      shell_command: Some("bash -c {{ quote \"\" cmd }}".to_owned()),
       #[cfg(target_os = "macos")]
-      shell_command: Some("zsh -c {{ quote \"\" cmd }}".to_string()),
+      shell_command: Some("zsh -c {{ quote \"\" cmd }}".to_owned()),
       variables: HashMap::new(),
     }
   }
@@ -109,7 +110,7 @@ impl AlreadyExistsError {
       }
     };
 
-    Self { name: name.to_string(), span }
+    Self { name: name.to_owned(), span }
   }
 }
 
@@ -168,7 +169,7 @@ pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result
         .map_err(Error::Canonicalize)?
         .to_str()
         .ok_or_else(|| Error::PathParse(dotfiles.to_path_buf()))?
-        .to_string(),
+        .to_owned(),
     );
   }
 

@@ -69,8 +69,8 @@ impl Install {
         for dependency in &installs.depends {
           if stack.contains(dependency.as_path()) {
             return Error::CyclicInstallDependency {
-              name: dependency.to_path_buf(),
-              through: entry.0.to_path_buf(),
+              name: dependency.clone(),
+              through: entry.0.clone(),
             }
             .error();
           }
@@ -79,9 +79,7 @@ impl Install {
             dots,
             (
               dependency,
-              dots
-                .get(dependency.as_path())
-                .ok_or_else(|| Error::DependencyNotFound(entry.0.to_path_buf(), dependency.to_path_buf()))?,
+              dots.get(dependency.as_path()).ok_or_else(|| Error::DependencyNotFound(entry.0.clone(), dependency.clone()))?,
             ),
             installed,
             stack.clone(),
@@ -92,33 +90,33 @@ impl Install {
 
       println!("{}Installing {}{}\n", Attribute::Bold, entry.0.to_string_lossy().blue(), Attribute::Reset);
 
-      let inner_cmd = installs.cmd.to_string();
+      let inner_cmd = installs.cmd.clone();
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
         HANDLEBARS
           .render_template(shell_command, &json!({ "cmd": &inner_cmd }))
-          .map_err(|err| Error::RenderingTemplate(entry.0.to_path_buf(), err))?
+          .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err))?
       } else {
         inner_cmd.clone()
       };
 
-      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.to_path_buf(), err))?;
+      let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.clone(), err))?;
 
       println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
 
       if let Err(err) = helpers::run_command(&cmd[0], &cmd[1..], false, globals.dry_run) {
         if let helpers::RunError::Spawn(err) = &err {
-          if let std::io::ErrorKind::NotFound = err.kind() {
+          if err.kind() == std::io::ErrorKind::NotFound {
             println!("kek");
           }
         }
 
-        let error = Error::InstallExecute(entry.0.to_path_buf(), err);
+        let error = Error::InstallExecute(entry.0.clone(), err);
 
-        if !install_command.continue_on_error {
-          return error.error();
-        } else {
+        if install_command.continue_on_error {
           eprintln!("\n Error: {:?}", Report::new(error));
+        } else {
+          return error.error();
         }
       }
 
@@ -130,8 +128,8 @@ impl Install {
         for dependency in dependencies {
           if stack.contains(dependency.as_path()) {
             return Error::CyclicDependency {
-              name: dependency.to_path_buf(),
-              through: entry.0.to_path_buf(),
+              name: dependency.clone(),
+              through: entry.0.clone(),
             }
             .error();
           }
@@ -140,9 +138,7 @@ impl Install {
             dots,
             (
               dependency,
-              dots
-                .get(dependency.as_path())
-                .ok_or_else(|| Error::DependencyNotFound(entry.0.to_path_buf(), dependency.to_path_buf()))?,
+              dots.get(dependency.as_path()).ok_or_else(|| Error::DependencyNotFound(entry.0.clone(), dependency.clone()))?,
             ),
             installed,
             stack.clone(),
@@ -163,7 +159,7 @@ impl Command for Install {
   type Result = Result<()>;
 
   fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
-    let dots = crate::dot::read_dots(&self.config.dotfiles, &["**".to_string()], &self.config)?
+    let dots = crate::dot::read_dots(&self.config.dotfiles, &["**".to_owned()], &self.config)?
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))
@@ -171,7 +167,7 @@ impl Command for Install {
 
     let mut installed: HashSet<&Path> = HashSet::new();
     let globs = helpers::glob_from_vec(&install_command.dots, "/dot.{ya?ml,toml,json}")?;
-    for dot in dots.iter() {
+    for dot in &dots {
       if globs.is_match(dot.0.as_path()) {
         self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;
       }

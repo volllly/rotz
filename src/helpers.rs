@@ -2,6 +2,7 @@ use std::{
   ffi::OsStr,
   fmt::Debug,
   io::{self, Write},
+  path::{Path, PathBuf},
   process,
 };
 
@@ -9,6 +10,8 @@ use itertools::Itertools;
 use miette::{Diagnostic, Result};
 use somok::Somok;
 use wax::{Any, BuildError, Glob};
+
+use crate::{FileFormat, FILE_EXTENSIONS};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 #[error("Encountered multiple errors")]
@@ -35,7 +38,7 @@ pub fn _join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
   MultipleErrors(result.into_iter().collect_vec()).error()
 }
 
-pub(crate) mod os {
+pub mod os {
   use derive_more::{Display, IsVariant};
 
   #[derive(IsVariant, Display)]
@@ -55,7 +58,7 @@ pub(crate) mod os {
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
-pub(crate) enum RunError {
+pub enum RunError {
   #[error("Could not spawn command")]
   #[diagnostic(code(process::command::spawn))]
   Spawn(#[source] io::Error),
@@ -69,7 +72,7 @@ pub(crate) enum RunError {
   Write(#[from] io::Error),
 }
 
-pub(crate) fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<(), RunError> {
+pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<(), RunError> {
   if dry_run {
     return ().okay();
   }
@@ -93,7 +96,7 @@ pub(crate) fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, d
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
-pub(crate) enum GlobError {
+pub enum GlobError {
   #[error("Could not build GlobSet")]
   #[diagnostic(code(glob::set::parse))]
   Build(#[from] wax::BuildError<'static>),
@@ -109,6 +112,11 @@ pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'stat
   wax::any::<'static, Glob, _>(join_err_result(globs)?).unwrap().okay()
 }
 
+#[allow(clippy::redundant_pub_crate)]
+pub(crate) fn get_file_with_format(path: impl AsRef<Path>, base_name: impl AsRef<Path>) -> Option<(PathBuf, FileFormat)> {
+  FILE_EXTENSIONS.iter().map(|e| (path.as_ref().join(base_name.as_ref().with_extension(e.0)), e.1)).find(|e| e.0.exists())
+}
+
 #[cfg(test)]
 mod tests {
   use miette::Diagnostic;
@@ -118,7 +126,7 @@ mod tests {
 
   #[derive(thiserror::Error, Debug, Diagnostic)]
   #[error("")]
-  struct Error();
+  struct Error;
 
   #[test]
   fn join_err_result_none() {
@@ -128,7 +136,7 @@ mod tests {
 
   #[test]
   fn join_err_result_some() {
-    let joined = join_err_result(vec![Ok::<(), Error>(()), Err::<(), Error>(Error()), Err::<(), Error>(Error()), Ok::<(), Error>(())]);
+    let joined = join_err_result(vec![Ok::<(), Error>(()), Err::<(), Error>(Error), Err::<(), Error>(Error), Ok::<(), Error>(())]);
 
     assert_that!(&joined).is_err().map(|e| &e.0).has_length(2);
   }

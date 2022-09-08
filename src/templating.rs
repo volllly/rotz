@@ -12,13 +12,13 @@ use serde::Serialize;
 
 use crate::{config::Config, helpers, USER_DIRS};
 
-pub(crate) static HANDLEBARS: Lazy<Handlebars> = Lazy::new(|| {
+pub static HANDLEBARS: Lazy<Handlebars> = Lazy::new(|| {
   let mut hb = handlebars_misc_helpers::new_hbs();
   hb.set_strict_mode(false);
   hb
 });
 
-pub(crate) static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
+pub static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub enum Error {
@@ -45,7 +45,7 @@ pub struct WhoamiPrameters {
   pub desktop_env: String,
 }
 
-pub(crate) static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameters {
+pub static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameters {
   realname: whoami::realname(),
   username: whoami::username(),
   lang: whoami::lang().collect_vec(),
@@ -62,7 +62,7 @@ pub struct DirectoryPrameters {
   pub user: HashMap<&'static str, PathBuf>,
 }
 
-pub(crate) static DIRECTORY_PRAMETERS: Lazy<DirectoryPrameters> = Lazy::new(|| {
+pub static DIRECTORY_PRAMETERS: Lazy<DirectoryPrameters> = Lazy::new(|| {
   let mut base: HashMap<&'static str, PathBuf> = HashMap::new();
 
   if let Some(dirs) = BaseDirs::new() {
@@ -127,7 +127,7 @@ struct CompleteParameters<'a, T: Serialize> {
   pub dirs: &'static DirectoryPrameters,
 }
 
-pub(crate) fn render(template: &str, parameters: &impl Serialize) -> Result<String, Error> {
+pub fn render(template: &str, parameters: &impl Serialize) -> Result<String, Error> {
   let complete = CompleteParameters {
     parameters,
     env: &ENV,

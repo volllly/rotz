@@ -12,7 +12,7 @@ use figment::{
 };
 use somok::Somok;
 
-use crate::{config::LinkType, FILE_EXTENSION, PROJECT_DIRS};
+use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
 
 #[derive(From, Debug, FromStr, Into)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
@@ -36,7 +36,12 @@ pub struct Cli {
   /// If no dotfiles path is provided in the config file the default "~/.dotfiles" is used
   pub(crate) dotfiles: Option<PathBuf>,
 
-  #[clap(long, short, default_value_t = PROJECT_DIRS.config_dir().join(format!("config.{FILE_EXTENSION}")).into())]
+  #[clap(long, short, default_value_t = {
+    helpers::get_file_with_format(PROJECT_DIRS.config_dir(), "config")
+      .map(|p| p.0)
+      .unwrap_or_else(|| PROJECT_DIRS.config_dir().join(format!("config.{}", FILE_EXTENSIONS[0].0)))
+      .into()
+})]
   #[baked(ignore)]
   /// Path to the config file
   pub(crate) config: PathBuf,
@@ -61,7 +66,7 @@ pub struct Dots {
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Link")]
-pub struct LinkCli {
+pub struct LinkRaw {
   #[clap(flatten)]
   #[baked(type = "Vec<String>", map = "self.dots.dots")]
   pub(crate) dots: Dots,
@@ -79,7 +84,8 @@ pub struct LinkCli {
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Install")]
-pub struct InstallCli {
+#[allow(clippy::struct_excessive_bools)]
+pub struct InstallRaw {
   #[clap(flatten)]
   #[baked(type = "Vec<String>", map = "self.dots.dots")]
   pub(crate) dots: Dots,
@@ -104,7 +110,7 @@ pub struct InstallCli {
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Sync")]
-pub struct SyncCli {
+pub struct SyncRaw {
   #[clap(flatten)]
   #[baked(type = "Vec<String>", map = "self.dots.dots")]
   pub(crate) dots: Dots,
@@ -136,19 +142,19 @@ pub enum Command {
   /// Links dotfiles to the filesystem
   Link {
     #[clap(flatten)]
-    link: LinkCli,
+    link: LinkRaw,
   },
 
   /// Syncs dotfiles with the git repository
   Sync {
     #[clap(flatten)]
-    sync: SyncCli,
+    sync: SyncRaw,
   },
 
   /// Installs applications using the provided commands
   Install {
     #[clap(flatten)]
-    install: InstallCli,
+    install: InstallRaw,
   },
 }
 
@@ -161,18 +167,14 @@ impl Provider for Cli {
     let mut dict = Dict::new();
 
     if let Some(dotfiles) = &self.dotfiles {
-      dict.insert("dotfiles".to_string(), Value::serialize(dotfiles.to_string())?);
+      dict.insert("dotfiles".to_owned(), Value::serialize(dotfiles.to_string())?);
     }
 
     if let Command::Link {
-      link: LinkCli {
-        dots: _,
-        force: _,
-        link_type: Some(link_type),
-      },
+      link: LinkRaw { link_type: Some(link_type), .. },
     } = &self.command
     {
-      dict.insert("link_type".to_string(), Value::serialize(link_type)?);
+      dict.insert("link_type".to_owned(), Value::serialize(link_type)?);
     }
 
     map! {

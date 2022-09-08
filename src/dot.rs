@@ -7,10 +7,11 @@ mod repr {
   use derive_more::IsVariant;
   #[cfg(test)]
   use fake::{Dummy, Fake};
+  use miette::Diagnostic;
   use serde::Deserialize;
   use somok::Somok;
 
-  use crate::helpers::os;
+  use crate::{helpers::os, FileFormat};
 
   #[derive(Deserialize, Debug, Default)]
   #[cfg_attr(test, derive(Dummy))]
@@ -76,36 +77,59 @@ mod repr {
     pub(super) depends: HashSet<PathBuf>,
   }
 
-  #[cfg(feature = "toml")]
-  pub type ParseError = serde_toml::de::Error;
-  #[cfg(feature = "yaml")]
-  pub type ParseError = serde_yaml::Error;
-  #[cfg(feature = "json")]
-  pub type ParseError = serde_json::Error;
+  #[derive(thiserror::Error, Diagnostic, Debug)]
+  pub enum ParseError {
+    #[error(transparent)]
+    #[diagnostic(code(parsing::toml))]
+    #[cfg(feature = "toml")]
+    Toml(#[from] serde_toml::de::Error),
+
+    #[error(transparent)]
+    #[diagnostic(code(parsing::yaml))]
+    #[cfg(feature = "yaml")]
+    Yaml(#[from] serde_yaml::Error),
+
+    #[error(transparent)]
+    #[diagnostic(code(parsing::json))]
+    #[cfg(feature = "json")]
+    Json(#[from] serde_json::Error),
+  }
 
   #[cfg(feature = "toml")]
-  fn parse_inner<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, ParseError> {
-    serde_toml::from_str(value)
+  fn parse_inner_toml<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, ParseError> {
+    serde_toml::from_str::<T>(value)?.okay()
   }
 
   #[cfg(feature = "yaml")]
-  fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str) -> Result<T, ParseError> {
+  fn parse_inner_yaml<T: for<'de> Deserialize<'de> + Default>(value: &str) -> Result<T, ParseError> {
     match serde_yaml::from_str::<T>(value) {
       Ok(ok) => ok.okay(),
       Err(err) => match err.location() {
-        Some(_) => err.error(),
+        Some(_) => err.error()?,
         None => T::default().okay(),
       },
     }
   }
 
   #[cfg(feature = "json")]
-  fn parse_inner<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, ParseError> {
-    serde_json::from_str(value)
+  fn parse_inner_json<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, ParseError> {
+    serde_json::from_str::<T>(value)?.okay()
   }
+
+  fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str, format: FileFormat) -> Result<T, ParseError> {
+    match format {
+      #[cfg(feature = "yaml")]
+      FileFormat::Yaml => parse_inner_yaml::<T>(value),
+      #[cfg(feature = "toml")]
+      FileFormat::Toml => parse_inner_toml::<T>(value),
+      #[cfg(feature = "json")]
+      FileFormat::Json => parse_inner_json::<T>(value),
+    }
+  }
+
   impl Dot {
-    pub(crate) fn parse(value: &str) -> Result<Self, ParseError> {
-      let parsed = parse_inner::<DotSimplified>(value)?;
+    pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, ParseError> {
+      let parsed = parse_inner::<DotSimplified>(value, format)?;
 
       if let DotSimplified {
         capabilities: Capabilities {
@@ -113,9 +137,9 @@ mod repr {
           installs: None,
           depends: None,
         },
-      } = &parsed
+      } = parsed
       {
-        parse_inner::<Self>(value)
+        parse_inner::<Self>(value, format)
       } else {
         Self {
           global: parsed.capabilities.boxed().some(),
@@ -138,7 +162,7 @@ mod repr {
         darwin_windows,
       }: Dot,
     ) -> Self {
-      let mut capabilities: Option<Capabilities> = global.map(|g| (*g).clone());
+      let mut capabilities: Option<Self> = global.map(|g| (*g).clone());
 
       if os::OS.is_windows() {
         capabilities = capabilities.merge(windows_linux);
@@ -173,7 +197,7 @@ mod repr {
   }
 
   impl Merge<Self> for Capabilities {
-    fn merge(mut self, Capabilities { mut links, installs, depends }: Self) -> Self {
+    fn merge(mut self, Self { mut links, installs, depends }: Self) -> Self {
       if let Some(self_links) = &mut self.links {
         if let Links::One { links: self_links_one } = self_links {
           *self_links = Links::Many {
@@ -240,15 +264,11 @@ mod repr {
             }
 
             *i = match i {
-              Installs::None(_) => Installs::Full {
+              Installs::None(_) | Installs::Simple(_) => Installs::Full {
                 cmd: cmd_outer,
                 depends: depends_outer,
               },
-              Installs::Simple(_) => Installs::Full {
-                cmd: cmd_outer,
-                depends: depends_outer,
-              },
-              Installs::Full { cmd: _, depends } => {
+              Installs::Full { depends, .. } => {
                 depends_outer.extend(depends.clone());
                 Installs::Full {
                   cmd: cmd_outer,
@@ -279,23 +299,22 @@ use std::{
   collections::{HashMap, HashSet},
   fs,
   path::{Path, PathBuf},
-  str::FromStr,
 };
 
 use crossterm::style::Stylize;
 use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, SourceSpan};
-pub use repr::Merge;
+use repr::Merge;
 use somok::Somok;
 use walkdir::WalkDir;
 use wax::Pattern;
 
-use self::repr::Capabilities;
+use self::repr::{Capabilities, ParseError};
 use crate::{
   config::Config,
   helpers::{self, os},
   templating::{self, Parameters},
-  FILE_EXTENSION,
+  FileFormat, FILE_EXTENSIONS_GLOB,
 };
 
 #[derive(Clone, Debug)]
@@ -352,7 +371,7 @@ impl Merge<&Self> for Dot {
   }
 }
 
-fn from_str_with_defaults(s: &str, defaults: Option<&Capabilities>) -> Result<Dot, repr::ParseError> {
+fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabilities>) -> Result<Dot, repr::ParseError> {
   let repr::Dot {
     global,
     windows,
@@ -361,9 +380,9 @@ fn from_str_with_defaults(s: &str, defaults: Option<&Capabilities>) -> Result<Do
     windows_linux,
     linux_darwin,
     darwin_windows,
-  } = repr::Dot::parse(s)?;
+  } = repr::Dot::parse(s, format)?;
 
-  let capabilities: Option<Capabilities> = if let Some(defaults) = defaults { (*defaults).clone().some() } else { None };
+  let capabilities: Option<Capabilities> = defaults.and_then(|defaults| (*defaults).clone().some());
 
   let mut capabilities: Option<Capabilities> = global.map_or(capabilities.clone(), |g| capabilities.merge(g.some()));
 
@@ -394,21 +413,13 @@ fn from_str_with_defaults(s: &str, defaults: Option<&Capabilities>) -> Result<Do
           .collect(),
         repr::Links::Many { links } => links,
       }),
-      installs: capabilities.installs.and_then(|i| i.into()),
+      installs: capabilities.installs.and_then(Into::into),
       depends: capabilities.depends.map(|c| c.depends),
     }
   } else {
     Dot::default()
   }
   .okay()
-}
-
-impl FromStr for Dot {
-  type Err = repr::ParseError;
-
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    from_str_with_defaults(s, None)
-  }
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -428,7 +439,7 @@ pub enum Error {
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
-  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] serde_yaml::Error),
+  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] ParseError),
 
   #[cfg(feature = "yaml")]
   #[error("Could not render template for dot")]
@@ -441,55 +452,70 @@ pub enum Error {
 }
 
 pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(PathBuf, Dot)>> {
-  let defaults = dotfiles_path.join(format!("dots.{FILE_EXTENSION}"));
-  let defaults = match fs::read_to_string(defaults) {
-    Ok(text) => text.some(),
-    Err(err) => match err.kind() {
-      std::io::ErrorKind::NotFound => None,
-      _ => Error::ReadingDot(err).error()?,
-    },
+  let defaults = helpers::get_file_with_format(dotfiles_path, "dots");
+  let defaults = if let Some(defaults) = defaults {
+    match fs::read_to_string(defaults.0) {
+      Ok(text) => (text, defaults.1).some(),
+      Err(err) => match err.kind() {
+        std::io::ErrorKind::NotFound => None,
+        _ => Error::ReadingDot(err).error()?,
+      },
+    }
+  } else {
+    None
   };
 
-  let dots = helpers::glob_from_vec(dots, "/dot.{y<a>ml,toml,json}")?;
+  let dots = helpers::glob_from_vec(dots, &format!("/dot.{FILE_EXTENSIONS_GLOB}"))?;
 
   let paths = WalkDir::new(&dotfiles_path)
     .into_iter()
-    .filter_ok(|e| e.file_type().is_file())
+    .filter_ok(|e| !e.file_type().is_dir())
     .map(|d| match d {
-      Ok(d) => d.path().strip_prefix(dotfiles_path).map(|p| p.to_path_buf()).map_err(Error::PathStrip),
+      Ok(d) => d.path().strip_prefix(dotfiles_path).map(Path::to_path_buf).map_err(Error::PathStrip),
       Err(err) => Error::WalkingDotfiles(err).error(),
     })
-    .filter_ok(|e| dots.is_match(e.as_path()));
+    .filter_ok(|e| dots.is_match(e.as_path()))
+    .map_ok(|e| {
+      let format = FileFormat::try_from(e.as_path()).unwrap();
+      (e, format)
+    });
 
   let dotfiles = crate::helpers::join_err_result(paths.collect())?
     .into_iter()
     .map(|p| {
-      let name = p.parent().unwrap().to_path_buf();
-      Ok::<(PathBuf, PathBuf), Error>((name, p))
+      let name = p.0.parent().unwrap().to_path_buf();
+      Ok::<(PathBuf, (PathBuf, FileFormat)), Error>((name, p))
     })
-    .map_ok(|p| (p.0, fs::read_to_string(dotfiles_path.join(&p.1)).map_err(|e| Error::Io(dotfiles_path.join(p.1), e))));
+    .map_ok(|p| {
+      (
+        p.0,
+        fs::read_to_string(dotfiles_path.join(&p.1 .0))
+          .map(|d| (d, p.1 .1))
+          .map_err(|e| Error::Io(dotfiles_path.join(p.1 .0), e)),
+      )
+    });
 
   let dots = dotfiles.filter_map(|f| match f {
-    Ok((name, Ok(text))) => {
+    Ok((name, Ok((text, format)))) => {
       let parameters = Parameters { config, name: &name };
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
-          return Error::RenderDot(NamedSource::new(name.join("dot.{y<a>ml,toml,json}").to_string_lossy(), text.to_string()), (0, text.len()).into(), err)
+          return Error::RenderDot(NamedSource::new(name.join(format!("dot.{format}")).to_string_lossy(), text.clone()), (0, text.len()).into(), err)
             .error()
             .some()
         }
       };
 
-      let defaults = if let Some(defaults) = defaults.as_ref() {
+      let defaults = if let Some((defaults, format)) = defaults.as_ref() {
         match templating::render(defaults, &parameters) {
-          Ok(rendered) => match repr::Dot::parse(&rendered) {
+          Ok(rendered) => match repr::Dot::parse(&rendered, *format) {
             Ok(parsed) => Into::<Capabilities>::into(parsed).some(),
             Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).error().some(),
           },
           Err(err) => {
             return Error::RenderDot(
-              NamedSource::new(name.join("dot.{y<a>ml,toml,json}").to_string_lossy(), defaults.to_string()),
+              NamedSource::new(name.join(format!("dot.{format}")).to_string_lossy(), defaults.to_string()),
               (0, defaults.len()).into(),
               err,
             )
@@ -501,9 +527,9 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
         None
       };
 
-      match from_str_with_defaults(&text, defaults.as_ref()) {
-        Ok(dot) => (name.to_path_buf(), dot).okay().some(),
-        Err(err) => Error::ParseDot(NamedSource::new(name.join("dot.{y<a>ml,toml,json}").to_string_lossy(), text.to_string()), (0, text.len()).into(), err)
+      match from_str_with_defaults(&text, format, defaults.as_ref()) {
+        Ok(dot) => (name.clone(), dot).okay().some(),
+        Err(err) => Error::ParseDot(NamedSource::new(name.join(format!("dot.{format}")).to_string_lossy(), text.clone()), (0, text.len()).into(), err)
           .error()
           .some(),
       }

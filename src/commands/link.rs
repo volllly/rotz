@@ -94,11 +94,12 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool) -> std
 
 #[cfg(windows)]
 fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
+  use std::os::windows::fs;
+
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
   }
 
-  use std::os::windows::fs;
   if from.is_dir() {
     fs::symlink_dir(from, to)?;
   } else {

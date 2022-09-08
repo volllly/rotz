@@ -41,9 +41,9 @@ impl Command for Sync {
 
       for entry in WalkDir::new(&self.config.dotfiles)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(Result::ok)
         .filter(|e| globs.is_match(e.path()))
-        .filter(|e| e.file_type().is_file())
+        .filter(|e| !e.file_type().is_dir())
       {
         helpers::run_command(
           "git",
@@ -51,7 +51,7 @@ impl Command for Sync {
           true,
           globals.dry_run,
         )
-        .map_err(|err| Error::CommandExecute("Add".to_string(), err))?;
+        .map_err(|err| Error::CommandExecute("Add".to_owned(), err))?;
       }
     }
 
@@ -63,19 +63,19 @@ impl Command for Sync {
         self.config.dotfiles.as_os_str(),
         OsStr::new("commit"),
         OsStr::new("-m"),
-        OsStr::new(&sync.message.unwrap_or_else(|| "rotz sync".to_string())),
+        OsStr::new(&sync.message.unwrap_or_else(|| "rotz sync".to_owned())),
       ],
       true,
       globals.dry_run,
     )
-    .map_err(|err| Error::CommandExecute("Commit".to_string(), err))?;
+    .map_err(|err| Error::CommandExecute("Commit".to_owned(), err))?;
 
     println!("\n{}Pulling{}\n", Attribute::Bold, Attribute::Reset);
-    helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("pull")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Pull".to_string(), err))?;
+    helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("pull")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Pull".to_owned(), err))?;
 
     if !sync.no_push {
       println!("\n{}Pushing{}\n", Attribute::Bold, Attribute::Reset);
-      helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("push")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Push".to_string(), err))?;
+      helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("push")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Push".to_owned(), err))?;
     }
 
     println!("\n{}Sync complete{}\n", Attribute::Bold, Attribute::Reset);
