@@ -1462,6 +1462,7 @@ dependencies = [
  "speculoos",
  "thiserror",
  "toml",
+ "velcro",
  "walkdir",
  "wax",
  "whoami",
@@ -1935,6 +1936,36 @@ name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
+
+[[package]]
+name = "velcro"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85554e2a4b7527966b335b31c7c525e1dd6531cbf41b63470c952da53b7e07bf"
+dependencies = [
+ "velcro_macros",
+]
+
+[[package]]
+name = "velcro_core"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99125cbb1d0dc3ac382bc77cea20335e8608998bd03f7232ac870adf23b0d498"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "velcro_macros"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4d6cb3e9601d03fc75e39bf0515373162cc8a3e2bbfe8836709bb1ede341904"
+dependencies = [
+ "syn",
+ "velcro_core",
+]
 
 [[package]]
 name = "version_check"

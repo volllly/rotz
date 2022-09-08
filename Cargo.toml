@@ -52,6 +52,7 @@ fake = { version = "2.5.0", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.15.0"
 speculoos = "0.9.0"
+velcro = "0.5.3"
 
 [profile.dev]
 opt-level = 0

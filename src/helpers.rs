@@ -6,12 +6,13 @@ use std::{
   process,
 };
 
+use crate::{FileFormat, FILE_EXTENSIONS};
 use itertools::Itertools;
 use miette::{Diagnostic, Result};
 use somok::Somok;
+#[cfg(test)]
+use speculoos::assert_that;
 use wax::{Any, BuildError, Glob};
-
-use crate::{FileFormat, FILE_EXTENSIONS};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 #[error("Encountered multiple errors")]
@@ -115,6 +116,49 @@ pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'stat
 #[allow(clippy::redundant_pub_crate)]
 pub(crate) fn get_file_with_format(path: impl AsRef<Path>, base_name: impl AsRef<Path>) -> Option<(PathBuf, FileFormat)> {
   FILE_EXTENSIONS.iter().map(|e| (path.as_ref().join(base_name.as_ref().with_extension(e.0)), e.1)).find(|e| e.0.exists())
+}
+
+#[cfg(test)]
+pub trait Select<'s, O: 's, N: 's> {
+  fn select<F>(self, selector: F) -> speculoos::Spec<'s, N>
+  where
+    F: Fn(&'s O) -> &'s N;
+
+  fn select_and<S, W>(&self, selector: S, with: W) -> &speculoos::Spec<'s, O>
+  where
+    S: Fn(&'s O) -> &'s N,
+    W: Fn(speculoos::Spec<'s, N>);
+
+  fn and<F>(self, and: F) -> speculoos::Spec<'s, O>
+  where
+    F: Fn(&speculoos::Spec<'s, O>);
+}
+
+#[cfg(test)]
+impl<'s, O: 's, N: 's> Select<'s, O, N> for speculoos::Spec<'s, O> {
+  fn select<F>(self, selector: F) -> speculoos::Spec<'s, N>
+  where
+    F: Fn(&'s O) -> &'s N,
+  {
+    assert_that!(*selector(self.subject))
+  }
+
+  fn select_and<S, W>(&self, selector: S, with: W) -> &speculoos::Spec<'s, O>
+  where
+    S: Fn(&'s O) -> &'s N,
+    W: Fn(speculoos::Spec<'s, N>),
+  {
+    with(assert_that!(*selector(self.subject)));
+    self
+  }
+
+  fn and<F>(self, and: F) -> speculoos::Spec<'s, O>
+  where
+    F: Fn(&speculoos::Spec<'s, O>),
+  {
+    and(&self);
+    self
+  }
 }
 
 #[cfg(test)]

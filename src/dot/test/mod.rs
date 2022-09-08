@@ -3,6 +3,8 @@ use std::path::Path;
 use super::read_dots;
 use speculoos::prelude::*;
 
+mod data;
+
 #[test]
 fn read_all_dots() {
   let dots = read_dots(Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(), &["**".to_owned()], &Default::default()).unwrap();
