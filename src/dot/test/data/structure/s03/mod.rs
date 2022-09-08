@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use crate::helpers::Select;
-
 use speculoos::{assert_that, prelude::*};
 use velcro::hash_set;
 
