@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changes
 
+- The repo level config file uses the key `default` for overridable values and the of `global` key for forced values
 - Rotz can now automatically detect the filetype and parse the format if the feature (`yaml`, `toml` or `json`) is enabled
 - The features `yaml`, `toml` and `json` can now be enabled simultaneously
 

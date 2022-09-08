@@ -6,7 +6,7 @@
 #![warn(clippy::filetype_is_file)]
 #![warn(clippy::string_to_string)]
 #![warn(clippy::unneeded_field_pattern)]
-#![warn(clippy::mod_module_files)]
+#![warn(clippy::self_named_module_files)]
 #![warn(clippy::str_to_string)]
 
 use std::{
@@ -24,7 +24,7 @@ use figment::{
   Figment,
 };
 use helpers::os;
-use miette::{Diagnostic, Result, SourceSpan};
+use miette::{Diagnostic, Report, Result, SourceSpan};
 use once_cell::sync::Lazy;
 
 #[cfg(feature = "json")]
@@ -68,6 +68,10 @@ enum Error {
   #[diagnostic(code(config::create))]
   CreatingConfig(PathBuf, #[source] std::io::Error),
 
+  #[error("Used \"global\" config profile")]
+  #[diagnostic(code(config::profile::global), help("The \"global\" profile overwrites any other profile. Please use the \"default\" profile instead."))]
+  ConfigGlobal,
+
   #[error("Could not read config file \"{0}\"")]
   #[diagnostic(code(config::read), help("Do you have access to the config file?"))]
   ReadingConfig(PathBuf, #[source] std::io::Error),
@@ -94,10 +98,13 @@ pub(crate) const FILE_EXTENSIONS: &[(&str, FileFormat)] = &[
 #[derive(Debug, Display, Clone, Copy)]
 pub(crate) enum FileFormat {
   #[cfg(feature = "yaml")]
+  #[display(fmt = "yaml")]
   Yaml,
   #[cfg(feature = "toml")]
+  #[display(fmt = "toml")]
   Toml,
   #[cfg(feature = "json")]
+  #[display(fmt = "json")]
   Json,
 }
 
@@ -138,26 +145,7 @@ fn main() -> Result<(), miette::Report> {
     File::create(&cli.config.0).map_err(|e| Error::CreatingConfig(cli.config.0.clone(), e))?;
   }
 
-  let mut config_figment = Figment::from(Serialized::defaults(Config::default()));
-
-  config_figment = merge_global_config(&cli.config.0, config_figment)?.merge(Env::prefixed("ROTZ_")).merge(&cli);
-
-  let mut config: Config = config_figment.extract().map_err(Error::ParsingConfig)?;
-
-  if config.dotfiles.starts_with("~/") {
-    let mut iter = config.dotfiles.iter();
-    iter.next();
-    config.dotfiles = USER_DIRS.home_dir().iter().chain(iter).collect();
-  }
-
-  config_figment = join_repo_config(&config.dotfiles, config_figment)?;
-
-  config = config_figment
-    .clone()
-    .select("global")
-    .merge(config_figment.select(os::OS.to_string().to_ascii_lowercase()))
-    .extract()
-    .map_err(Error::ParsingConfig)?;
+  let config = read_config(&cli)?;
 
   match cli.command.clone() {
     cli::Command::Link { link } => commands::Link::new(config).execute((cli.bake(), link.bake())),
@@ -168,40 +156,112 @@ fn main() -> Result<(), miette::Report> {
   }
 }
 
-fn merge_global_config(path: &Path, mut config: Figment) -> Result<Figment, Error> {
-  let config_str = fs::read_to_string(path).map_err(|e| Error::ReadingConfig(path.to_path_buf(), e))?;
-  if !config_str.is_empty() {
-    let file_extension = &*path.extension().unwrap().to_string_lossy();
-    config = match file_extension {
-      #[cfg(feature = "yaml")]
-      "yaml" | "yml" => config.merge(Yaml::string(&config_str)),
-      #[cfg(feature = "toml")]
-      "toml" => config.merge(Toml::string(&config_str)),
-      #[cfg(feature = "json")]
-      "json" => config.merge(Json::string(&config_str)),
-      _ => {
-        let file_name = path.file_name().unwrap().to_string_lossy().to_string();
-        return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
-      }
-    };
+fn read_config(cli: &Cli) -> Result<Config, Error> {
+  let env_config = Env::prefixed("ROTZ_");
+
+  let mut figment = Figment::new().merge_from_path(&cli.config.0, false)?.merge(env_config).merge(&cli);
+
+  let config: Config = figment.clone().join(Serialized::defaults(Config::default())).extract().map_err(Error::ParsingConfig)?;
+
+  let dotfiles = if config.dotfiles.starts_with("~/") {
+    let mut iter = config.dotfiles.iter();
+    iter.next();
+    USER_DIRS.home_dir().iter().chain(iter).collect()
+  } else {
+    config.dotfiles
+  };
+
+  if let Some((config, _)) = helpers::get_file_with_format(dotfiles, "config") {
+    figment = figment.join_from_path(config, true)?;
   }
 
-  config.okay()
+  if figment.profiles().any(|p| p.as_str() == "global") {
+    println!("Warning: {:?}", Report::new(Error::ConfigGlobal));
+  }
+
+  figment
+    .join(Serialized::defaults(Config::default()))
+    .select(os::OS.to_string().to_ascii_lowercase())
+    .extract()
+    .map_err(Error::ParsingConfig)
 }
 
-fn join_repo_config(path: &Path, mut config: Figment) -> Result<Figment, Error> {
-  if let Some((path, format)) = helpers::get_file_with_format(path, "config") {
-    let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.clone(), e))?;
-    if !config_str.is_empty() {
-      config = match format {
-        #[cfg(feature = "yaml")]
-        FileFormat::Yaml => config.join(Yaml::string(&config_str)),
-        #[cfg(feature = "toml")]
-        FileFormat::Toml => config.join(Toml::string(&config_str)),
-        #[cfg(feature = "json")]
-        FileFormat::Json => config.join(Json::string(&config_str)),
-      };
+trait FigmentExt {
+  fn merge_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error>
+  where
+    Self: std::marker::Sized;
+  fn join_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error>
+  where
+    Self: std::marker::Sized;
+}
+
+trait DataExt {
+  fn set_nested(self, nested: bool) -> Self
+  where
+    Self: std::marker::Sized;
+}
+
+impl<F: Format> DataExt for figment::providers::Data<F> {
+  fn set_nested(self, nested: bool) -> Self
+  where
+    Self: std::marker::Sized,
+  {
+    if nested {
+      self.nested()
+    } else {
+      self
     }
   }
-  config.okay()
 }
+
+impl FigmentExt for Figment {
+  fn merge_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error> {
+    let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
+    if !config_str.is_empty() {
+      let file_extension = &*path.as_ref().extension().unwrap().to_string_lossy();
+      return match file_extension {
+        #[cfg(feature = "yaml")]
+        "yaml" | "yml" => self.merge(Yaml::string(&config_str).set_nested(nested)),
+        #[cfg(feature = "toml")]
+        "toml" => self.merge(Toml::string(&config_str).set_nested(nested)),
+        #[cfg(feature = "json")]
+        "json" => self.merge(Json::string(&config_str).set_nested(nested)),
+        _ => {
+          let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
+        }
+      }
+      .okay();
+    }
+
+    self.okay()
+  }
+
+  fn join_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error>
+  where
+    Self: std::marker::Sized,
+  {
+    let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
+    if !config_str.is_empty() {
+      let file_extension = &*path.as_ref().extension().unwrap().to_string_lossy();
+      return match file_extension {
+        #[cfg(feature = "yaml")]
+        "yaml" | "yml" => self.join(Yaml::string(&config_str).set_nested(nested)),
+        #[cfg(feature = "toml")]
+        "toml" => self.join(Toml::string(&config_str).set_nested(nested)),
+        #[cfg(feature = "json")]
+        "json" => self.join(Json::string(&config_str).set_nested(nested)),
+        _ => {
+          let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
+        }
+      }
+      .okay();
+    }
+
+    self.okay()
+  }
+}
+
+#[cfg(test)]
+mod test;

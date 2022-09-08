@@ -5,12 +5,7 @@ use speculoos::prelude::*;
 
 #[test]
 fn read_all_dots() {
-  let dots = read_dots(
-    std::path::Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
-    &["**".to_owned()],
-    &Default::default(),
-  )
-  .unwrap();
+  let dots = read_dots(Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(), &["**".to_owned()], &Default::default()).unwrap();
 
   assert_that!(dots).has_length(4);
   assert_that!(dots).mapped_contains(|d| d.0.as_path(), &Path::new("test01"));
@@ -22,7 +17,7 @@ fn read_all_dots() {
 #[test]
 fn read_sub_dots() {
   let dots = read_dots(
-    std::path::Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
+    Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
     &["test03/*".to_owned()],
     &Default::default(),
   )
@@ -35,14 +30,19 @@ fn read_sub_dots() {
 
 #[test]
 fn read_non_sub_dots() {
-  let dots = read_dots(
-    std::path::Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
-    &["*".to_owned()],
-    &Default::default(),
-  )
-  .unwrap();
+  let dots = read_dots(Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(), &["*".to_owned()], &Default::default()).unwrap();
 
   assert_that!(dots).has_length(2);
   assert_that!(dots).mapped_contains(|d| d.0.as_path(), &Path::new("test01"));
   assert_that!(dots).mapped_contains(|d| d.0.as_path(), &Path::new("test02"));
+}
+
+#[test]
+fn read_all_file_formats() {
+  let dots = read_dots(Path::new(file!()).parent().unwrap().join("data/file_formats").as_path(), &["**".to_owned()], &Default::default()).unwrap();
+
+  assert_that!(dots).has_length(3);
+  assert_that!(dots).mapped_contains(|d| d.0.as_path(), &Path::new("test01"));
+  assert_that!(dots).mapped_contains(|d| d.0.as_path(), &Path::new("test02"));
+  assert_that!(dots).mapped_contains(|d| d.0.as_path(), &Path::new("test03"));
 }

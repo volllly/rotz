@@ -49,7 +49,7 @@ variables:
 It is possible to put a config file in your repo conatining default values depending on the OS. These are overridden by the config file on the machine.
 
 ```yaml title=".dotfiles/config.yaml"
-global:
+default:
   link_type: <globalDefault>
 
 windows:

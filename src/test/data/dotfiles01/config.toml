@@ -1,0 +1,3 @@
+[default.variables]
+test01 = "toml"
+test02 = "toml"

@@ -303,7 +303,7 @@ use std::{
 
 use crossterm::style::Stylize;
 use itertools::Itertools;
-use miette::{Diagnostic, NamedSource, SourceSpan};
+use miette::{Diagnostic, NamedSource, Report, SourceSpan};
 use repr::Merge;
 use somok::Somok;
 use walkdir::WalkDir;
@@ -436,6 +436,10 @@ pub enum Error {
   #[diagnostic(code(dotfiles::walk))]
   WalkingDotfiles(#[source] walkdir::Error),
 
+  #[error("The \"dots.{0}\" file is deprecated and support will be removed in a future version.")]
+  #[diagnostic(code(dot::defaults::deprecated), help("Please rename this file to \"defaults.{0}\"."))]
+  DotsDeprecated(String, #[label] SourceSpan, #[source_code] String),
+
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
@@ -452,7 +456,17 @@ pub enum Error {
 }
 
 pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(PathBuf, Dot)>> {
-  let defaults = helpers::get_file_with_format(dotfiles_path, "dots");
+  let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
+  if let Some(defaults) = &defaults {
+    let path = defaults.0.to_string_lossy().to_string();
+    println!(
+      "Warning: {:?}",
+      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).into(), path))
+    );
+  } else {
+    defaults = helpers::get_file_with_format(dotfiles_path, "dots");
+  }
+
   let defaults = if let Some(defaults) = defaults {
     match fs::read_to_string(defaults.0) {
       Ok(text) => (text, defaults.1).some(),
