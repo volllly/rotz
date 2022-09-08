@@ -125,7 +125,7 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo test
+      - run: cargo test --all-features
 
   release:
     name: Release
