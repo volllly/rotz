@@ -7,11 +7,14 @@ mod repr {
   use derive_more::IsVariant;
   #[cfg(test)]
   use fake::{Dummy, Fake};
-  use miette::Diagnostic;
   use serde::Deserialize;
   use somok::Somok;
+  use velcro::hash_set;
 
-  use crate::{helpers::os, FileFormat};
+  use crate::{
+    helpers::{self, os},
+    FileFormat,
+  };
 
   #[derive(Deserialize, Debug, Default)]
   #[cfg_attr(test, derive(Dummy))]
@@ -77,31 +80,13 @@ mod repr {
     pub(super) depends: HashSet<PathBuf>,
   }
 
-  #[derive(thiserror::Error, Diagnostic, Debug)]
-  pub enum ParseError {
-    #[error(transparent)]
-    #[diagnostic(code(parsing::toml))]
-    #[cfg(feature = "toml")]
-    Toml(#[from] serde_toml::de::Error),
-
-    #[error(transparent)]
-    #[diagnostic(code(parsing::yaml))]
-    #[cfg(feature = "yaml")]
-    Yaml(#[from] serde_yaml::Error),
-
-    #[error(transparent)]
-    #[diagnostic(code(parsing::json))]
-    #[cfg(feature = "json")]
-    Json(#[from] serde_json::Error),
-  }
-
   #[cfg(feature = "toml")]
-  fn parse_inner_toml<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, ParseError> {
+  fn parse_inner_toml<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, helpers::ParseError> {
     serde_toml::from_str::<T>(value)?.okay()
   }
 
   #[cfg(feature = "yaml")]
-  fn parse_inner_yaml<T: for<'de> Deserialize<'de> + Default>(value: &str) -> Result<T, ParseError> {
+  fn parse_inner_yaml<T: for<'de> Deserialize<'de> + Default>(value: &str) -> Result<T, helpers::ParseError> {
     match serde_yaml::from_str::<T>(value) {
       Ok(ok) => ok.okay(),
       Err(err) => match err.location() {
@@ -112,11 +97,11 @@ mod repr {
   }
 
   #[cfg(feature = "json")]
-  fn parse_inner_json<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, ParseError> {
+  fn parse_inner_json<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, helpers::ParseError> {
     serde_json::from_str::<T>(value)?.okay()
   }
 
-  fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str, format: FileFormat) -> Result<T, ParseError> {
+  fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str, format: FileFormat) -> Result<T, helpers::ParseError> {
     match format {
       #[cfg(feature = "yaml")]
       FileFormat::Yaml => parse_inner_yaml::<T>(value),
@@ -128,7 +113,7 @@ mod repr {
   }
 
   impl Dot {
-    pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, ParseError> {
+    pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, helpers::ParseError> {
       let parsed = parse_inner::<DotSimplified>(value, format)?;
 
       if let DotSimplified {
@@ -201,14 +186,7 @@ mod repr {
       if let Some(self_links) = &mut self.links {
         if let Links::One { links: self_links_one } = self_links {
           *self_links = Links::Many {
-            links: self_links_one
-              .iter_mut()
-              .map(|l| {
-                let mut hs = HashSet::new();
-                hs.insert(l.1.clone());
-                (l.0.clone(), hs)
-              })
-              .collect(),
+            links: self_links_one.iter_mut().map(|l| (l.0.clone(), hash_set!(l.1.clone()))).collect(),
           };
         }
       }
@@ -216,14 +194,7 @@ mod repr {
       if let Some(match_links) = &mut links {
         if let Links::One { links: match_links_one } = match_links {
           *match_links = Links::Many {
-            links: match_links_one
-              .iter_mut()
-              .map(|l| {
-                let mut hs = HashSet::new();
-                hs.insert(l.1.clone());
-                (l.0.clone(), hs)
-              })
-              .collect(),
+            links: match_links_one.iter_mut().map(|l| (l.0.clone(), hash_set!(l.1.clone()))).collect(),
           };
         }
       }
@@ -252,7 +223,7 @@ mod repr {
             self.installs = None;
           } else {
             let cmd_outer: String;
-            let mut depends_outer: HashSet<PathBuf> = HashSet::new();
+            let mut depends_outer = HashSet::<PathBuf>::new();
 
             match installs {
               Installs::Simple(cmd) => cmd_outer = cmd,
@@ -306,10 +277,11 @@ use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, Report, SourceSpan};
 use repr::Merge;
 use somok::Somok;
+use velcro::hash_set;
 use walkdir::WalkDir;
 use wax::Pattern;
 
-use self::repr::{Capabilities, ParseError};
+use self::repr::Capabilities;
 use crate::{
   config::Config,
   helpers::{self, os},
@@ -371,7 +343,7 @@ impl Merge<&Self> for Dot {
   }
 }
 
-fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabilities>) -> Result<Dot, repr::ParseError> {
+fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabilities>) -> Result<Dot, helpers::ParseError> {
   let repr::Dot {
     global,
     windows,
@@ -403,14 +375,7 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
   if let Some(capabilities) = capabilities {
     Dot {
       links: capabilities.links.map(|c| match c {
-        repr::Links::One { links } => links
-          .into_iter()
-          .map(|l| {
-            let mut hs = HashSet::<PathBuf>::new();
-            hs.insert(l.1);
-            (l.0, hs)
-          })
-          .collect(),
+        repr::Links::One { links } => links.into_iter().map(|l| (l.0, hash_set!(l.1))).collect(),
         repr::Links::Many { links } => links,
       }),
       installs: capabilities.installs.and_then(Into::into),
@@ -443,7 +408,7 @@ pub enum Error {
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
-  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] ParseError),
+  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] helpers::ParseError),
 
   #[cfg(feature = "yaml")]
   #[error("Could not render template for dot")]

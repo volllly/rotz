@@ -10,6 +10,7 @@
 #![warn(clippy::str_to_string)]
 
 use std::{
+  collections::HashMap,
   convert::TryFrom,
   fs::{self, File},
   path::{Path, PathBuf},
@@ -20,8 +21,8 @@ use commands::Command;
 use derive_more::Display;
 use directories::{ProjectDirs, UserDirs};
 use figment::{
-  providers::{Env, Format, Serialized},
-  Figment,
+  providers::{Env, Format},
+  Figment, Profile,
 };
 use helpers::os;
 use miette::{Diagnostic, Report, Result, SourceSpan};
@@ -40,8 +41,9 @@ mod cli;
 use cli::Cli;
 
 mod config;
-use config::Config;
+use config::{Config, MappedProfileProvider};
 use somok::Somok;
+use velcro::hash_map;
 
 mod commands;
 mod dot;
@@ -51,7 +53,7 @@ mod templating;
 compile_error!("At least one file format features needs to be enabled");
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
-enum Error {
+pub enum Error {
   #[error("Unknown file extension")]
   #[diagnostic(code(parse::extension))]
   UnknownExtension(#[source_code] String, #[label] SourceSpan),
@@ -161,7 +163,7 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
 
   let mut figment = Figment::new().merge_from_path(&cli.config.0, false)?.merge(env_config).merge(&cli);
 
-  let config: Config = figment.clone().join(Serialized::defaults(Config::default())).extract().map_err(Error::ParsingConfig)?;
+  let config: Config = figment.clone().join(Config::default()).extract().map_err(Error::ParsingConfig)?;
 
   let dotfiles = if config.dotfiles.starts_with("~/") {
     let mut iter = config.dotfiles.iter();
@@ -172,25 +174,21 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
   };
 
   if let Some((config, _)) = helpers::get_file_with_format(dotfiles, "config") {
-    figment = figment.join_from_path(config, true)?;
+    figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
   }
 
   if figment.profiles().any(|p| p.as_str() == "global") {
     println!("Warning: {:?}", Report::new(Error::ConfigGlobal));
   }
 
-  figment
-    .join(Serialized::defaults(Config::default()))
-    .select(os::OS.to_string().to_ascii_lowercase())
-    .extract()
-    .map_err(Error::ParsingConfig)
+  figment.join(Config::default()).select(os::OS.to_string().to_ascii_lowercase()).extract().map_err(Error::ParsingConfig)
 }
 
 trait FigmentExt {
   fn merge_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error>
   where
     Self: std::marker::Sized;
-  fn join_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error>
+  fn join_from_path(self, path: impl AsRef<Path>, nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
   where
     Self: std::marker::Sized;
 }
@@ -237,7 +235,7 @@ impl FigmentExt for Figment {
     self.okay()
   }
 
-  fn join_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error>
+  fn join_from_path(self, path: impl AsRef<Path>, nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
   where
     Self: std::marker::Sized,
   {
@@ -246,11 +244,20 @@ impl FigmentExt for Figment {
       let file_extension = &*path.as_ref().extension().unwrap().to_string_lossy();
       return match file_extension {
         #[cfg(feature = "yaml")]
-        "yaml" | "yml" => self.join(Yaml::string(&config_str).set_nested(nested)),
+        "yaml" | "yml" => self.join(MappedProfileProvider {
+          mapping,
+          provider: Yaml::string(&config_str).set_nested(nested),
+        }),
         #[cfg(feature = "toml")]
-        "toml" => self.join(Toml::string(&config_str).set_nested(nested)),
+        "toml" => self.join(MappedProfileProvider {
+          mapping,
+          provider: Toml::string(&config_str).set_nested(nested),
+        }),
         #[cfg(feature = "json")]
-        "json" => self.join(Json::string(&config_str).set_nested(nested)),
+        "json" => self.join(MappedProfileProvider {
+          mapping,
+          provider: Json::string(&config_str).set_nested(nested),
+        }),
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
           return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();

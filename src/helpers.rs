@@ -161,6 +161,29 @@ impl<'s, O: 's, N: 's> Select<'s, O, N> for speculoos::Spec<'s, O> {
   }
 }
 
+#[derive(thiserror::Error, Diagnostic, Debug)]
+pub enum ParseError {
+  #[error(transparent)]
+  #[diagnostic(code(parsing::toml::de))]
+  #[cfg(feature = "toml")]
+  TomlDe(#[from] serde_toml::de::Error),
+
+  #[error(transparent)]
+  #[diagnostic(code(parsing::toml::ser))]
+  #[cfg(feature = "toml")]
+  TomlSer(#[from] serde_toml::ser::Error),
+
+  #[error(transparent)]
+  #[diagnostic(code(parsing::yaml))]
+  #[cfg(feature = "yaml")]
+  Yaml(#[from] serde_yaml::Error),
+
+  #[error(transparent)]
+  #[diagnostic(code(parsing::json))]
+  #[cfg(feature = "json")]
+  Json(#[from] serde_json::Error),
+}
+
 #[cfg(test)]
 mod tests {
   use miette::Diagnostic;

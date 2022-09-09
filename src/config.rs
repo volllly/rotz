@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  convert::TryFrom,
   fs,
   path::{Path, PathBuf},
 };
@@ -9,12 +10,13 @@ use crossterm::style::Stylize;
 use derive_more::{Display, IsVariant};
 #[cfg(test)]
 use fake::{Dummy, Fake};
+use figment::{providers::Serialized, value, Metadata, Profile, Provider};
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
 use somok::Somok;
 
-use crate::USER_DIRS;
+use crate::{helpers, FileFormat, USER_DIRS};
 
 #[derive(Debug, ArgEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
@@ -30,12 +32,12 @@ struct ValueFaker;
 
 #[cfg(test)]
 #[allow(clippy::implicit_hasher)]
-impl Dummy<ValueFaker> for HashMap<String, serde_json::Value> {
+impl Dummy<ValueFaker> for figment::value::Dict {
   fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &ValueFaker, rng: &mut R) -> Self {
     let mut map = Self::new();
 
     for _ in 0..10.fake_with_rng(rng) {
-      map.insert((0..10).fake_with_rng(rng), serde_json::Value::String((0..10).fake_with_rng::<String, R>(rng)));
+      map.insert((0..10).fake_with_rng(rng), (0..10).fake_with_rng::<String, R>(rng).into());
     }
 
     map
@@ -43,7 +45,7 @@ impl Dummy<ValueFaker> for HashMap<String, serde_json::Value> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
+#[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Config {
   /// Path to the local dotfiles
   pub(crate) dotfiles: PathBuf,
@@ -58,7 +60,7 @@ pub struct Config {
 
   /// Variables can be used for templating in dot.(yaml|toml|json) files.
   #[cfg_attr(test, dummy(faker = "ValueFaker"))]
-  pub(crate) variables: HashMap<String, serde_json::Value>,
+  pub(crate) variables: figment::value::Dict,
 }
 
 impl Default for Config {
@@ -72,19 +74,45 @@ impl Default for Config {
       shell_command: Some("bash -c {{ quote \"\" cmd }}".to_owned()),
       #[cfg(target_os = "macos")]
       shell_command: Some("zsh -c {{ quote \"\" cmd }}".to_owned()),
-      variables: HashMap::new(),
+      variables: figment::value::Dict::new(),
     }
   }
 }
 
-#[cfg(feature = "yaml")]
-fn deserialize_config(config: &str) -> Result<Config, serde_yaml::Error> {
-  serde_yaml::from_str(config)
+impl Provider for Config {
+  fn metadata(&self) -> Metadata {
+    Metadata::named("Library Config")
+  }
+
+  fn data(&self) -> Result<value::Map<Profile, value::Dict>, figment::Error> {
+    Serialized::defaults(Config::default()).data()
+  }
+
+  fn profile(&self) -> Option<Profile> {
+    None
+  }
 }
 
-#[cfg(feature = "yaml")]
-fn serialize(config: &impl Serialize) -> Result<String, serde_yaml::Error> {
-  serde_yaml::to_string(&config)
+fn deserialize_config(config: &str, format: FileFormat) -> Result<Config, helpers::ParseError> {
+  Ok(match format {
+    #[cfg(feature = "yaml")]
+    FileFormat::Yaml => serde_yaml::from_str(config)?,
+    #[cfg(feature = "toml")]
+    FileFormat::Toml => serde_toml::from_str(config)?,
+    #[cfg(feature = "json")]
+    FileFormat::Json => serde_json::from_str(config)?,
+  })
+}
+
+fn serialize_config(config: &impl Serialize, format: FileFormat) -> Result<String, helpers::ParseError> {
+  Ok(match format {
+    #[cfg(feature = "yaml")]
+    FileFormat::Yaml => serde_yaml::to_string(config)?,
+    #[cfg(feature = "toml")]
+    FileFormat::Toml => serde_toml::to_string(config)?,
+    #[cfg(feature = "json")]
+    FileFormat::Json => serde_json::to_string(config)?,
+  })
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -119,7 +147,7 @@ pub enum Error {
   #[cfg(feature = "yaml")]
   #[error("Could not serialize config")]
   #[diagnostic(code(config::serialize))]
-  SerializingConfig(#[source] serde_yaml::Error),
+  SerializingConfig(#[source] helpers::ParseError),
 
   #[error("Could not write config")]
   #[diagnostic(code(config::write))]
@@ -136,12 +164,17 @@ pub enum Error {
   #[error("Could not parse dotfiles directory \"{0}\"")]
   #[diagnostic(code(config::filename::parse), help("Did you enter a valid file?"))]
   PathParse(PathBuf),
+
+  #[error(transparent)]
+  InvalidFileFormat(#[from] crate::Error),
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
+  let format = FileFormat::try_from(config_file)?;
+
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
-    if let Ok(existing_config) = deserialize_config(&existing_config_str) {
+    if let Ok(existing_config) = deserialize_config(&existing_config_str, format) {
       let mut errors: Vec<AlreadyExistsError> = vec![];
 
       if let Some(dotfiles) = dotfiles {
@@ -173,11 +206,33 @@ pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result
     );
   }
 
-  fs::write(config_file, serialize(&map).map_err(Error::SerializingConfig)?).map_err(|e| Error::WritingConfig(config_file.to_path_buf(), e))?;
+  fs::write(config_file, serialize_config(&map, format).map_err(Error::SerializingConfig)?).map_err(|e| Error::WritingConfig(config_file.to_path_buf(), e))?;
 
   println!("Created config file at {}", config_file.to_string_lossy().green());
 
   ().okay()
+}
+
+pub struct MappedProfileProvider<P: Provider> {
+  pub mapping: HashMap<Profile, Profile>,
+  pub provider: P,
+}
+
+impl<P: Provider> Provider for MappedProfileProvider<P> {
+  fn metadata(&self) -> Metadata {
+    self.provider.metadata()
+  }
+
+  fn data(&self) -> Result<value::Map<Profile, value::Dict>, figment::Error> {
+    let data = self.provider.data()?;
+    let mut mapped = value::Map::<Profile, value::Dict>::new();
+
+    for (profile, data) in data {
+      mapped.insert(self.mapping.get(&profile).map_or(profile, Clone::clone), data);
+    }
+
+    mapped.okay()
+  }
 }
 
 #[cfg(test)]
@@ -186,17 +241,17 @@ mod tests {
   use rstest::rstest;
   use speculoos::prelude::*;
 
+  use crate::FileFormat;
+
   use super::Config;
 
   #[rstest]
-  #[case(Faker.fake::<Config>())]
-  #[case(Config::default())]
-  fn ser_de(#[case] config: Config) {
-    let serialized = super::serialize(&config);
+  fn ser_de(#[values(Faker.fake::<Config>(), Config::default())] config: Config, #[values(FileFormat::Yaml, FileFormat::Toml, FileFormat::Json)] format: FileFormat) {
+    let serialized = super::serialize_config(&config, format);
     assert_that!(&serialized).is_ok();
     let serialized = serialized.unwrap();
 
-    let deserialized = super::deserialize_config(&serialized);
+    let deserialized = super::deserialize_config(&serialized, format);
     assert_that!(&deserialized).is_ok().is_equal_to(config);
   }
 }

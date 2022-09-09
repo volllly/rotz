@@ -43,6 +43,7 @@ walkdir = "2.3.2"
 wax = { version = "0.5.0", features = ["miette"] }
 whoami = "1.2.1"
 path-slash = "0.2.1"
+velcro = "0.5.3"
 
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"
@@ -52,7 +53,6 @@ fake = { version = "2.5.0", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.15.0"
 speculoos = "0.9.0"
-velcro = "0.5.3"
 
 [profile.dev]
 opt-level = 0
