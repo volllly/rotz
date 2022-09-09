@@ -402,7 +402,7 @@ pub enum Error {
   WalkingDotfiles(#[source] walkdir::Error),
 
   #[error("The \"dots.{0}\" file is deprecated and support will be removed in a future version.")]
-  #[diagnostic(code(dot::defaults::deprecated), help("Please rename this file to \"defaults.{0}\"."))]
+  #[diagnostic(code(dot::defaults::deprecated), severity(warning), help("Please rename this file to \"defaults.{0}\"."))]
   DotsDeprecated(String, #[label] SourceSpan, #[source_code] String),
 
   #[cfg(feature = "yaml")]

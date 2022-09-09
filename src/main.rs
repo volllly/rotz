@@ -70,10 +70,6 @@ pub enum Error {
   #[diagnostic(code(config::create))]
   CreatingConfig(PathBuf, #[source] std::io::Error),
 
-  #[error("Used \"global\" config profile")]
-  #[diagnostic(code(config::profile::global), help("The \"global\" profile overwrites any other profile. Please use the \"default\" profile instead."))]
-  ConfigGlobal,
-
   #[error("Could not read config file \"{0}\"")]
   #[diagnostic(code(config::read), help("Do you have access to the config file?"))]
   ReadingConfig(PathBuf, #[source] std::io::Error),
@@ -175,10 +171,6 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
 
   if let Some((config, _)) = helpers::get_file_with_format(dotfiles, "config") {
     figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
-  }
-
-  if figment.profiles().any(|p| p.as_str() == "global") {
-    println!("Warning: {:?}", Report::new(Error::ConfigGlobal));
   }
 
   figment.join(Config::default()).select(os::OS.to_string().to_ascii_lowercase()).extract().map_err(Error::ParsingConfig)
