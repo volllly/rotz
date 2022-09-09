@@ -7,8 +7,8 @@ use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
 use miette::{Diagnostic, Report, Result};
 use path_slash::PathBufExt;
-use serde_json::json;
 use somok::Somok;
+use velcro::hash_map;
 use wax::Pattern;
 
 use super::Command;
@@ -94,7 +94,7 @@ impl Install {
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
         HANDLEBARS
-          .render_template(shell_command, &json!({ "cmd": &inner_cmd }))
+          .render_template(shell_command, &hash_map! { "cmd": &inner_cmd })
           .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err))?
       } else {
         inner_cmd.clone()

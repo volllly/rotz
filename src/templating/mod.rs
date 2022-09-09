@@ -138,3 +138,6 @@ pub fn render(template: &str, parameters: &impl Serialize) -> Result<String, Err
 
   HANDLEBARS.render_template(template, &complete).map_err(Error::RenderingTemplate)
 }
+
+#[cfg(test)]
+mod test;
