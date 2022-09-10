@@ -3,7 +3,7 @@ title: Templating
 sidebar_position: 5
 ---
 
-You can use [handlebars](https://handlebarsjs.com/guide/) template syntax in [`dot.yaml`](dot.yaml.mdx) files and the [defaults file](defaults.md).
+You can use [handlebars](https://handlebarsjs.com/guide/) template syntax in [`dot.yaml`](dot.yaml.mdx) files and the [defaults file](defaults.mdx).
 
 This allows for e.g. access to environment variables.
 
