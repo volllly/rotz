@@ -39,6 +39,10 @@ enum Error {
   #[error("Could not parse install command for {0}")]
   #[diagnostic(code(install::command::parse))]
   ParsingInstallCommand(PathBuf, #[source] shellwords::MismatchedQuotes),
+
+  #[error("Could not spawl install command")]
+  #[diagnostic(code(install::command::spawn), help("The shell_command in your config is set to \"{0}\" is that correct?"))]
+  CouldNotSpawn(String),
 }
 
 pub struct Install {
@@ -107,7 +111,7 @@ impl Install {
       if let Err(err) = helpers::run_command(&cmd[0], &cmd[1..], false, globals.dry_run) {
         if let helpers::RunError::Spawn(err) = &err {
           if err.kind() == std::io::ErrorKind::NotFound {
-            println!("kek");
+            eprintln!("\n Error: {:?}", Report::new(Error::CouldNotSpawn(format!("{:?}", self.config.shell_command))));
           }
         }
 
@@ -166,7 +170,7 @@ impl Command for Install {
       .collect::<HashMap<PathBuf, InstallsDots>>();
 
     let mut installed: HashSet<&Path> = HashSet::new();
-    let globs = helpers::glob_from_vec(&install_command.dots, "/dot.{ya?ml,toml,json}")?;
+    let globs = helpers::glob_from_vec(&install_command.dots, "")?;
     for dot in &dots {
       if globs.is_match(dot.0.as_path()) {
         self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;

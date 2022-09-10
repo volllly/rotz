@@ -25,7 +25,7 @@ use figment::{
   Figment, Profile,
 };
 use helpers::os;
-use miette::{Diagnostic, Report, Result, SourceSpan};
+use miette::{Diagnostic, Result, SourceSpan};
 use once_cell::sync::Lazy;
 
 #[cfg(feature = "json")]
@@ -74,9 +74,13 @@ pub enum Error {
   #[diagnostic(code(config::read), help("Do you have access to the config file?"))]
   ReadingConfig(PathBuf, #[source] std::io::Error),
 
-  #[error("Cloud not parse config \"{0}\"")]
-  #[diagnostic(code(config::parse), help("Is the config in the correct format?"))]
+  #[error("Cloud not parse config")]
+  #[diagnostic(code(config::parse), help("Is the config file in the correct format?"))]
   ParsingConfig(#[source] figment::Error),
+
+  #[error("Cloud not parse config")]
+  #[diagnostic(code(config::local::parse), help("Did you provide a top level \"global\" key in the repo level config?"))]
+  RepoConfigProfile(#[source] figment::Error),
 }
 
 pub(crate) static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or(Error::GettingDirs("application data")).expect("Could not read project dirs"));
@@ -173,7 +177,11 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
     figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
   }
 
-  figment.join(Config::default()).select(os::OS.to_string().to_ascii_lowercase()).extract().map_err(Error::ParsingConfig)
+  figment
+    .join(Config::default())
+    .select(os::OS.to_string().to_ascii_lowercase())
+    .extract()
+    .map_err(Error::RepoConfigProfile)
 }
 
 trait FigmentExt {
