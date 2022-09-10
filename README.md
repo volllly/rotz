@@ -14,8 +14,6 @@ Fully cross platform dotfile manager and dev environment bootstrapper written in
 > `Rot s`<br>
 > `Rotz`
 
-Rotz is an evolution of [Dotted](https://github.com/volllly/Dotted).
-
 ## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
 
 ## [Documentation](https://volllly.github.io/rotz/)
@@ -47,6 +45,8 @@ To use another format install Rotz using one of the following comands:
 * ```sh
   cargo install rotz --no-default-features --features json
   ```
+
+> ***Note:** You can install multiple formats and rotz will auto detect the filetype.*
 
 ## Getting Started
 

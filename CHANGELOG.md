@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `directories` variable to templating
 - Add ability to recurse into subdirectories
 
+### Fixed
+
+- Bug where the repo level config would not merge correctly
+
 ## [0.6.1] - 2022-08-18
 
 ### Changed

@@ -4,6 +4,8 @@ sidebar_position: 2
 ---
 
 import TOCInline from '@theme/TOCInline';
+import TabedCodeBlock from '@site/src/components/TabedCodeBlock';
+import { Section } from '@ltd/j-toml';
 
 > ## Sections
 > <TOCInline toc={toc} />
@@ -22,14 +24,13 @@ The `links` section specifies where the dotfiles should be linked.
 
 It consists of multiple `key: value` pairs where the `key` is the filename of the `dotfile` and the `value` is the link path.
 
-
-
-```yaml title="Example: vscode/dot.yaml"
-...
-links:
-  keybindings.json: ~\AppData\Roaming\Code\User\keybindings.json
-  settings.json: ~\AppData\Roaming\Code\User\settings.json
-```
+<TabedCodeBlock title="Example: vscode/dot.{{ format }}" predots
+  data={{
+    links: Section({
+      'keybindings.json': '~\AppData\Roaming\Code\User\keybindings.json',
+      'settings.json': '~\AppData\Roaming\Code\User\settings.json'
+    })
+  }} />
 
 ## `installs`
 
@@ -43,30 +44,31 @@ It can either be a `string` containing the install command or have two sub keys.
 | `depends` | `optional`  | Contains an array of dependencies. |
 
 
-```yaml title="Example: nodejs/dot.yaml"
-...
-installs:
-  cmd: scoop install nodejs
-  depends: [scoop]
-```
+<TabedCodeBlock title="Example: nodejs/dot.{{ format }}" predots
+  data={{
+    installs: Section({
+      cmd: 'scoop install nodejs',
+      depends: [ 'scoop' ]
+    })
+  }} />
 
-```yaml title="Example: scoop/dot.yaml"
-...
-installs: iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
-```
+<TabedCodeBlock title="Example: scoop/dot.{{ format }}" predots
+  data={{
+    installs: "iex (new-object net.webclient).downloadstring('https://get.scoop.sh')"
+  }} />
 
 :::note
 The command can also be set to `false`. This overwrites the value set in the [defaults `dots.yaml`](./defaults) file.
 :::
 
 
-## depends
+## `depends`
 
 The `depends` section contains an array of dependencies needed for the application to work correctly.
 
 These dependencies will also be installed when the application is installed.
 
-```yaml title="Example: zsh/dot.yaml"
-...
-depends: [starship]
-```
+<TabedCodeBlock title="Example: zsh/dot.{{ format }}" predots
+  data={{
+    depends: [ 'starship' ]
+  }} />

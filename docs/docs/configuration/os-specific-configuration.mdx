@@ -1,0 +1,73 @@
+---
+title: OS Specific Configuration
+sidebar_position: 4
+---
+import TabedCodeBlock from '@site/src/components/TabedCodeBlock';
+import { Section } from '@ltd/j-toml';
+
+You can specify different behaviors per OS in all configuration files.
+
+Rotz can differentiate between Windows, Linux and MacOS.
+
+To specify OS Specific behavior you need to add top level keys named `linux`, `windows`, `darwin` (for MacOS) and `general` (applied to all OSs).
+
+<TabedCodeBlock title="Example: dots.{{ format }}"
+  data={{
+    windows: Section({
+      installs: Section({
+        cmd: 'scoop install {{ name }}',
+        depends: [
+          'scoop',
+          'extras'
+          ]
+      })
+    }),
+    darwin: Section({
+      installs: Section({
+        cmd: 'brew install {{ name }}',
+        depends: [
+          'brew'
+        ]
+      })
+    })
+  }} />
+
+<TabedCodeBlock title="Example: neovim/dot.{{ format }}"
+  data={{
+    windows: Section({
+      links: Section({
+        'ginit.vim': '~/AppData/Local/nvim/ginit.vim',
+        'init.vim': '~/AppData/Local/nvim/init.vim'
+      })
+    }),
+    global: Section({
+      links: Section({
+        'ginit.vim': '~/.config/nvim/init.vim',
+        'init.vim': '~/.config/nvim/ginit.vim'
+      })
+    })
+  }} />
+
+You can also combine multiple OSs per key separating them with a `|`.
+
+<TabedCodeBlock title="Example: dots.{{ format }}"
+  data={{
+    windows: Section({
+      installs: Section({
+        cmd: 'scoop install {{ name }}',
+        depends: [
+          'scoop',
+          'extras'
+        ]
+      })
+    }),
+    'darwin|linux': Section({
+      installs: Section({
+        cmd: 'brew install {{ name }}',
+        depends: [
+          'brew'
+        ]
+      })
+    })
+  }} />
+
