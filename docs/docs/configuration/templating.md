@@ -7,7 +7,7 @@ You can use [handlebars](https://handlebarsjs.com/guide/) template syntax in [`d
 
 This allows for e.g. access to environment variables.
 
-## Parameters
+## Variables
 
 | Variable      | Description                                                                                                                                              | Example                                                                 |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
