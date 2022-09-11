@@ -72,3 +72,54 @@ These dependencies will also be installed when the application is installed.
   data={{
     depends: [ 'starship' ]
   }} />
+
+
+## Nesting
+
+If you have dots nested in subdirectories dependencies need to specify them as a path.
+
+This can either be a path relative to the current dot or an absolute path (the dotfiles repo is used as root).
+
+
+<TabedCodeBlock title="Example: Directory layout"
+yaml=
+{`
+├── some
+│   └── thing
+│       └── nested
+│           └── dot.yaml
+└── other
+    └── directory
+            └── dot.yaml
+`}
+toml=
+{`
+├── some
+│   └── thing
+│       └── nested
+│           └── dot.toml
+└── other
+    └── directory
+            └── dot.toml
+`}
+json=
+{`
+├── some
+│   └── thing
+│       └── nested
+│           └── dot.json
+└── other
+    └── directory
+            └── dot.json
+`}
+/>
+
+<TabedCodeBlock title='Example: relative path "some/thing/nested/dot.{{ format }}"'
+  data={{
+    depends: [ '../../other/directory' ]
+  }} />
+
+<TabedCodeBlock title='Example: absolute path "editors/vscode/dot.{{ format }}"'
+  data={{
+    depends: [ '/other/directory' ]
+  }} />
