@@ -10,6 +10,7 @@ use figment::{
   value::{Dict, Map, Value},
   Error, Metadata, Profile, Provider,
 };
+use itertools::Itertools;
 use somok::Somok;
 
 use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
@@ -63,12 +64,20 @@ pub struct Dots {
   pub(crate) dots: Vec<String>,
 }
 
+impl Dots {
+  fn add_root(&self) -> Self {
+    Self {
+      dots: self.dots.iter().map(|d| if d.starts_with('/') { d.to_string() } else { format!("/{d}") }).collect_vec(),
+    }
+  }
+}
+
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 #[baked(name = "Link")]
 pub struct LinkRaw {
   #[clap(flatten)]
-  #[baked(type = "Vec<String>", map = "self.dots.dots")]
+  #[baked(type = "Vec<String>", map_fn(bake = "|l| l.dots.add_root().dots"))]
   pub(crate) dots: Dots,
 
   #[clap(long, short)]
@@ -87,7 +96,7 @@ pub struct LinkRaw {
 #[allow(clippy::struct_excessive_bools)]
 pub struct InstallRaw {
   #[clap(flatten)]
-  #[baked(type = "Vec<String>", map = "self.dots.dots")]
+  #[baked(type = "Vec<String>", map_fn(bake = "|l| l.dots.add_root().dots"))]
   pub(crate) dots: Dots,
 
   /// Continues installation when an error occurs during installation
@@ -112,7 +121,7 @@ pub struct InstallRaw {
 #[baked(name = "Sync")]
 pub struct SyncRaw {
   #[clap(flatten)]
-  #[baked(type = "Vec<String>", map = "self.dots.dots")]
+  #[baked(type = "Vec<String>", map_fn(bake = "|l| l.dots.add_root().dots"))]
   pub(crate) dots: Dots,
 
   #[clap(long, short)]
