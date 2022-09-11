@@ -1,0 +1,91 @@
+---
+title: Configuration
+---
+
+Rotz uses a git repo containing the `dotfiles` and [`yaml`](https://yaml.org/), [toml] or [json] files for configuration.
+
+:::tip
+To use another file format see [Other File Formats](#other-file-formats).
+:::
+
+This git repo should be located at `~/.dotfiles`. Different paths can be specified using the `--dotfiles` cli flag or in the Rotz [config file](#configyaml).
+
+:::tip
+The location of the config file can be overridden using the `--config` cli flag. To get the default location of the config run `rotz --help`
+:::
+
+Each managed application has a subfolder containing its `dotfiles` and a `dot.yaml` file.
+
+import TabedCodeBlock from '@site/src/components/TabedCodeBlock';
+
+<TabedCodeBlock title="Example:"
+yaml=
+{`
+└── vscode
+    ├── dot.yaml
+    ├── keybindings.json
+    └── settings.json
+`}
+toml=
+{`
+└── vscode
+    ├── dot.toml
+    ├── keybindings.json
+    └── settings.json
+`}
+json=
+{`
+└── vscode
+    ├── dot.json
+    ├── keybindings.json
+    └── settings.json
+`}
+/>
+
+<TabedCodeBlock title="Example:"
+    yaml="The file `dot.yaml` contains information about how to install the application and where to link the dotfiles."
+    toml="The file `dot.toml` contains information about how to install the application and where to link the dotfiles."
+    json="The file `dot.json` contains information about how to install the application and where to link the dotfiles."
+    />
+
+The file `dot.yaml`/`dot.toml`/`dot.json` contains information about how to install the application and where to link the dotfiles.
+
+## Nesting
+
+The dots can also be nested. See the [Nesting](dot.yaml.mdx#nesting) section for more information.
+
+<TabedCodeBlock title="Example: nested dots"
+yaml=
+{`
+└── editors
+    ├── vscode
+    │   ├── dot.yaml
+    │   ├── keybindings.json
+    │   └── settings.json
+    └── neovim
+        ├── dot.yaml
+        └── init.lua
+`}
+toml=
+{`
+└── editors
+    ├── vscode
+    │   ├── dot.toml
+    │   ├── keybindings.json
+    │   └── settings.json
+    └── neovim
+        ├── dot.toml
+        └── init.lua
+`}
+json=
+{`
+└── editors
+    ├── vscode
+    │   ├── dot.json
+    │   ├── keybindings.json
+    │   └── settings.json
+    └── neovim
+        ├── dot.json
+        └── init.lua
+`}
+/>

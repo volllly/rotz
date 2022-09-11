@@ -1,0 +1,8 @@
+{
+  "global": {
+    "variables": {
+      "test01": "json",
+      "test02": "json"
+    }
+  }
+}

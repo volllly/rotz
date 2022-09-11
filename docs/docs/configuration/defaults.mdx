@@ -2,6 +2,8 @@
 sidebar_position: 3
 title: Defaults
 ---
+import TabedCodeBlock from '@site/src/components/TabedCodeBlock';
+import { Section } from '@ltd/j-toml';
 
 The repo can also contain a default file `dots.yaml` in the root folder of the repo.
 
@@ -9,10 +11,12 @@ This file contains defaults which are automatically used for empty keys in the `
 
 You can use template strings (`{{ name }}`) to substitute the name of the application (the name of the folder the `dot.yaml` file is located in). See [templating](templating.md) for advanced templating.
 
-```yaml title="Example: dots.yaml"
-installs:
-  cmd: scoop install {{ name }}
-  depends:
-    - scoop
-    - extras
-```
+<TabedCodeBlock title="Example: dots.{{ format }}"
+  data={{
+  installs: Section({
+    cmd: 'scoop install {{ name }}',
+    depends: [
+      'scoop',
+      'extras'
+    ]})
+  }} />

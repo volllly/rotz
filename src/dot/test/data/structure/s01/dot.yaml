@@ -1,0 +1,5 @@
+links:
+  k01: v01
+  k02: v02
+installs: i01
+depends: [d01]

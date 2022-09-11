@@ -9,12 +9,12 @@ export type FeatureItem = {
   description: JSX.Element;
 };
 
-function Feature({title, Svg, emoji, description}: FeatureItem) {
+function Feature({ title, Svg, emoji, description }: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
         {Svg ? <Svg className={styles.featureSvg} role="img" /> : <></>}
-        {emoji ? <span style={{fontSize: '3.5em'}}>{emoji}</span> : <></>}
+        {emoji ? <span style={{ fontSize: '3.5em' }}>{emoji}</span> : <></>}
       </div>
       <div className="text--center padding-horiz--md">
         <h3>{title}</h3>

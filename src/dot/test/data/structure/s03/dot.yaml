@@ -1,0 +1,15 @@
+global:
+  links:
+    k01: v01
+
+windows:
+  links:
+    k02: v02
+
+linux:
+  links:
+    k02: v02
+
+darwin:
+  links:
+    k02: v02

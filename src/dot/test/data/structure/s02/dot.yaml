@@ -1,0 +1,7 @@
+links:
+  k01: [v01a, v01b]
+  k02: [v02a, v02b]
+installs:
+  cmd: i01
+  depends: [d01]
+depends: [d02]

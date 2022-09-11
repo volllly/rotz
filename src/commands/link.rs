@@ -46,7 +46,7 @@ impl super::Command for Link {
     for (name, link) in links {
       println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
 
-      let base_path = self.config.dotfiles.join(name);
+      let base_path = self.config.dotfiles.join(&name[1..]);
       for (from, tos) in link {
         for mut to in tos {
           println!("  {} -> {}", from.to_string_lossy().green(), to.to_string_lossy().green());
@@ -93,11 +93,12 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool) -> std
 
 #[cfg(windows)]
 fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
+  use std::os::windows::fs;
+
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
   }
 
-  use std::os::windows::fs;
   if from.is_dir() {
     fs::symlink_dir(from, to)?;
   } else {

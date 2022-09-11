@@ -6,12 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2022-09-09
+
+### Changes
+
+- The repo level config file now has support for a `force` key for forced values which cannot be changed by the config file
+- Rotz can now automatically detect the filetype and parse the format if the feature (`yaml`, `toml` or `json`) is enabled
+- The features `yaml`, `toml` and `json` can now be enabled simultaneously
+
+### Added
+
+- Added `whoami` variable to templating
+- Added `directories` variable to templating
+- Add ability to recurse into subdirectories
+
+### Fixed
+
+- Bug where the repo level config would not merge correctly
+
 ## [0.6.1] - 2022-08-18
 
 ### Changed
 
 - The repo level config file now uses the key `global` instead of `default`
-- The default `shell_command` on windows now correctly uses PowerShell instead of PowerShell Core.
+- The default `shell_command` on windows now correctly uses PowerShell instead of PowerShell Core
 
 ### Fixed
 
@@ -128,7 +146,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/volllly/rotz/releases/tag/v0.7.0
 [0.6.1]: https://github.com/volllly/rotz/releases/tag/v0.6.1
 [0.6.0]: https://github.com/volllly/rotz/releases/tag/v0.6.0
 [0.5.0]: https://github.com/volllly/rotz/releases/tag/v0.5.0

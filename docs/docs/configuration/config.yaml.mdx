@@ -1,0 +1,77 @@
+---
+sidebar_position: 1
+title: config.yaml
+---
+import TabedCodeBlock from '@site/src/components/TabedCodeBlock';
+import { Section } from '@ltd/j-toml';
+
+The following settings are configurable in the config file like so:
+
+
+<TabedCodeBlock title="config.{{ format }}"
+  data={{
+    dotfiles: "<path to dotfiles>",
+    link_type: "<'symbolic'|'hard'>",
+    shell_command: "<shell command template used for the install command>",
+    variables: "<map of variables which can be used in templates>"
+  }} />
+
+Those settings can be overridden in the cli when applicable (see `rotz --help` and `rotz <command> --help` to get more information).
+
+## `shell_command`
+
+This settig allows to specify how Rotz should launch the install command.
+
+If this is not set the default values are used.
+
+<TabedCodeBlock title="Windows"
+  data={{
+    shell_command: 'powershell -NoProfile -C {{ quote "" cmd }}'
+  }} />
+
+<TabedCodeBlock title="Linux"
+  data={{
+    shell_command: 'bash -c {{ quote "" cmd }}'
+  }} />
+
+<TabedCodeBlock title="MacOS"
+  data={{
+    shell_command: 'zsh -c {{ quote "" cmd }}'
+  }} />
+
+
+
+## `variables`
+
+These variables can be used in [templates](templating.md).
+
+<TabedCodeBlock title="config.{{ format }}"
+  data={{
+    variables: Section({
+      some: 'value',
+      array: [
+        'one',
+        'two'
+      ]
+    })
+  }} />
+
+## Repo defaults
+
+It is possible to put a config file in your repo conatining default values depending on the OS. These are overridden by the config file on the machine.
+
+<TabedCodeBlock title=".dotfiles/config.{{ format }}"
+  data={{
+    default: Section({
+      link_type: '<globalDefault>'
+    }),
+    windows: Section({
+      dotfiles: '<windowsDefault>'
+    }),
+    linux: Section({
+      dotfiles: '<linuxDefault>'
+    }),
+    darwin: Section({
+      dotfiles: '<macosDefault>'
+    })
+  }} />
