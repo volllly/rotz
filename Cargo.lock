@@ -613,9 +613,9 @@ checksum = "22030e2c5a68ec659fde1e949a745124b48e6fa8b045b7ed5bd1fe4ccc5c4e5d"
 
 [[package]]
 name = "handlebars"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "360d9740069b2f6cbb63ce2dbaa71a20d3185350cbb990d7bebeb9318415eb17"
+checksum = "56b224eaa4987c03c30b251de7ef0c15a6a59f34222905850dbc3026dfb24d5f"
 dependencies = [
  "log",
  "pest",
@@ -847,13 +847,13 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "5.3.0"
+version = "5.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a28d6092d7e94a90bb9ea8e6c26c99d5d112d49dda2afdb4f7ea8cf09e1a5a6d"
+checksum = "d5131c1c05db3e0c9543184375738aeebbe53c043961be49a58cb9a8bfe55e83"
 dependencies = [
  "atty",
  "backtrace",
- "miette-derive 5.3.0",
+ "miette-derive 5.3.1",
  "once_cell",
  "owo-colors",
  "supports-color",
@@ -878,9 +878,9 @@ dependencies = [
 
 [[package]]
 name = "miette-derive"
-version = "5.3.0"
+version = "5.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f2485ed7d1fe80704928e3eb86387439609bd0c6bb96db8208daa364cfd1e09"
+checksum = "de7a2ef42cb92adb646dcc897b27e302f60852986a6d3a5043f3f19f334676c9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1448,7 +1448,7 @@ dependencies = [
  "indexmap",
  "itertools",
  "junction",
- "miette 5.3.0",
+ "miette 5.3.1",
  "once_cell",
  "path-absolutize",
  "path-slash",
