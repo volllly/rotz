@@ -6,13 +6,16 @@ use std::{
   process,
 };
 
-use crate::{FileFormat, FILE_EXTENSIONS};
 use itertools::Itertools;
 use miette::{Diagnostic, Result};
+use path_absolutize::Absolutize;
+use path_slash::PathExt;
 use somok::Somok;
 #[cfg(test)]
 use speculoos::assert_that;
 use wax::{Any, BuildError, Glob};
+
+use crate::{FileFormat, FILE_EXTENSIONS};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 #[error("Encountered multiple errors")]
@@ -159,6 +162,12 @@ impl<'s, O: 's, N: 's> Select<'s, O, N> for speculoos::Spec<'s, O> {
     and(&self);
     self
   }
+}
+
+pub fn absolutize_virtually(path: &Path) -> Result<String, std::io::Error> {
+  let name = &path.absolutize_virtually("/")?.to_slash_lossy().to_string();
+
+  name.find('/').map_or(name.as_str(), |root_index| &name[root_index..]).to_owned().okay()
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]

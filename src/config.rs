@@ -36,7 +36,7 @@ impl Dummy<ValueFaker> for figment::value::Dict {
   fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &ValueFaker, rng: &mut R) -> Self {
     let mut map = Self::new();
 
-    for _ in 0..10.fake_with_rng(rng) {
+    for _ in 0..((0..10).fake_with_rng(rng)) {
       map.insert((0..10).fake_with_rng(rng), (0..10).fake_with_rng::<String, R>(rng).into());
     }
 
@@ -241,9 +241,8 @@ mod tests {
   use rstest::rstest;
   use speculoos::prelude::*;
 
-  use crate::FileFormat;
-
   use super::Config;
+  use crate::FileFormat;
 
   #[rstest]
   fn ser_de(#[values(Faker.fake::<Config>(), Config::default())] config: Config, #[values(FileFormat::Yaml, FileFormat::Toml, FileFormat::Json)] format: FileFormat) {

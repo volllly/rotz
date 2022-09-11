@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use crate::helpers::Select;
-
 use speculoos::{assert_that, prelude::*};
 use velcro::hash_set;
+
+use crate::helpers::Select;
 
 #[test]
 fn structure() {
@@ -20,7 +20,7 @@ fn structure() {
   assert_that!(dot.installs)
     .is_some()
     .select_and(|i| &i.cmd, |mut c| c.is_equal_to(&"i01".to_owned()))
-    .select_and(|i| &i.depends, |mut d| d.contains(PathBuf::from("d01")));
+    .select_and(|i| &i.depends, |mut d| d.contains("d01".to_owned()));
 
-  assert_that!(dot.depends).is_some().contains(&PathBuf::from("d02"));
+  assert_that!(dot.depends).is_some().contains(&"d02".to_owned());
 }

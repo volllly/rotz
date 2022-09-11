@@ -20,6 +20,12 @@ use clap::Parser;
 use commands::Command;
 use derive_more::Display;
 use directories::{ProjectDirs, UserDirs};
+#[cfg(feature = "json")]
+use figment::providers::Json;
+#[cfg(feature = "toml")]
+use figment::providers::Toml;
+#[cfg(feature = "yaml")]
+use figment::providers::Yaml;
 use figment::{
   providers::{Env, Format},
   Figment, Profile,
@@ -27,13 +33,6 @@ use figment::{
 use helpers::os;
 use miette::{Diagnostic, Result, SourceSpan};
 use once_cell::sync::Lazy;
-
-#[cfg(feature = "json")]
-use figment::providers::Json;
-#[cfg(feature = "toml")]
-use figment::providers::Toml;
-#[cfg(feature = "yaml")]
-use figment::providers::Yaml;
 
 mod helpers;
 

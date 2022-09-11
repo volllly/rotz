@@ -70,14 +70,14 @@ mod repr {
     Full {
       cmd: String,
       #[serde(default)]
-      depends: HashSet<PathBuf>,
+      depends: HashSet<String>,
     },
   }
 
   #[derive(Deserialize, Clone, Debug)]
   #[cfg_attr(test, derive(Dummy))]
   pub struct Depends {
-    pub(super) depends: HashSet<PathBuf>,
+    pub(super) depends: HashSet<String>,
   }
 
   #[cfg(feature = "toml")]
@@ -223,7 +223,7 @@ mod repr {
             self.installs = None;
           } else {
             let cmd_outer: String;
-            let mut depends_outer = HashSet::<PathBuf>::new();
+            let mut depends_outer = HashSet::<String>::new();
 
             match installs {
               Installs::Simple(cmd) => cmd_outer = cmd,
@@ -275,6 +275,7 @@ use std::{
 use crossterm::style::Stylize;
 use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, Report, SourceSpan};
+use path_slash::PathBufExt;
 use repr::Merge;
 use somok::Somok;
 use velcro::hash_set;
@@ -292,7 +293,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct Installs {
   pub(crate) cmd: String,
-  pub(crate) depends: HashSet<PathBuf>,
+  pub(crate) depends: HashSet<String>,
 }
 
 impl From<repr::Installs> for Option<Installs> {
@@ -309,7 +310,7 @@ impl From<repr::Installs> for Option<Installs> {
 pub struct Dot {
   pub(crate) links: Option<HashMap<PathBuf, HashSet<PathBuf>>>,
   pub(crate) installs: Option<Installs>,
-  pub(crate) depends: Option<HashSet<PathBuf>>,
+  pub(crate) depends: Option<HashSet<String>>,
 }
 
 impl Merge<&Self> for Dot {
@@ -418,9 +419,20 @@ pub enum Error {
   #[error("Io Error on file \"{0}\"")]
   #[diagnostic(code(io::generic))]
   Io(PathBuf, #[source] std::io::Error),
+
+  #[error("Could not parse dependency path \"{0}\"")]
+  #[diagnostic(code(glob::parse))]
+  ParseDependency(PathBuf, #[source] std::io::Error),
+
+  #[error("Could not parse dot name \"{0}\"")]
+  #[diagnostic(code(glob::parse))]
+  ParseName(String, #[source] std::io::Error),
+
+  #[error(transparent)]
+  MultipleErrors(#[from] helpers::MultipleErrors),
 }
 
-pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(PathBuf, Dot)>> {
+pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(String, Dot)>> {
   let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
   if let Some(defaults) = &defaults {
     let path = defaults.0.to_string_lossy().to_string();
@@ -462,8 +474,8 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
   let dotfiles = crate::helpers::join_err_result(paths.collect())?
     .into_iter()
     .map(|p| {
-      let name = p.0.parent().unwrap().to_path_buf();
-      Ok::<(PathBuf, (PathBuf, FileFormat)), Error>((name, p))
+      let name = p.0.parent().unwrap().to_path_buf().to_slash_lossy().to_string();
+      Ok::<(String, (PathBuf, FileFormat)), Error>((name, p))
     })
     .map_ok(|p| {
       (
@@ -480,7 +492,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
-          return Error::RenderDot(NamedSource::new(name.join(format!("dot.{format}")).to_string_lossy(), text.clone()), (0, text.len()).into(), err)
+          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
             .error()
             .some()
         }
@@ -493,13 +505,9 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
             Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).error().some(),
           },
           Err(err) => {
-            return Error::RenderDot(
-              NamedSource::new(name.join(format!("dot.{format}")).to_string_lossy(), defaults.to_string()),
-              (0, defaults.len()).into(),
-              err,
-            )
-            .error()
-            .some()
+            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).into(), err)
+              .error()
+              .some()
           }
         }
       } else {
@@ -508,7 +516,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
 
       match from_str_with_defaults(&text, format, defaults.as_ref()) {
         Ok(dot) => (name.clone(), dot).okay().some(),
-        Err(err) => Error::ParseDot(NamedSource::new(name.join(format!("dot.{format}")).to_string_lossy(), text.clone()), (0, text.len()).into(), err)
+        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
           .error()
           .some(),
       }
@@ -520,13 +528,44 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
     Ok((_, Err(err))) | Err(err) => err.error().some(),
   });
 
-  let dots = crate::helpers::join_err_result(dots.collect())?;
+  let dots = canonicalize_dots(crate::helpers::join_err_result(dots.collect())?)?;
+
   if dots.is_empty() {
     println!("Warning: {}", "No dots found".yellow());
     return vec![].okay();
   }
 
   dots.okay()
+}
+
+fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, helpers::MultipleErrors> {
+  let dots = dots.into_iter().map(|mut dot| {
+    let name = helpers::absolutize_virtually(Path::new(&dot.0)).map_err(|e| Error::ParseName(dot.0.clone(), e))?;
+
+    if let Some(installs) = &mut dot.1.installs {
+      let depends = installs.depends.iter().map(|dependency| {
+        let dependency_base = Path::new(&name).parent().unwrap_or_else(|| Path::new("")).join(dependency);
+
+        let dependency_base = helpers::absolutize_virtually(&dependency_base).map_err(|e| Error::ParseDependency(dependency_base, e))?;
+        dependency_base.okay::<Error>()
+      });
+      installs.depends = helpers::join_err_result(depends.collect_vec())?.into_iter().collect::<HashSet<_>>();
+    }
+
+    if let Some(depends) = &dot.1.depends {
+      let depends_mapped = depends.iter().map(|dependency| {
+        let dependency_base = Path::new(&name).parent().unwrap_or_else(|| Path::new("")).join(dependency);
+
+        let dependency_base = helpers::absolutize_virtually(&dependency_base).map_err(|e| Error::ParseDependency(dependency_base, e))?;
+        dependency_base.okay::<Error>()
+      });
+      dot.1.depends = Some(helpers::join_err_result(depends_mapped.collect_vec())?.into_iter().collect::<HashSet<_>>());
+    }
+
+    (name, dot.1).okay::<Error>()
+  });
+
+  helpers::join_err_result(dots.collect_vec())
 }
 
 #[cfg(test)]

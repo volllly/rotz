@@ -1,15 +1,11 @@
-use std::{
-  collections::{HashMap, HashSet},
-  path::{Path, PathBuf},
-};
+use std::collections::{HashMap, HashSet};
 
 use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
 use miette::{Diagnostic, Report, Result};
-use path_slash::PathBufExt;
 use somok::Somok;
 use velcro::hash_map;
-use wax::Pattern;
+use wax::{Glob, Pattern};
 
 use super::Command;
 use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
@@ -17,32 +13,36 @@ use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
   #[error("{name} has a cyclic dependency")]
-  #[diagnostic(code(dependency::cyclic), help("{} depends on itsself through {}", name.to_slash_lossy(), through.to_slash_lossy()))]
-  CyclicDependency { name: PathBuf, through: PathBuf },
+  #[diagnostic(code(dependency::cyclic), help("{} depends on itsself through {}", name, through))]
+  CyclicDependency { name: String, through: String },
 
   #[error("{name} has a cyclic installation dependency")]
-  #[diagnostic(code(dependency::cyclic::install), help("{} depends on itsself through {}", name.to_slash_lossy(), through.to_slash_lossy()))]
-  CyclicInstallDependency { name: PathBuf, through: PathBuf },
+  #[diagnostic(code(dependency::cyclic::install), help("{} depends on itsself through {}", name, through))]
+  CyclicInstallDependency { name: String, through: String },
 
   #[error("Dependency {1} of {0} was not found")]
   #[diagnostic(code(dependency::not_found))]
-  DependencyNotFound(PathBuf, PathBuf),
+  DependencyNotFound(String, String),
 
   #[error("Install command for {0} did not run successfully")]
   #[diagnostic(code(install::command::run))]
-  InstallExecute(PathBuf, #[source] helpers::RunError),
+  InstallExecute(String, #[source] helpers::RunError),
 
   #[error("Could not render command templeate for {0}")]
   #[diagnostic(code(install::command::render))]
-  RenderingTemplate(PathBuf, #[source] handlebars::RenderError),
+  RenderingTemplate(String, #[source] handlebars::RenderError),
 
   #[error("Could not parse install command for {0}")]
   #[diagnostic(code(install::command::parse))]
-  ParsingInstallCommand(PathBuf, #[source] shellwords::MismatchedQuotes),
+  ParsingInstallCommand(String, #[source] shellwords::MismatchedQuotes),
 
   #[error("Could not spawl install command")]
   #[diagnostic(code(install::command::spawn), help("The shell_command in your config is set to \"{0}\" is that correct?"))]
   CouldNotSpawn(String),
+
+  #[error("Could not parse dependency \"{0}\"")]
+  #[diagnostic(code(glob::parse))]
+  ParseGlob(String, #[source] wax::BuildError<'static>),
 }
 
 pub struct Install {
@@ -56,23 +56,25 @@ impl Install {
 
   fn install<'a>(
     &self,
-    dots: &'a HashMap<PathBuf, InstallsDots>,
-    entry: (&'a PathBuf, &'a InstallsDots),
-    installed: &mut HashSet<&'a Path>,
-    mut stack: IndexSet<&'a Path>,
+    dots: &'a HashMap<String, InstallsDots>,
+    entry: (&'a String, &'a InstallsDots),
+    installed: &mut HashSet<&'a str>,
+    mut stack: IndexSet<String>,
     (globals, install_command): (&crate::cli::Globals, &crate::cli::Install),
   ) -> Result<(), Error> {
-    if installed.contains(entry.0.as_path()) {
+    if installed.contains(entry.0.as_str()) {
       return ().okay();
     }
 
-    stack.insert(entry.0.as_path());
+    stack.insert(entry.0.clone());
 
-    if let Some(installs) = &entry.1 .0 {
-      if !(install_command.skip_all_dependencies || install_command.skip_installation_dependencies) {
-        for dependency in &installs.depends {
-          if stack.contains(dependency.as_path()) {
-            return Error::CyclicInstallDependency {
+    macro_rules! recurse {
+      ($depends:expr, $error:ident) => {
+        for dependency in $depends {
+          let dependency_glob = Glob::new(dependency).map_err(|e| Error::ParseGlob(dependency.clone(), e.into_owned()))?;
+
+          if stack.iter().any(|d| dependency_glob.is_match(&**d)) {
+            return Error::$error {
               name: dependency.clone(),
               through: entry.0.clone(),
             }
@@ -83,16 +85,26 @@ impl Install {
             dots,
             (
               dependency,
-              dots.get(dependency.as_path()).ok_or_else(|| Error::DependencyNotFound(entry.0.clone(), dependency.clone()))?,
+              dots
+                .iter()
+                .find(|d| dependency_glob.is_match(&**d.0))
+                .map(|d| d.1)
+                .ok_or_else(|| Error::DependencyNotFound(entry.0.clone(), dependency.clone()))?,
             ),
             installed,
             stack.clone(),
             (globals, install_command),
           )?;
         }
+      };
+    }
+
+    if let Some(installs) = &entry.1 .0 {
+      if !(install_command.skip_all_dependencies || install_command.skip_installation_dependencies) {
+        recurse!(&installs.depends, CyclicInstallDependency);
       }
 
-      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.to_string_lossy().blue(), Attribute::Reset);
+      println!("{}Installing {}{}\n", Attribute::Bold, entry.0.as_str().blue(), Attribute::Reset);
 
       let inner_cmd = installs.cmd.clone();
 
@@ -124,31 +136,12 @@ impl Install {
         }
       }
 
-      installed.insert(entry.0.as_path());
+      installed.insert(entry.0.as_str());
     }
 
     if !(install_command.skip_all_dependencies || install_command.skip_dependencies) {
-      if let Some(dependencies) = &entry.1 .1 {
-        for dependency in dependencies {
-          if stack.contains(dependency.as_path()) {
-            return Error::CyclicDependency {
-              name: dependency.clone(),
-              through: entry.0.clone(),
-            }
-            .error();
-          }
-
-          self.install(
-            dots,
-            (
-              dependency,
-              dots.get(dependency.as_path()).ok_or_else(|| Error::DependencyNotFound(entry.0.clone(), dependency.clone()))?,
-            ),
-            installed,
-            stack.clone(),
-            (globals, install_command),
-          )?;
-        }
+      if let Some(depends) = &entry.1 .1 {
+        recurse!(depends, CyclicDependency);
       }
     }
 
@@ -156,7 +149,7 @@ impl Install {
   }
 }
 
-type InstallsDots = (Option<Installs>, Option<HashSet<PathBuf>>);
+type InstallsDots = (Option<Installs>, Option<HashSet<String>>);
 
 impl Command for Install {
   type Args = (crate::cli::Globals, crate::cli::Install);
@@ -167,12 +160,12 @@ impl Command for Install {
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))
-      .collect::<HashMap<PathBuf, InstallsDots>>();
+      .collect::<HashMap<String, InstallsDots>>();
 
-    let mut installed: HashSet<&Path> = HashSet::new();
+    let mut installed: HashSet<&str> = HashSet::new();
     let globs = helpers::glob_from_vec(&install_command.dots, "")?;
     for dot in &dots {
-      if globs.is_match(dot.0.as_path()) {
+      if globs.is_match(dot.0.as_str()) {
         self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;
       }
     }

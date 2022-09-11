@@ -1,14 +1,10 @@
-use std::path::Path;
-
-use crate::config::Config;
-
-use super::render;
-use super::Parameters;
-use crate::config::LinkType;
 use figment::{util::map, value};
 use rstest::rstest;
 use somok::Somok;
 use speculoos::prelude::*;
+
+use super::{render, Parameters};
+use crate::config::{Config, LinkType};
 
 #[rstest]
 #[case("{{ config.variables.test }}", "test")]
@@ -31,7 +27,7 @@ fn templating(#[case] template: &str, #[case] expected: &str) {
           }.into()
         }
       },
-      name: Path::new("name")
+      name: "name"
     }
   )
   .unwrap())

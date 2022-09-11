@@ -5,7 +5,6 @@ use std::{
 
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Report, Result};
-use path_slash::PathBufExt;
 use somok::Somok;
 
 use crate::{
@@ -45,9 +44,9 @@ impl super::Command for Link {
       .filter_map(|d| d.1.links.map(|l| (d.0, l)));
 
     for (name, link) in links {
-      println!("{}Linking {}{}\n", Attribute::Bold, name.to_slash_lossy().blue(), Attribute::Reset);
+      println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
 
-      let base_path = self.config.dotfiles.join(name);
+      let base_path = self.config.dotfiles.join(&name[1..]);
       for (from, tos) in link {
         for mut to in tos {
           println!("  {} -> {}", from.to_string_lossy().green(), to.to_string_lossy().green());

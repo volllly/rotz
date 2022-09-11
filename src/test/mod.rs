@@ -1,6 +1,7 @@
+use std::path::Path;
+
 use rstest::rstest;
 use speculoos::assert_that;
-use std::path::Path;
 
 use crate::cli::Cli;
 

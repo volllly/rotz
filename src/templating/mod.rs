@@ -1,7 +1,4 @@
-use std::{
-  collections::HashMap,
-  path::{Path, PathBuf},
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use directories::BaseDirs;
 use handlebars::Handlebars;
@@ -30,7 +27,7 @@ pub enum Error {
 #[derive(Serialize)]
 pub struct Parameters<'a> {
   pub config: &'a Config,
-  pub name: &'a Path,
+  pub name: &'a str,
 }
 
 #[derive(Serialize)]
