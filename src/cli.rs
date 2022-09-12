@@ -11,7 +11,7 @@ use figment::{
   Error, Metadata, Profile, Provider,
 };
 use itertools::Itertools;
-use tap::{Conv, Pipe};
+use tap::Pipe;
 
 use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
 
@@ -41,7 +41,7 @@ pub struct Cli {
     helpers::get_file_with_format(PROJECT_DIRS.config_dir(), "config")
       .map(|p| p.0)
       .unwrap_or_else(|| PROJECT_DIRS.config_dir().join(format!("config.{}", FILE_EXTENSIONS[0].0)))
-      .conv()
+      .into()
 })]
   #[baked(ignore)]
   /// Path to the config file

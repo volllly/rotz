@@ -120,7 +120,7 @@ mod repr {
       match parse_inner::<Self>(value, format) {
         Ok(parsed) => parsed.pipe(Ok),
         Err(err) => Self {
-          global: parse_inner::<DotSimplified>(value, format).map_err(|e| vec![err, e])?.conv::<Capabilities>().conv::<Box<_>>().conv(),
+          global: parse_inner::<DotSimplified>(value, format).map_err(|e| vec![err, e])?.conv::<Capabilities>().conv::<Box<_>>().into(),
           ..Default::default()
         }
         .pipe(Ok),
@@ -167,7 +167,7 @@ mod repr {
   impl Merge<Option<Box<Capabilities>>> for Option<Capabilities> {
     fn merge(self, merge: Option<Box<Capabilities>>) -> Self {
       if let Some(s) = self {
-        if let Some(merge) = merge { s.merge(*merge) } else { s }.conv()
+        if let Some(merge) = merge { s.merge(*merge) } else { s }.into()
       } else {
         merge.map(|g| *g)
       }
@@ -266,7 +266,7 @@ use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, Report, SourceSpan};
 use path_slash::PathBufExt;
 use repr::Merge;
-use tap::{Conv, Pipe, TryConv};
+use tap::{Pipe, TryConv};
 use velcro::hash_set;
 use walkdir::WalkDir;
 use wax::Pattern;
@@ -289,8 +289,8 @@ impl From<repr::Installs> for Option<Installs> {
   fn from(from: repr::Installs) -> Self {
     match from {
       repr::Installs::None(_) => None,
-      repr::Installs::Simple(cmd) => Installs { cmd, depends: Default::default() }.conv(),
-      repr::Installs::Full { cmd, depends } => Installs { cmd, depends }.conv(),
+      repr::Installs::Simple(cmd) => Installs { cmd, depends: Default::default() }.into(),
+      repr::Installs::Full { cmd, depends } => Installs { cmd, depends }.into(),
     }
   }
 }
@@ -308,7 +308,7 @@ impl Merge<&Self> for Dot {
       if let Some(l) = &mut self.links {
         l.extend(links.clone());
       } else {
-        self.links = links.clone().conv();
+        self.links = links.clone().into();
       }
     }
 
@@ -317,7 +317,7 @@ impl Merge<&Self> for Dot {
         i.cmd = installs.cmd.clone();
         i.depends.extend(installs.depends.clone());
       } else {
-        self.installs = installs.clone().conv();
+        self.installs = installs.clone().into();
       }
     }
 
@@ -325,7 +325,7 @@ impl Merge<&Self> for Dot {
       if let Some(d) = &mut self.depends {
         d.extend(depends.clone());
       } else {
-        self.depends = depends.clone().conv();
+        self.depends = depends.clone().into();
       }
     }
 
@@ -344,9 +344,9 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
     darwin_windows,
   } = repr::Dot::parse(s, format)?;
 
-  let capabilities: Option<Capabilities> = defaults.and_then(|defaults| (*defaults).clone().conv());
+  let capabilities: Option<Capabilities> = defaults.and_then(|defaults| (*defaults).clone().into());
 
-  let mut capabilities: Option<Capabilities> = global.map_or(capabilities.clone(), |g| capabilities.merge(g.conv()));
+  let mut capabilities: Option<Capabilities> = global.map_or(capabilities.clone(), |g| capabilities.merge(g.into()));
 
   if os::OS.is_windows() {
     capabilities = capabilities.merge(windows_linux);
@@ -462,22 +462,22 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
-          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).conv(), err)
+          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
             .pipe(Err)
-            .conv()
+            .into()
         }
       };
 
       let defaults = if let Some((defaults, format)) = defaults.as_ref() {
         match templating::render(defaults, &parameters) {
           Ok(rendered) => match repr::Dot::parse(&rendered, *format) {
-            Ok(parsed) => Into::<Capabilities>::into(parsed).conv(),
-            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).conv(), err).pipe(Err).conv(),
+            Ok(parsed) => Into::<Capabilities>::into(parsed).into(),
+            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).pipe(Err).into(),
           },
           Err(err) => {
-            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).conv(), err)
+            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).into(), err)
               .pipe(Err)
-              .conv()
+              .into()
           }
         }
       } else {
@@ -485,17 +485,17 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       };
 
       match from_str_with_defaults(&text, format, defaults.as_ref()) {
-        Ok(dot) => (name.clone(), dot).pipe(Ok).conv(),
-        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).conv(), err)
+        Ok(dot) => (name.clone(), dot).pipe(Ok).into(),
+        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
           .pipe(Err)
-          .conv(),
+          .into(),
       }
     }
     Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
-      _ => Error::Io(file, err).pipe(Err).conv(),
+      _ => Error::Io(file, err).pipe(Err).into(),
     },
-    Ok((_, Err(err))) | Err(err) => err.pipe(Err).conv(),
+    Ok((_, Err(err))) | Err(err) => err.pipe(Err).into(),
   });
 
   let dots = canonicalize_dots(crate::helpers::join_err_result(dots.collect())?)?;
@@ -514,7 +514,7 @@ fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Er
     let path = defaults.0.to_string_lossy().to_string();
     println!(
       "Warning: {:?}",
-      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).conv(), path))
+      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).into(), path))
     );
   } else {
     defaults = helpers::get_file_with_format(dotfiles_path, "dots");
@@ -522,7 +522,7 @@ fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Er
 
   if let Some(defaults) = defaults {
     match fs::read_to_string(defaults.0) {
-      Ok(text) => (text, defaults.1).conv(),
+      Ok(text) => (text, defaults.1).into(),
       Err(err) => match err.kind() {
         std::io::ErrorKind::NotFound => None,
         _ => Error::ReadingDot(err).pipe(Err)?,
