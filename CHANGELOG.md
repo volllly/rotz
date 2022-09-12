@@ -6,7 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2022-09-09
+## [0.7.1] - 2022-09-12
+
+### Fixed
+
+- Filtering of dots in commands was not working correctly
+
+## [0.7.0] - 2022-09-11
 
 ### Changes
 
@@ -146,7 +152,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/volllly/rotz/releases/tag/v0.7.1
 [0.7.0]: https://github.com/volllly/rotz/releases/tag/v0.7.0
 [0.6.1]: https://github.com/volllly/rotz/releases/tag/v0.6.1
 [0.6.0]: https://github.com/volllly/rotz/releases/tag/v0.6.0
