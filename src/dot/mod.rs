@@ -8,7 +8,7 @@ mod repr {
   #[cfg(test)]
   use fake::{Dummy, Fake};
   use serde::Deserialize;
-  use somok::Somok;
+  use tap::{Conv, Pipe};
   use velcro::hash_set;
 
   use crate::{
@@ -85,23 +85,23 @@ mod repr {
 
   #[cfg(feature = "toml")]
   fn parse_inner_toml<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, helpers::ParseError> {
-    serde_toml::from_str::<T>(value)?.okay()
+    serde_toml::from_str::<T>(value)?.pipe(Ok)
   }
 
   #[cfg(feature = "yaml")]
   fn parse_inner_yaml<T: for<'de> Deserialize<'de> + Default>(value: &str) -> Result<T, helpers::ParseError> {
     match serde_yaml::from_str::<T>(value) {
-      Ok(ok) => ok.okay(),
+      Ok(ok) => ok.pipe(Ok),
       Err(err) => match err.location() {
-        Some(_) => err.error()?,
-        None => T::default().okay(),
+        Some(_) => err.pipe(Err)?,
+        None => T::default().pipe(Ok),
       },
     }
   }
 
   #[cfg(feature = "json")]
   fn parse_inner_json<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, helpers::ParseError> {
-    serde_json::from_str::<T>(value)?.okay()
+    serde_json::from_str::<T>(value)?.pipe(Ok)
   }
 
   fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str, format: FileFormat) -> Result<T, helpers::ParseError> {
@@ -118,12 +118,12 @@ mod repr {
   impl Dot {
     pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, Vec<helpers::ParseError>> {
       match parse_inner::<Self>(value, format) {
-        Ok(parsed) => parsed.okay(),
+        Ok(parsed) => parsed.pipe(Ok),
         Err(err) => Self {
-          global: Into::<Capabilities>::into(parse_inner::<DotSimplified>(value, format).map_err(|e| vec![err, e])?).boxed().some(),
+          global: parse_inner::<DotSimplified>(value, format).map_err(|e| vec![err, e])?.conv::<Capabilities>().conv::<Box<_>>().conv(),
           ..Default::default()
         }
-        .okay(),
+        .pipe(Ok),
       }
     }
   }
@@ -167,7 +167,7 @@ mod repr {
   impl Merge<Option<Box<Capabilities>>> for Option<Capabilities> {
     fn merge(self, merge: Option<Box<Capabilities>>) -> Self {
       if let Some(s) = self {
-        if let Some(merge) = merge { s.merge(*merge) } else { s }.some()
+        if let Some(merge) = merge { s.merge(*merge) } else { s }.conv()
       } else {
         merge.map(|g| *g)
       }
@@ -266,7 +266,7 @@ use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, Report, SourceSpan};
 use path_slash::PathBufExt;
 use repr::Merge;
-use somok::Somok;
+use tap::{Conv, Pipe, TryConv};
 use velcro::hash_set;
 use walkdir::WalkDir;
 use wax::Pattern;
@@ -289,8 +289,8 @@ impl From<repr::Installs> for Option<Installs> {
   fn from(from: repr::Installs) -> Self {
     match from {
       repr::Installs::None(_) => None,
-      repr::Installs::Simple(cmd) => Installs { cmd, depends: Default::default() }.some(),
-      repr::Installs::Full { cmd, depends } => Installs { cmd, depends }.some(),
+      repr::Installs::Simple(cmd) => Installs { cmd, depends: Default::default() }.conv(),
+      repr::Installs::Full { cmd, depends } => Installs { cmd, depends }.conv(),
     }
   }
 }
@@ -308,7 +308,7 @@ impl Merge<&Self> for Dot {
       if let Some(l) = &mut self.links {
         l.extend(links.clone());
       } else {
-        self.links = links.clone().some();
+        self.links = links.clone().conv();
       }
     }
 
@@ -317,7 +317,7 @@ impl Merge<&Self> for Dot {
         i.cmd = installs.cmd.clone();
         i.depends.extend(installs.depends.clone());
       } else {
-        self.installs = installs.clone().some();
+        self.installs = installs.clone().conv();
       }
     }
 
@@ -325,7 +325,7 @@ impl Merge<&Self> for Dot {
       if let Some(d) = &mut self.depends {
         d.extend(depends.clone());
       } else {
-        self.depends = depends.clone().some();
+        self.depends = depends.clone().conv();
       }
     }
 
@@ -344,9 +344,9 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
     darwin_windows,
   } = repr::Dot::parse(s, format)?;
 
-  let capabilities: Option<Capabilities> = defaults.and_then(|defaults| (*defaults).clone().some());
+  let capabilities: Option<Capabilities> = defaults.and_then(|defaults| (*defaults).clone().conv());
 
-  let mut capabilities: Option<Capabilities> = global.map_or(capabilities.clone(), |g| capabilities.merge(g.some()));
+  let mut capabilities: Option<Capabilities> = global.map_or(capabilities.clone(), |g| capabilities.merge(g.conv()));
 
   if os::OS.is_windows() {
     capabilities = capabilities.merge(windows_linux);
@@ -374,7 +374,7 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
   } else {
     Dot::default()
   }
-  .okay()
+  .pipe(Ok)
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -437,7 +437,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
     })
     .filter_ok(|e| dots.is_match(e.0.as_str()))
     .map_ok(|e| {
-      let format = FileFormat::try_from(e.1.as_path()).unwrap();
+      let format = e.1.as_path().try_conv::<FileFormat>().unwrap();
       (e.1, format)
     });
 
@@ -462,22 +462,22 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       let text = match templating::render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
-          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
-            .error()
-            .some()
+          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).conv(), err)
+            .pipe(Err)
+            .conv()
         }
       };
 
       let defaults = if let Some((defaults, format)) = defaults.as_ref() {
         match templating::render(defaults, &parameters) {
           Ok(rendered) => match repr::Dot::parse(&rendered, *format) {
-            Ok(parsed) => Into::<Capabilities>::into(parsed).some(),
-            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).error().some(),
+            Ok(parsed) => Into::<Capabilities>::into(parsed).conv(),
+            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).conv(), err).pipe(Err).conv(),
           },
           Err(err) => {
-            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).into(), err)
-              .error()
-              .some()
+            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).conv(), err)
+              .pipe(Err)
+              .conv()
           }
         }
       } else {
@@ -485,27 +485,27 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       };
 
       match from_str_with_defaults(&text, format, defaults.as_ref()) {
-        Ok(dot) => (name.clone(), dot).okay().some(),
-        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
-          .error()
-          .some(),
+        Ok(dot) => (name.clone(), dot).pipe(Ok).conv(),
+        Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).conv(), err)
+          .pipe(Err)
+          .conv(),
       }
     }
     Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
-      _ => Error::Io(file, err).error().some(),
+      _ => Error::Io(file, err).pipe(Err).conv(),
     },
-    Ok((_, Err(err))) | Err(err) => err.error().some(),
+    Ok((_, Err(err))) | Err(err) => err.pipe(Err).conv(),
   });
 
   let dots = canonicalize_dots(crate::helpers::join_err_result(dots.collect())?)?;
 
   if dots.is_empty() {
     println!("Warning: {}", "No dots found".yellow());
-    return vec![].okay();
+    return vec![].pipe(Ok);
   }
 
-  dots.okay()
+  dots.pipe(Ok)
 }
 
 fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Error> {
@@ -514,7 +514,7 @@ fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Er
     let path = defaults.0.to_string_lossy().to_string();
     println!(
       "Warning: {:?}",
-      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).into(), path))
+      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).conv(), path))
     );
   } else {
     defaults = helpers::get_file_with_format(dotfiles_path, "dots");
@@ -522,16 +522,16 @@ fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Er
 
   if let Some(defaults) = defaults {
     match fs::read_to_string(defaults.0) {
-      Ok(text) => (text, defaults.1).some(),
+      Ok(text) => (text, defaults.1).conv(),
       Err(err) => match err.kind() {
         std::io::ErrorKind::NotFound => None,
-        _ => Error::ReadingDot(err).error()?,
+        _ => Error::ReadingDot(err).pipe(Err)?,
       },
     }
   } else {
     None
   }
-  .okay()
+  .pipe(Ok)
 }
 
 fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, helpers::MultipleErrors> {
@@ -543,7 +543,7 @@ fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, hel
         let dependency_base = Path::new(&name).parent().unwrap_or_else(|| Path::new("")).join(dependency);
 
         let dependency_base = helpers::absolutize_virtually(&dependency_base).map_err(|e| Error::ParseDependency(dependency_base, e))?;
-        dependency_base.okay::<Error>()
+        dependency_base.pipe(Ok::<_, Error>)
       });
       installs.depends = helpers::join_err_result(depends.collect_vec())?.into_iter().collect::<HashSet<_>>();
     }
@@ -553,12 +553,12 @@ fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, hel
         let dependency_base = Path::new(&name).parent().unwrap_or_else(|| Path::new("")).join(dependency);
 
         let dependency_base = helpers::absolutize_virtually(&dependency_base).map_err(|e| Error::ParseDependency(dependency_base, e))?;
-        dependency_base.okay::<Error>()
+        dependency_base.pipe(Ok::<_, Error>)
       });
       dot.1.depends = Some(helpers::join_err_result(depends_mapped.collect_vec())?.into_iter().collect::<HashSet<_>>());
     }
 
-    (name, dot.1).okay::<Error>()
+    (name, dot.1).pipe(Ok::<_, Error>)
   });
 
   helpers::join_err_result(dots.collect_vec())

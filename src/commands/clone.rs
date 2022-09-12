@@ -2,7 +2,7 @@ use std::ffi::OsStr;
 
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Result};
-use somok::Somok;
+use tap::Pipe;
 
 use super::Command;
 use crate::{
@@ -49,6 +49,6 @@ impl Command for Clone {
 
     println!("\n{}Cloned repo{}", Attribute::Bold, Attribute::Reset);
 
-    ().okay()
+    ().pipe(Ok)
   }
 }

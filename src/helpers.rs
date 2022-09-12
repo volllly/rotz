@@ -10,9 +10,9 @@ use itertools::Itertools;
 use miette::{Diagnostic, Result};
 use path_absolutize::Absolutize;
 use path_slash::PathExt;
-use somok::Somok;
 #[cfg(test)]
 use speculoos::assert_that;
+use tap::Pipe;
 use wax::{Any, BuildError, Glob};
 
 use crate::{FileFormat, FILE_EXTENSIONS};
@@ -27,7 +27,7 @@ where
   E: miette::Diagnostic + Send + Sync + 'static,
 {
   if result.iter().any(std::result::Result::is_err) {
-    MultipleErrors(result.into_iter().filter(Result::is_err).map(Result::unwrap_err).map(miette::Error::new).collect_vec()).error()
+    MultipleErrors(result.into_iter().filter(Result::is_err).map(Result::unwrap_err).map(miette::Error::new).collect_vec()).pipe(Err)
   } else {
     Ok(result.into_iter().map(Result::unwrap).collect())
   }
@@ -36,10 +36,10 @@ where
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn _join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
   if result.is_empty() {
-    return ().okay();
+    return ().pipe(Ok);
   };
 
-  MultipleErrors(result.into_iter().collect_vec()).error()
+  MultipleErrors(result.into_iter().collect_vec()).pipe(Err)
 }
 
 pub mod os {
@@ -78,7 +78,7 @@ pub enum RunError {
 
 pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<(), RunError> {
   if dry_run {
-    return ().okay();
+    return ().pipe(Ok);
   }
 
   let output = process::Command::new(cmd).args(args).stdin(process::Stdio::null()).output().map_err(RunError::Spawn)?;
@@ -93,10 +93,10 @@ pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run:
       std::io::stdout().write_all(&output.stdout)?;
       std::io::stdout().write_all(&output.stderr)?;
     }
-    RunError::Execute(output.status.code()).error()?;
+    RunError::Execute(output.status.code()).pipe(Err)?;
   };
 
-  ().okay()
+  ().pipe(Ok)
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -113,7 +113,7 @@ pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'stat
     .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(|e| GlobError::Build(BuildError::into_owned(e))))
     .collect_vec();
 
-  wax::any::<'static, Glob, _>(join_err_result(globs)?).unwrap().okay()
+  wax::any::<'static, Glob, _>(join_err_result(globs)?).unwrap().pipe(Ok)
 }
 
 #[allow(clippy::redundant_pub_crate)]
@@ -167,7 +167,7 @@ impl<'s, O: 's, N: 's> Select<'s, O, N> for speculoos::Spec<'s, O> {
 pub fn absolutize_virtually(path: &Path) -> Result<String, std::io::Error> {
   let name = &path.absolutize_virtually("/")?.to_slash_lossy().to_string();
 
-  name.find('/').map_or(name.as_str(), |root_index| &name[root_index..]).to_owned().okay()
+  name.find('/').map_or(name.as_str(), |root_index| &name[root_index..]).to_owned().pipe(Ok)
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]

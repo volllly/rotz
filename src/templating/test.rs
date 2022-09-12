@@ -1,7 +1,7 @@
 use figment::{util::map, value};
 use rstest::rstest;
-use somok::Somok;
 use speculoos::prelude::*;
+use tap::Conv;
 
 use super::{render, Parameters};
 use crate::config::{Config, LinkType};
@@ -17,14 +17,14 @@ fn templating(#[case] template: &str, #[case] expected: &str) {
     template,
     &Parameters {
       config: &Config {
-        dotfiles: "dotfiles".into(),
+        dotfiles: "dotfiles".conv(),
         link_type: LinkType::Hard,
-        shell_command: "shell_command".to_owned().some(),
+        shell_command: "shell_command".to_owned().conv(),
         variables: map! {
-          "test".to_owned() => "test".into(),
+          "test".to_owned() => "test".conv(),
           "nested".to_owned() => map!{
             "nest" => value::Value::from("nest")
-          }.into()
+          }.conv()
         }
       },
       name: "name"

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
 use miette::{Diagnostic, Report, Result};
-use somok::Somok;
+use tap::Pipe;
 use velcro::hash_map;
 use wax::{Glob, Pattern};
 
@@ -63,7 +63,7 @@ impl Install {
     (globals, install_command): (&crate::cli::Globals, &crate::cli::Install),
   ) -> Result<(), Error> {
     if installed.contains(entry.0.as_str()) {
-      return ().okay();
+      return ().pipe(Ok);
     }
 
     stack.insert(entry.0.clone());
@@ -78,7 +78,7 @@ impl Install {
               name: dependency.clone(),
               through: entry.0.clone(),
             }
-            .error();
+            .pipe(Err);
           }
 
           self.install(
@@ -132,7 +132,7 @@ impl Install {
         if install_command.continue_on_error {
           eprintln!("\n Error: {:?}", Report::new(error));
         } else {
-          return error.error();
+          return error.pipe(Err);
         }
       }
 
@@ -145,7 +145,7 @@ impl Install {
       }
     }
 
-    ().okay()
+    ().pipe(Ok)
   }
 }
 
@@ -170,6 +170,6 @@ impl Command for Install {
       }
     }
 
-    ().okay()
+    ().pipe(Ok)
   }
 }

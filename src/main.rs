@@ -41,7 +41,7 @@ use cli::Cli;
 
 mod config;
 use config::{Config, MappedProfileProvider};
-use somok::Somok;
+use tap::{Conv, Pipe};
 use velcro::hash_map;
 
 mod commands;
@@ -117,7 +117,7 @@ impl TryFrom<&str> for FileFormat {
       .iter()
       .find(|e| e.0 == value)
       .map(|e| e.1)
-      .ok_or_else(|| Error::UnknownExtension(value.to_owned(), (0, value.len()).into()))
+      .ok_or_else(|| Error::UnknownExtension(value.to_owned(), (0, value.len()).conv()))
   }
 }
 
@@ -126,13 +126,13 @@ impl TryFrom<&Path> for FileFormat {
 
   fn try_from(value: &Path) -> Result<Self, Self::Error> {
     value.extension().map_or_else(
-      || Error::UnknownExtension(value.to_string_lossy().to_string(), (0, 0).into()).error(),
+      || Error::UnknownExtension(value.to_string_lossy().to_string(), (0, 0).conv()).pipe(Err),
       |extension| {
         FILE_EXTENSIONS
           .iter()
           .find(|e| e.0 == extension)
           .map(|e| e.1)
-          .ok_or_else(|| Error::UnknownExtension(extension.to_string_lossy().to_string(), (0, extension.len()).into()))
+          .ok_or_else(|| Error::UnknownExtension(extension.to_string_lossy().to_string(), (0, extension.len()).conv()))
       },
     )
   }
@@ -173,7 +173,7 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
   };
 
   if let Some((config, _)) = helpers::get_file_with_format(dotfiles, "config") {
-    figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
+    figment = figment.join_from_path(config, true, hash_map!( "global".conv(): "default".conv(), "force".conv(): "global".conv() ))?;
   }
 
   figment
@@ -225,13 +225,13 @@ impl FigmentExt for Figment {
         "json" => self.merge(Json::string(&config_str).set_nested(nested)),
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
-          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).conv()).pipe(Err);
         }
       }
-      .okay();
+      .pipe(Ok);
     }
 
-    self.okay()
+    self.pipe(Ok)
   }
 
   fn join_from_path(self, path: impl AsRef<Path>, nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
@@ -259,13 +259,13 @@ impl FigmentExt for Figment {
         }),
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
-          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).conv()).pipe(Err);
         }
       }
-      .okay();
+      .pipe(Ok);
     }
 
-    self.okay()
+    self.pipe(Ok)
   }
 }
 

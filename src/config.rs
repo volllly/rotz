@@ -1,6 +1,5 @@
 use std::{
   collections::HashMap,
-  convert::TryFrom,
   fs,
   path::{Path, PathBuf},
 };
@@ -14,7 +13,7 @@ use figment::{providers::Serialized, value, Metadata, Profile, Provider};
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
-use somok::Somok;
+use tap::{Conv, Pipe, TryConv};
 
 use crate::{helpers, FileFormat, USER_DIRS};
 
@@ -37,7 +36,7 @@ impl Dummy<ValueFaker> for figment::value::Dict {
     let mut map = Self::new();
 
     for _ in 0..((0..10).fake_with_rng(rng)) {
-      map.insert((0..10).fake_with_rng(rng), (0..10).fake_with_rng::<String, R>(rng).into());
+      map.insert((0..10).fake_with_rng(rng), (0..10).fake_with_rng::<String, R>(rng).conv());
     }
 
     map
@@ -128,13 +127,13 @@ impl AlreadyExistsError {
   pub fn new(name: &str, content: &str) -> Self {
     let pat = format!("{name}: ");
     let span: SourceSpan = if content.starts_with(&pat) {
-      (0, pat.len()).into()
+      (0, pat.len()).conv()
     } else {
       let starts = content.match_indices(&format!("\n{pat}")).collect::<Vec<_>>();
       if starts.len() == 1 {
-        (starts[0].0 + 1, pat.len()).into()
+        (starts[0].0 + 1, pat.len()).conv()
       } else {
-        (0, content.len()).into()
+        (0, content.len()).conv()
       }
     };
 
@@ -171,7 +170,7 @@ pub enum Error {
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
-  let format = FileFormat::try_from(config_file)?;
+  let format = config_file.try_conv::<FileFormat>()?;
 
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
     if let Ok(existing_config) = deserialize_config(&existing_config_str, format) {
@@ -184,11 +183,11 @@ pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result
       }
 
       return Error::AlreadyExists(
-        errors.is_empty().then(|| (0, existing_config_str.len()).into()),
+        errors.is_empty().then(|| (0, existing_config_str.len()).conv()),
         NamedSource::new(config_file.to_string_lossy(), existing_config_str),
         errors,
       )
-      .error();
+      .pipe(Err);
     }
   }
 
@@ -210,7 +209,7 @@ pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result
 
   println!("Created config file at {}", config_file.to_string_lossy().green());
 
-  ().okay()
+  ().pipe(Ok)
 }
 
 pub struct MappedProfileProvider<P: Provider> {
@@ -231,7 +230,7 @@ impl<P: Provider> Provider for MappedProfileProvider<P> {
       mapped.insert(self.mapping.get(&profile).map_or(profile, Clone::clone), data);
     }
 
-    mapped.okay()
+    mapped.pipe(Ok)
   }
 }
 

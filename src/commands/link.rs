@@ -5,7 +5,7 @@ use std::{
 
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Report, Result};
-use somok::Somok;
+use tap::Pipe;
 
 use crate::{
   config::{Config, LinkType},
@@ -75,17 +75,17 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool) -> std
   let create: fn(&Path, &Path) -> std::result::Result<(), std::io::Error> = if link_type.is_symbolic() { symlink } else { hardlink };
 
   match create(from, to) {
-    Ok(ok) => ok.okay(),
+    Ok(ok) => ok.pipe(Ok),
     Err(err) => match err.kind() {
       std::io::ErrorKind::AlreadyExists => {
         if force {
           if to.is_dir() { fs::remove_dir_all(&to) } else { fs::remove_file(&to) }.map_err(|e| Error::Symlink(from.to_path_buf(), to.to_path_buf(), e))?;
           create(from, to)
         } else {
-          return Error::AlreadyExists(to.to_path_buf()).error();
+          return Error::AlreadyExists(to.to_path_buf()).pipe(Err);
         }
       }
-      _ => err.error(),
+      _ => err.pipe(Err),
     },
   }
   .map_err(|e| Error::Symlink(from.to_path_buf(), to.to_path_buf(), e))
@@ -104,7 +104,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   } else {
     fs::symlink_file(from, to)?;
   };
-  ().okay()
+  ().pipe(Ok)
 }
 
 #[cfg(unix)]
@@ -114,7 +114,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(parent)?;
   }
   fs::symlink(from, to)?;
-  ().okay()
+  ().pipe(Ok)
 }
 
 #[cfg(windows)]
@@ -128,7 +128,7 @@ fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
   } else {
     fs::hard_link(from, to)?;
   }
-  ().okay()
+  ().pipe(Ok)
 }
 
 #[cfg(unix)]
@@ -137,5 +137,5 @@ fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(parent)?;
   }
   fs::hard_link(from, to)?;
-  ().okay()
+  ().pipe(Ok)
 }

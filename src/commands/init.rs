@@ -2,7 +2,7 @@ use std::{ffi::OsStr, path::PathBuf};
 
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Result};
-use somok::Somok;
+use tap::Pipe;
 
 use super::Command;
 use crate::{
@@ -88,6 +88,6 @@ impl Command for Init {
 
       println!("\n{}Initialized repo{}", Attribute::Bold, Attribute::Reset);
     }
-    ().okay()
+    ().pipe(Ok)
   }
 }
