@@ -246,10 +246,9 @@ mod tests {
   #[rstest]
   fn ser_de(#[values(Faker.fake::<Config>(), Config::default())] config: Config, #[values(FileFormat::Yaml, FileFormat::Toml, FileFormat::Json)] format: FileFormat) {
     let serialized = super::serialize_config(&config, format);
-    assert_that!(&serialized).is_ok();
-    let serialized = serialized.unwrap();
+    let serialized = assert_that!(&serialized).is_ok().subject;
 
-    let deserialized = super::deserialize_config(&serialized, format);
+    let deserialized = super::deserialize_config(serialized, format);
     assert_that!(&deserialized).is_ok().is_equal_to(config);
   }
 }

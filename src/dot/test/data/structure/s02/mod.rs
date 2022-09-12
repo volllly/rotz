@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use speculoos::{assert_that, prelude::*};
+use tap::Tap;
 use velcro::hash_set;
 
 use crate::helpers::Select;
@@ -11,11 +12,8 @@ fn structure() {
 
   assert_that!(dot.links)
     .is_some()
-    .contains_entry(&PathBuf::from("k01"), &hash_set![PathBuf::from("v01a"), PathBuf::from("v01b")]);
-
-  assert_that!(dot.links)
-    .is_some()
-    .contains_entry(&PathBuf::from("k02"), &hash_set![PathBuf::from("v02a"), PathBuf::from("v02b")]);
+    .tap_mut(|l| l.contains_entry(&PathBuf::from("k01"), &hash_set![PathBuf::from("v01a"), PathBuf::from("v01b")]))
+    .tap_mut(|l| l.contains_entry(&PathBuf::from("k02"), &hash_set![PathBuf::from("v02a"), PathBuf::from("v02b")]));
 
   assert_that!(dot.installs)
     .is_some()

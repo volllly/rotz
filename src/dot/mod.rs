@@ -302,37 +302,6 @@ pub struct Dot {
   pub(crate) depends: Option<HashSet<String>>,
 }
 
-impl Merge<&Self> for Dot {
-  fn merge(mut self, merge: &Self) -> Self {
-    if let Some(links) = &merge.links {
-      if let Some(l) = &mut self.links {
-        l.extend(links.clone());
-      } else {
-        self.links = links.clone().into();
-      }
-    }
-
-    if let Some(installs) = &merge.installs {
-      if let Some(i) = &mut self.installs {
-        i.cmd = installs.cmd.clone();
-        i.depends.extend(installs.depends.clone());
-      } else {
-        self.installs = installs.clone().into();
-      }
-    }
-
-    if let Some(depends) = &merge.depends {
-      if let Some(d) = &mut self.depends {
-        d.extend(depends.clone());
-      } else {
-        self.depends = depends.clone().into();
-      }
-    }
-
-    self
-  }
-}
-
 fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabilities>) -> Result<Dot, Vec<helpers::ParseError>> {
   let repr::Dot {
     global,

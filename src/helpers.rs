@@ -107,13 +107,13 @@ pub enum GlobError {
 }
 
 pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'static>> {
-  let globs = from
+  from
     .iter()
     .map(|g| format!("{}{}", g, postfix))
     .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(|e| GlobError::Build(BuildError::into_owned(e))))
-    .collect_vec();
-
-  wax::any::<'static, Glob, _>(join_err_result(globs)?).unwrap().pipe(Ok)
+    .collect_vec()
+    .pipe(join_err_result)?
+    .pipe(|g| wax::any::<'static, Glob, _>(g).unwrap().pipe(Ok))
 }
 
 #[allow(clippy::redundant_pub_crate)]
@@ -125,49 +125,39 @@ pub(crate) fn get_file_with_format(path: impl AsRef<Path>, base_name: impl AsRef
 pub trait Select<'s, O: 's, N: 's> {
   fn select<F>(self, selector: F) -> speculoos::Spec<'s, N>
   where
-    F: Fn(&'s O) -> &'s N;
+    F: FnOnce(&'s O) -> &'s N;
 
-  fn select_and<S, W>(&self, selector: S, with: W) -> &speculoos::Spec<'s, O>
+  fn select_and<S, W>(&self, selector: S, with: W) -> &Self
   where
-    S: Fn(&'s O) -> &'s N,
-    W: Fn(speculoos::Spec<'s, N>);
-
-  fn and<F>(self, and: F) -> speculoos::Spec<'s, O>
-  where
-    F: Fn(&speculoos::Spec<'s, O>);
+    S: FnOnce(&'s O) -> &'s N,
+    W: FnOnce(speculoos::Spec<'s, N>);
 }
 
 #[cfg(test)]
 impl<'s, O: 's, N: 's> Select<'s, O, N> for speculoos::Spec<'s, O> {
   fn select<F>(self, selector: F) -> speculoos::Spec<'s, N>
   where
-    F: Fn(&'s O) -> &'s N,
+    F: FnOnce(&'s O) -> &'s N,
   {
     assert_that!(*selector(self.subject))
   }
 
-  fn select_and<S, W>(&self, selector: S, with: W) -> &speculoos::Spec<'s, O>
+  fn select_and<S, W>(&self, selector: S, with: W) -> &Self
   where
-    S: Fn(&'s O) -> &'s N,
-    W: Fn(speculoos::Spec<'s, N>),
+    S: FnOnce(&'s O) -> &'s N,
+    W: FnOnce(speculoos::Spec<'s, N>),
   {
     with(assert_that!(*selector(self.subject)));
-    self
-  }
-
-  fn and<F>(self, and: F) -> speculoos::Spec<'s, O>
-  where
-    F: Fn(&speculoos::Spec<'s, O>),
-  {
-    and(&self);
     self
   }
 }
 
 pub fn absolutize_virtually(path: &Path) -> Result<String, std::io::Error> {
-  let name = &path.absolutize_virtually("/")?.to_slash_lossy().to_string();
-
-  name.find('/').map_or(name.as_str(), |root_index| &name[root_index..]).to_owned().pipe(Ok)
+  path
+    .absolutize_virtually("/")?
+    .to_slash_lossy()
+    .to_string()
+    .pipe(|name| name.find('/').map_or(name.as_str(), |root_index| &name[root_index..]).to_owned().pipe(Ok))
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
