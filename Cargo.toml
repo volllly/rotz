@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 authors = ["Paul Volavsek <paul.volavsek@gmail.com>"]
 license = "MIT"
@@ -32,7 +32,7 @@ crossterm = "0.25.0"
 itertools = "0.10.3"
 thiserror = "1.0.34"
 somok = "1.5.0"
-miette = { version = "5.3.1", features = ["fancy"] }
+miette = { version = "5.3.0", features = ["fancy"] }
 baker = "0.1.2"
 indexmap = "1.9.1"
 handlebars = "4.3.4"
@@ -41,7 +41,7 @@ shellwords = "1.1.0"
 path-absolutize = "3.0.13"
 walkdir = "2.3.2"
 wax = { version = "0.5.0", features = ["miette"] }
-whoami = "1.2.1"
+whoami = "1.2.2"
 path-slash = "0.2.1"
 velcro = "0.5.3"
 

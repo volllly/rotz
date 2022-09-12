@@ -433,42 +433,23 @@ pub enum Error {
 }
 
 pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(String, Dot)>> {
-  let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
-  if let Some(defaults) = &defaults {
-    let path = defaults.0.to_string_lossy().to_string();
-    println!(
-      "Warning: {:?}",
-      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).into(), path))
-    );
-  } else {
-    defaults = helpers::get_file_with_format(dotfiles_path, "dots");
-  }
-
-  let defaults = if let Some(defaults) = defaults {
-    match fs::read_to_string(defaults.0) {
-      Ok(text) => (text, defaults.1).some(),
-      Err(err) => match err.kind() {
-        std::io::ErrorKind::NotFound => None,
-        _ => Error::ReadingDot(err).error()?,
-      },
-    }
-  } else {
-    None
-  };
+  let defaults = get_defaults(dotfiles_path)?;
 
   let dots = helpers::glob_from_vec(dots, &format!("/dot.{FILE_EXTENSIONS_GLOB}"))?;
 
   let paths = WalkDir::new(&dotfiles_path)
     .into_iter()
     .filter_ok(|e| !e.file_type().is_dir())
-    .map(|d| match d {
-      Ok(d) => d.path().strip_prefix(dotfiles_path).map(Path::to_path_buf).map_err(Error::PathStrip),
-      Err(err) => Error::WalkingDotfiles(err).error(),
+    .map(|d| -> Result<(std::string::String, std::path::PathBuf), Error> {
+      let d = d.map_err(Error::WalkingDotfiles)?;
+      let path = d.path().strip_prefix(dotfiles_path).map(Path::to_path_buf).map_err(Error::PathStrip)?;
+      let absolutized = helpers::absolutize_virtually(&path).map_err(|e| Error::ParseName(path.to_string_lossy().to_string(), e))?;
+      Ok((absolutized, path))
     })
-    .filter_ok(|e| dots.is_match(e.as_path()))
+    .filter_ok(|e| dots.is_match(e.0.as_str()))
     .map_ok(|e| {
-      let format = FileFormat::try_from(e.as_path()).unwrap();
-      (e, format)
+      let format = FileFormat::try_from(e.1.as_path()).unwrap();
+      (e.1, format)
     });
 
   let dotfiles = crate::helpers::join_err_result(paths.collect())?
@@ -536,6 +517,32 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
   }
 
   dots.okay()
+}
+
+fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Error> {
+  let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
+  if let Some(defaults) = &defaults {
+    let path = defaults.0.to_string_lossy().to_string();
+    println!(
+      "Warning: {:?}",
+      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).into(), path))
+    );
+  } else {
+    defaults = helpers::get_file_with_format(dotfiles_path, "dots");
+  }
+
+  if let Some(defaults) = defaults {
+    match fs::read_to_string(defaults.0) {
+      Ok(text) => (text, defaults.1).some(),
+      Err(err) => match err.kind() {
+        std::io::ErrorKind::NotFound => None,
+        _ => Error::ReadingDot(err).error()?,
+      },
+    }
+  } else {
+    None
+  }
+  .okay()
 }
 
 fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, helpers::MultipleErrors> {
