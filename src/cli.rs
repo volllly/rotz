@@ -11,7 +11,7 @@ use figment::{
   Error, Metadata, Profile, Provider,
 };
 use itertools::Itertools;
-use somok::Somok;
+use tap::Pipe;
 
 use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
 
@@ -189,6 +189,6 @@ impl Provider for Cli {
     map! {
       Profile::Global => dict
     }
-    .okay()
+    .pipe(Ok)
   }
 }

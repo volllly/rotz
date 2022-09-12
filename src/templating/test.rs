@@ -1,6 +1,5 @@
 use figment::{util::map, value};
 use rstest::rstest;
-use somok::Somok;
 use speculoos::prelude::*;
 
 use super::{render, Parameters};
@@ -19,7 +18,7 @@ fn templating(#[case] template: &str, #[case] expected: &str) {
       config: &Config {
         dotfiles: "dotfiles".into(),
         link_type: LinkType::Hard,
-        shell_command: "shell_command".to_owned().some(),
+        shell_command: "shell_command".to_owned().into(),
         variables: map! {
           "test".to_owned() => "test".into(),
           "nested".to_owned() => map!{

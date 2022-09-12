@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use speculoos::prelude::*;
+use tap::Tap;
 
 use super::read_dots;
 use crate::helpers::Select;
@@ -16,11 +17,12 @@ fn read_all_dots() {
   )
   .unwrap();
 
-  assert_that!(dots).has_length(4);
-  assert_that!(dots).mapped_contains(|d| &d.0, &"/test01");
-  assert_that!(dots).mapped_contains(|d| &d.0, &"/test02");
-  assert_that!(dots).mapped_contains(|d| &d.0, &"/test03/test04");
-  assert_that!(dots).mapped_contains(|d| &d.0, &"/test03/test05");
+  assert_that!(dots)
+    .tap_mut(|d| d.has_length(4))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test01"))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test02"))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test04"))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test05"));
 
   assert_that!(dots.iter().find(|d| d.0 == "/test02"))
     .is_some()
@@ -50,9 +52,10 @@ fn read_sub_dots() {
   )
   .unwrap();
 
-  assert_that!(dots).has_length(2);
-  assert_that!(dots).mapped_contains(|d| &d.0, &"/test03/test04");
-  assert_that!(dots).mapped_contains(|d| &d.0, &"/test03/test05");
+  assert_that!(dots)
+    .tap_mut(|d| d.has_length(2))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test04"))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test05"));
 }
 
 #[test]

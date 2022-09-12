@@ -41,7 +41,7 @@ use cli::Cli;
 
 mod config;
 use config::{Config, MappedProfileProvider};
-use somok::Somok;
+use tap::Pipe;
 use velcro::hash_map;
 
 mod commands;
@@ -126,7 +126,7 @@ impl TryFrom<&Path> for FileFormat {
 
   fn try_from(value: &Path) -> Result<Self, Self::Error> {
     value.extension().map_or_else(
-      || Error::UnknownExtension(value.to_string_lossy().to_string(), (0, 0).into()).error(),
+      || Error::UnknownExtension(value.to_string_lossy().to_string(), (0, 0).into()).pipe(Err),
       |extension| {
         FILE_EXTENSIONS
           .iter()
@@ -225,13 +225,13 @@ impl FigmentExt for Figment {
         "json" => self.merge(Json::string(&config_str).set_nested(nested)),
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
-          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
         }
       }
-      .okay();
+      .pipe(Ok);
     }
 
-    self.okay()
+    self.pipe(Ok)
   }
 
   fn join_from_path(self, path: impl AsRef<Path>, nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
@@ -259,13 +259,13 @@ impl FigmentExt for Figment {
         }),
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
-          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).error();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
         }
       }
-      .okay();
+      .pipe(Ok);
     }
 
-    self.okay()
+    self.pipe(Ok)
   }
 }
 

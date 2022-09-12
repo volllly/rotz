@@ -2,7 +2,7 @@ use std::ffi::OsStr;
 
 use crossterm::style::Attribute;
 use miette::{Diagnostic, Result};
-use somok::Somok;
+use tap::Pipe;
 use walkdir::WalkDir;
 use wax::Pattern;
 
@@ -80,6 +80,6 @@ impl Command for Sync {
 
     println!("\n{}Sync complete{}\n", Attribute::Bold, Attribute::Reset);
 
-    ().okay()
+    ().pipe(Ok)
   }
 }

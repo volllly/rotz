@@ -1,6 +1,5 @@
 use std::{
   collections::HashMap,
-  convert::TryFrom,
   fs,
   path::{Path, PathBuf},
 };
@@ -14,7 +13,7 @@ use figment::{providers::Serialized, value, Metadata, Profile, Provider};
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
-use somok::Somok;
+use tap::{Pipe, TryConv};
 
 use crate::{helpers, FileFormat, USER_DIRS};
 
@@ -171,7 +170,7 @@ pub enum Error {
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
 pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
-  let format = FileFormat::try_from(config_file)?;
+  let format = config_file.try_conv::<FileFormat>()?;
 
   if let Ok(existing_config_str) = fs::read_to_string(config_file) {
     if let Ok(existing_config) = deserialize_config(&existing_config_str, format) {
@@ -188,7 +187,7 @@ pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result
         NamedSource::new(config_file.to_string_lossy(), existing_config_str),
         errors,
       )
-      .error();
+      .pipe(Err);
     }
   }
 
@@ -210,7 +209,7 @@ pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result
 
   println!("Created config file at {}", config_file.to_string_lossy().green());
 
-  ().okay()
+  ().pipe(Ok)
 }
 
 pub struct MappedProfileProvider<P: Provider> {
@@ -231,7 +230,7 @@ impl<P: Provider> Provider for MappedProfileProvider<P> {
       mapped.insert(self.mapping.get(&profile).map_or(profile, Clone::clone), data);
     }
 
-    mapped.okay()
+    mapped.pipe(Ok)
   }
 }
 
@@ -247,10 +246,9 @@ mod tests {
   #[rstest]
   fn ser_de(#[values(Faker.fake::<Config>(), Config::default())] config: Config, #[values(FileFormat::Yaml, FileFormat::Toml, FileFormat::Json)] format: FileFormat) {
     let serialized = super::serialize_config(&config, format);
-    assert_that!(&serialized).is_ok();
-    let serialized = serialized.unwrap();
+    let serialized = assert_that!(&serialized).is_ok().subject;
 
-    let deserialized = super::deserialize_config(&serialized, format);
+    let deserialized = super::deserialize_config(serialized, format);
     assert_that!(&deserialized).is_ok().is_equal_to(config);
   }
 }
