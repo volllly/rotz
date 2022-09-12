@@ -18,13 +18,16 @@ mod repr {
 
   #[derive(Deserialize, Debug, Default)]
   #[cfg_attr(test, derive(Dummy))]
+  #[serde(deny_unknown_fields)]
   struct DotSimplified {
-    #[serde(flatten)]
-    capabilities: Capabilities,
+    pub(super) links: Option<Links>,
+    pub(super) installs: Option<Installs>,
+    pub(super) depends: Option<HashSet<String>>,
   }
 
   #[derive(Deserialize, Debug, Default, Clone)]
   #[cfg_attr(test, derive(Dummy))]
+  #[serde(deny_unknown_fields)]
   pub struct Dot {
     pub global: Option<Box<Capabilities>>,
     pub windows: Option<Box<Capabilities>>,
@@ -40,30 +43,36 @@ mod repr {
 
   #[derive(Deserialize, Clone, Default, Debug)]
   #[cfg_attr(test, derive(Dummy))]
+  #[serde(deny_unknown_fields)]
   pub struct Capabilities {
     pub(super) links: Option<Links>,
     pub(super) installs: Option<Installs>,
-    #[serde(flatten)]
-    pub(super) depends: Option<Depends>,
+    pub(super) depends: Option<HashSet<String>>,
+  }
+
+  impl From<DotSimplified> for Capabilities {
+    fn from(from: DotSimplified) -> Self {
+      Self {
+        depends: from.depends,
+        installs: from.installs,
+        links: from.links,
+      }
+    }
   }
 
   #[derive(Deserialize, Clone, Debug)]
   #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
+  #[serde(deny_unknown_fields)]
   pub enum Links {
-    One {
-      #[serde(flatten)]
-      links: HashMap<PathBuf, PathBuf>,
-    },
-    Many {
-      #[serde(flatten)]
-      links: HashMap<PathBuf, HashSet<PathBuf>>,
-    },
+    One(HashMap<PathBuf, PathBuf>),
+    Many(HashMap<PathBuf, HashSet<PathBuf>>),
   }
 
   #[derive(Deserialize, Clone, Debug, IsVariant)]
   #[serde(untagged)]
   #[cfg_attr(test, derive(Dummy))]
+  #[serde(deny_unknown_fields)]
   pub enum Installs {
     None(bool),
     Simple(String),
@@ -72,12 +81,6 @@ mod repr {
       #[serde(default)]
       depends: HashSet<String>,
     },
-  }
-
-  #[derive(Deserialize, Clone, Debug)]
-  #[cfg_attr(test, derive(Dummy))]
-  pub struct Depends {
-    pub(super) depends: HashSet<String>,
   }
 
   #[cfg(feature = "toml")]
@@ -113,24 +116,14 @@ mod repr {
   }
 
   impl Dot {
-    pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, helpers::ParseError> {
-      let parsed = parse_inner::<DotSimplified>(value, format)?;
-
-      if let DotSimplified {
-        capabilities: Capabilities {
-          links: None,
-          installs: None,
-          depends: None,
-        },
-      } = parsed
-      {
-        parse_inner::<Self>(value, format)
-      } else {
-        Self {
-          global: parsed.capabilities.boxed().some(),
+    pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, Vec<helpers::ParseError>> {
+      match parse_inner::<Self>(value, format) {
+        Ok(parsed) => parsed.okay(),
+        Err(err) => Self {
+          global: Into::<Capabilities>::into(parse_inner::<DotSimplified>(value, format).map_err(|e| vec![err, e])?).boxed().some(),
           ..Default::default()
         }
-        .okay()
+        .okay(),
       }
     }
   }
@@ -184,24 +177,20 @@ mod repr {
   impl Merge<Self> for Capabilities {
     fn merge(mut self, Self { mut links, installs, depends }: Self) -> Self {
       if let Some(self_links) = &mut self.links {
-        if let Links::One { links: self_links_one } = self_links {
-          *self_links = Links::Many {
-            links: self_links_one.iter_mut().map(|l| (l.0.clone(), hash_set!(l.1.clone()))).collect(),
-          };
+        if let Links::One(self_links_one) = self_links {
+          *self_links = Links::Many(self_links_one.iter_mut().map(|l| (l.0.clone(), hash_set!(l.1.clone()))).collect());
         }
       }
 
       if let Some(match_links) = &mut links {
-        if let Links::One { links: match_links_one } = match_links {
-          *match_links = Links::Many {
-            links: match_links_one.iter_mut().map(|l| (l.0.clone(), hash_set!(l.1.clone()))).collect(),
-          };
+        if let Links::One(match_links_one) = match_links {
+          *match_links = Links::Many(match_links_one.iter_mut().map(|l| (l.0.clone(), hash_set!(l.1.clone()))).collect());
         }
       }
       if let Some(self_links) = &mut self.links {
         if let Some(merge_links) = &mut links {
-          if let Links::Many { links: self_links_many } = self_links {
-            if let Links::Many { links: merge_links_many } = merge_links {
+          if let Links::Many(self_links_many) = self_links {
+            if let Links::Many(merge_links_many) = merge_links {
               for l in merge_links_many.iter_mut() {
                 if self_links_many.contains_key(l.0) {
                   let self_links_many_value = self_links_many.get_mut(l.0).unwrap();
@@ -255,7 +244,7 @@ mod repr {
 
       if let Some(d) = &mut self.depends {
         if let Some(depends) = depends {
-          d.depends.extend(depends.depends);
+          d.extend(depends);
         }
       } else {
         self.depends = depends;
@@ -344,7 +333,7 @@ impl Merge<&Self> for Dot {
   }
 }
 
-fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabilities>) -> Result<Dot, helpers::ParseError> {
+fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabilities>) -> Result<Dot, Vec<helpers::ParseError>> {
   let repr::Dot {
     global,
     windows,
@@ -376,11 +365,11 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
   if let Some(capabilities) = capabilities {
     Dot {
       links: capabilities.links.map(|c| match c {
-        repr::Links::One { links } => links.into_iter().map(|l| (l.0, hash_set!(l.1))).collect(),
-        repr::Links::Many { links } => links,
+        repr::Links::One(links) => links.into_iter().map(|l| (l.0, hash_set!(l.1))).collect(),
+        repr::Links::Many(links) => links,
       }),
       installs: capabilities.installs.and_then(Into::into),
-      depends: capabilities.depends.map(|c| c.depends),
+      depends: capabilities.depends,
     }
   } else {
     Dot::default()
@@ -409,7 +398,7 @@ pub enum Error {
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
-  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] helpers::ParseError),
+  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[related] Vec<helpers::ParseError>),
 
   #[cfg(feature = "yaml")]
   #[error("Could not render template for dot")]
