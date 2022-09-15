@@ -66,6 +66,30 @@ fn os_helpers() {
 }
 
 #[test]
+fn os_else_helpers() {
+  let config = Config::default();
+
+  init_handlebars();
+
+  let mut expected = "".to_owned();
+  if !os::OS.is_windows() {
+    expected += "else_windows";
+  }
+  if !os::OS.is_linux() {
+    expected += "else_linux";
+  }
+  if !os::OS.is_darwin() {
+    expected += "else_darwin";
+  }
+  assert_that!(render(
+    "{{ #windows }}{{ else }}else_windows{{ /windows }}{{ #linux }}{{ else }}else_linux{{ /linux }}{{ #darwin }}{{ else }}else_darwin{{ /darwin }}",
+    &Parameters { config: &config, name: "" }
+  )
+  .unwrap())
+  .is_equal_to(expected);
+}
+
+#[test]
 fn eval_helper() {
   let config = Config::default();
 

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Template helpers `#windows`, `#linx` and `#darwin` which work like `if`s for the respective os
+- `eval` template helper which evaluates the given string on the shell
+
 ## [0.7.1] - 2022-09-12
 
 ### Fixed

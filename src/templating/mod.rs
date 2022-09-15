@@ -147,7 +147,7 @@ pub struct WindowsHelper;
 
 impl HelperDef for WindowsHelper {
   fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
-    os::OS.is_windows().then(|| h.template().map(|t| t.render(r, ctx, rc, out))).flatten().map_or(Ok(()), |r| r)
+    if os::OS.is_windows() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
 }
 
@@ -155,7 +155,7 @@ pub struct LinuxHelper;
 
 impl HelperDef for LinuxHelper {
   fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
-    os::OS.is_linux().then(|| h.template().map(|t| t.render(r, ctx, rc, out))).flatten().map_or(Ok(()), |r| r)
+    if os::OS.is_linux() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
 }
 
@@ -163,7 +163,7 @@ pub struct DarwinHelper;
 
 impl HelperDef for DarwinHelper {
   fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
-    os::OS.is_darwin().then(|| h.template().map(|t| t.render(r, ctx, rc, out))).flatten().map_or(Ok(()), |r| r)
+    if os::OS.is_darwin() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
 }
 

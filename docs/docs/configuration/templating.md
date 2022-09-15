@@ -18,7 +18,7 @@ This allows for e.g. access to environment variables.
 | `whoami`      | A map of information about the environment (see [whoami](#whoami)). Provided by the [whoami](https://github.com/dirs-dev/directories-rs#features) crate. | `some.file: /home/{{ whoami.username }}/some.file`                      |
 | `directories` | A map of directories (see [directories](#directories)). Provided by the [directories](https://github.com/ardaku/whoami#features) crate                   | `some.file: {{ directories.home }}/some.file`                           |
  
-## `whoami`
+### `whoami`
 
 | Variable      | Description                               |
 | ------------- | ----------------------------------------- |
@@ -31,7 +31,7 @@ This allows for e.g. access to environment variables.
 | `realname`    | The users full name                       |
 | `username`    | The current users username                |
 
-## `directories`
+### `directories`
 
 | Group  | Variable     |
 | ------ | ------------ |
@@ -51,3 +51,21 @@ This allows for e.g. access to environment variables.
 | `user` | `public`     |
 | `user` | `template`   |
 | `user` | `video`      |
+
+## Helpers
+
+Rotz comes with helpers provided by the [handlebars_misc_helpers](https://github.com/davidb/handlebars_misc_helpers) crate.
+
+Theres also a number of inbuilt helpers provided
+
+### `#windows`, `#linx` and `#darwin`
+
+These helpers are shorthands for checking the curent os.
+
+Instea of `{{ #if (eq os "windows") }}{{ else }}{{ /if }}` they can be used like this `{{ #windows }}{{ else }}{{ /windows }}`.
+
+### `eval`
+
+The eval helper can be used to evalate a string on the shell configured by [`shell_command`](config.yaml.mdx#shell_command).
+
+The helper can be used like this `{{ eval "some --shell command" }}`
