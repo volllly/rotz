@@ -3,7 +3,22 @@ use rstest::rstest;
 use speculoos::prelude::*;
 
 use super::{render, Parameters};
-use crate::config::{Config, LinkType};
+use crate::{
+  cli::{Cli, Command, PathBuf},
+  config::{Config, LinkType},
+  helpers::os,
+};
+
+pub fn init_handlebars() {
+  let cli = Cli {
+    dry_run: true,
+    dotfiles: None,
+    config: PathBuf("".into()),
+    command: Command::Clone { repo: "".to_owned() },
+  };
+
+  crate::init_handlebars(&Config::default(), &cli).unwrap();
+}
 
 #[rstest]
 #[case("{{ config.variables.test }}", "test")]
@@ -12,23 +27,56 @@ use crate::config::{Config, LinkType};
 #[case("{{ dirs.user.home }}", &directories::UserDirs::new().unwrap().home_dir().to_string_lossy().to_string())]
 #[case("{{ os }}", &crate::helpers::os::OS.to_string().to_ascii_lowercase())]
 fn templating(#[case] template: &str, #[case] expected: &str) {
+  let config = Config {
+    dotfiles: "dotfiles".into(),
+    link_type: LinkType::Hard,
+    shell_command: "shell_command".to_owned().into(),
+    variables: map! {
+      "test".to_owned() => "test".into(),
+      "nested".to_owned() => map!{
+        "nest" => value::Value::from("nest")
+      }.into()
+    },
+  };
+
+  let cli = Cli {
+    dry_run: true,
+    dotfiles: None,
+    config: PathBuf("".into()),
+    command: Command::Clone { repo: "".to_owned() },
+  };
+
+  crate::init_handlebars(&config, &cli).unwrap();
+
+  assert_that!(render(template, &Parameters { config: &config, name: "name" }).unwrap()).is_equal_to(expected.to_owned());
+}
+
+#[test]
+fn os_helpers() {
+  let config = Config::default();
+
+  init_handlebars();
+
   assert_that!(render(
-    template,
-    &Parameters {
-      config: &Config {
-        dotfiles: "dotfiles".into(),
-        link_type: LinkType::Hard,
-        shell_command: "shell_command".to_owned().into(),
-        variables: map! {
-          "test".to_owned() => "test".into(),
-          "nested".to_owned() => map!{
-            "nest" => value::Value::from("nest")
-          }.into()
-        }
-      },
-      name: "name"
-    }
+    "{{ #windows }}windows{{ /windows }}{{ #linux }}linux{{ /linux }}{{ #darwin }}darwin{{ /darwin }}",
+    &Parameters { config: &config, name: "" }
   )
   .unwrap())
-  .is_equal_to(expected.to_owned());
+  .is_equal_to(os::OS.to_string().to_ascii_lowercase());
+}
+
+#[test]
+fn eval_helper() {
+  let config = Config::default();
+
+  let cli = Cli {
+    dry_run: false,
+    dotfiles: None,
+    config: PathBuf("".into()),
+    command: Command::Clone { repo: "".to_owned() },
+  };
+
+  crate::init_handlebars(&config, &cli).unwrap();
+
+  assert_that!(render("{{ eval \"echo 'test'\" }}", &Parameters { config: &config, name: "" }).unwrap()).is_equal_to("test".to_owned());
 }

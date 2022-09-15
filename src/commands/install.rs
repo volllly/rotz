@@ -110,6 +110,8 @@ impl Install {
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
         HANDLEBARS
+          .get()
+          .unwrap()
           .render_template(shell_command, &hash_map! { "cmd": &inner_cmd })
           .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err))?
       } else {

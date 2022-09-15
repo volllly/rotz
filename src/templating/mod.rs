@@ -1,19 +1,22 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use directories::BaseDirs;
-use handlebars::Handlebars;
+use handlebars::{Context, Handlebars, Helper, HelperDef, HelperResult, Output, RenderContext, RenderError, Renderable, ScopedJson};
 use itertools::Itertools;
 use miette::Diagnostic;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use serde::Serialize;
+use tap::{Conv, Pipe};
+use velcro::hash_map;
 
-use crate::{config::Config, helpers, USER_DIRS};
+use crate::{
+  cli::Cli,
+  config::Config,
+  helpers::{self, os},
+  USER_DIRS,
+};
 
-pub static HANDLEBARS: Lazy<Handlebars> = Lazy::new(|| {
-  let mut hb = handlebars_misc_helpers::new_hbs();
-  hb.set_strict_mode(false);
-  hb
-});
+pub static HANDLEBARS: OnceCell<Handlebars> = OnceCell::new();
 
 pub static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
 
@@ -22,6 +25,10 @@ pub enum Error {
   #[error("Could not render templeate")]
   #[diagnostic(code(template::render))]
   RenderingTemplate(#[source] handlebars::RenderError),
+
+  #[error("Could not initialize handlebars")]
+  #[diagnostic(code(template::renderer::initialize))]
+  Initialize,
 }
 
 #[derive(Serialize)]
@@ -133,8 +140,86 @@ pub fn render(template: &str, parameters: &impl Serialize) -> Result<String, Err
     dirs: &DIRECTORY_PRAMETERS,
   };
 
-  HANDLEBARS.render_template(template, &complete).map_err(Error::RenderingTemplate)
+  HANDLEBARS.get().unwrap().render_template(template, &complete).map_err(Error::RenderingTemplate)
+}
+
+pub struct WindowsHelper;
+
+impl HelperDef for WindowsHelper {
+  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
+    os::OS.is_windows().then(|| h.template().map(|t| t.render(r, ctx, rc, out))).flatten().map_or(Ok(()), |r| r)
+  }
+}
+
+pub struct LinuxHelper;
+
+impl HelperDef for LinuxHelper {
+  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
+    os::OS.is_linux().then(|| h.template().map(|t| t.render(r, ctx, rc, out))).flatten().map_or(Ok(()), |r| r)
+  }
+}
+
+pub struct DarwinHelper;
+
+impl HelperDef for DarwinHelper {
+  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
+    os::OS.is_darwin().then(|| h.template().map(|t| t.render(r, ctx, rc, out))).flatten().map_or(Ok(()), |r| r)
+  }
+}
+
+pub struct EvalHelper {
+  shell_command: Option<String>,
+  dry_run: bool,
+}
+
+impl HelperDef for EvalHelper {
+  fn call_inner<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, _: &'rc Context, _: &mut RenderContext<'reg, 'rc>) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
+    let cmd = h
+      .param(0)
+      .ok_or_else(|| RenderError::new("Param not found for helper \"eval\""))?
+      .value()
+      .as_str()
+      .ok_or_else(|| RenderError::new("Param needs to be a string \"eval\""))?;
+
+    if self.dry_run {
+      format!("{{{{ eval \"{cmd}\" }}}}").conv::<handlebars::JsonValue>().conv::<handlebars::ScopedJson>().pipe(Ok)
+    } else {
+      let cmd = if let Some(shell_command) = self.shell_command.as_ref() {
+        r.render_template(shell_command, &hash_map! { "cmd": &cmd })
+          .map_err(|err| RenderError::from_error("Could not render shell command", err))?
+      } else {
+        cmd.to_owned()
+      };
+
+      let cmd = shellwords::split(&cmd).map_err(|e| RenderError::from_error("Could not parse eval command", e))?;
+
+      match helpers::run_command(&cmd[0], &cmd[1..], true, false) {
+        Err(err) => RenderError::from_error("Eval command did not run successfully", err).pipe(Err),
+        Ok(result) => result.trim().conv::<handlebars::JsonValue>().conv::<handlebars::ScopedJson>().pipe(Ok),
+      }
+    }
+  }
+}
+
+pub fn init_handlebars(config: &Config, cli: &Cli) -> Result<(), Error> {
+  let mut hb = handlebars_misc_helpers::new_hbs();
+  hb.set_strict_mode(false);
+
+  hb.register_helper("windows", WindowsHelper.conv::<Box<_>>());
+  hb.register_helper("linux", LinuxHelper.conv::<Box<_>>());
+  hb.register_helper("darwin", DarwinHelper.conv::<Box<_>>());
+
+  hb.register_helper(
+    "eval",
+    EvalHelper {
+      shell_command: config.shell_command.as_ref().cloned(),
+      dry_run: cli.dry_run,
+    }
+    .pipe(Box::new),
+  );
+
+  HANDLEBARS.set(hb).map_err(|_| Error::Initialize)
 }
 
 #[cfg(test)]
-mod test;
+pub mod test;

@@ -42,6 +42,7 @@ use cli::Cli;
 mod config;
 use config::{Config, MappedProfileProvider};
 use tap::Pipe;
+use templating::init_handlebars;
 use velcro::hash_map;
 
 mod commands;
@@ -147,6 +148,8 @@ fn main() -> Result<(), miette::Report> {
   }
 
   let config = read_config(&cli)?;
+
+  init_handlebars(&config, &cli)?;
 
   match cli.command.clone() {
     cli::Command::Link { link } => commands::Link::new(config).execute((cli.bake(), link.bake())),
