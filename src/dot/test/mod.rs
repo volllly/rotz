@@ -4,18 +4,17 @@ use speculoos::prelude::*;
 use tap::Tap;
 
 use super::read_dots;
-use crate::helpers::Select;
+use crate::{helpers::Select, templating::test::get_handlebars};
 
 mod data;
 
 #[test]
 fn read_all_dots() {
-  crate::templating::test::init_handlebars();
-
   let dots = read_dots(
     Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
     &["/**".to_owned()],
     &Default::default(),
+    &get_handlebars(),
   )
   .unwrap();
 
@@ -47,12 +46,11 @@ fn read_all_dots() {
 
 #[test]
 fn read_sub_dots() {
-  crate::templating::test::init_handlebars();
-
   let dots = read_dots(
     Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
     &["/test03/*".to_owned()],
     &Default::default(),
+    &get_handlebars(),
   )
   .unwrap();
 
@@ -64,9 +62,13 @@ fn read_sub_dots() {
 
 #[test]
 fn read_non_sub_dots() {
-  crate::templating::test::init_handlebars();
-
-  let dots = read_dots(Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(), &["/*".to_owned()], &Default::default()).unwrap();
+  let dots = read_dots(
+    Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
+    &["/*".to_owned()],
+    &Default::default(),
+    &get_handlebars(),
+  )
+  .unwrap();
 
   assert_that!(dots).has_length(2);
   assert_that!(dots).mapped_contains(|d| &d.0, &"/test01");
@@ -75,9 +77,13 @@ fn read_non_sub_dots() {
 
 #[test]
 fn read_all_file_formats() {
-  crate::templating::test::init_handlebars();
-
-  let dots = read_dots(Path::new(file!()).parent().unwrap().join("data/file_formats").as_path(), &["/**".to_owned()], &Default::default()).unwrap();
+  let dots = read_dots(
+    Path::new(file!()).parent().unwrap().join("data/file_formats").as_path(),
+    &["/**".to_owned()],
+    &Default::default(),
+    &get_handlebars(),
+  )
+  .unwrap();
 
   assert_that!(dots).has_length(3);
   assert_that!(dots).mapped_contains(|d| &d.0, &"/test01");

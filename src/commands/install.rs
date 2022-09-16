@@ -8,7 +8,7 @@ use velcro::hash_map;
 use wax::{Glob, Pattern};
 
 use super::Command;
-use crate::{config::Config, dot::Installs, helpers, templating::HANDLEBARS};
+use crate::{config::Config, dot::Installs, helpers, templating};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
@@ -45,13 +45,14 @@ enum Error {
   ParseGlob(String, #[source] wax::BuildError<'static>),
 }
 
-pub struct Install {
+pub(crate) struct Install<'a> {
   config: Config,
+  engine: templating::Engine<'a>,
 }
 
-impl Install {
-  pub const fn new(config: crate::config::Config) -> Self {
-    Self { config }
+impl<'b> Install<'b> {
+  pub const fn new(config: crate::config::Config, engine: templating::Engine<'b>) -> Self {
+    Self { config, engine }
   }
 
   fn install<'a>(
@@ -109,9 +110,8 @@ impl Install {
       let inner_cmd = installs.cmd.clone();
 
       let cmd = if let Some(shell_command) = self.config.shell_command.as_ref() {
-        HANDLEBARS
-          .get()
-          .unwrap()
+        self
+          .engine
           .render_template(shell_command, &hash_map! { "cmd": &inner_cmd })
           .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err))?
       } else {
@@ -153,12 +153,12 @@ impl Install {
 
 type InstallsDots = (Option<Installs>, Option<HashSet<String>>);
 
-impl Command for Install {
+impl Command for Install<'_> {
   type Args = (crate::cli::Globals, crate::cli::Install);
   type Result = Result<()>;
 
   fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
-    let dots = crate::dot::read_dots(&self.config.dotfiles, &["/**".to_owned()], &self.config)?
+    let dots = crate::dot::read_dots(&self.config.dotfiles, &["/**".to_owned()], &self.config, &self.engine)?
       .into_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))

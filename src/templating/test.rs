@@ -2,14 +2,14 @@ use figment::{util::map, value};
 use rstest::rstest;
 use speculoos::prelude::*;
 
-use super::{render, Parameters};
+use super::{Engine, Parameters};
 use crate::{
   cli::{Cli, Command, PathBuf},
   config::{Config, LinkType},
   helpers::os,
 };
 
-pub fn init_handlebars() {
+pub(crate) fn get_handlebars<'a>() -> Engine<'a> {
   let cli = Cli {
     dry_run: true,
     dotfiles: None,
@@ -17,7 +17,7 @@ pub fn init_handlebars() {
     command: Command::Clone { repo: "".to_owned() },
   };
 
-  crate::init_handlebars(&Config::default(), &cli).unwrap();
+  Engine::new(&Config::default(), &cli)
 }
 
 #[rstest]
@@ -46,30 +46,25 @@ fn templating(#[case] template: &str, #[case] expected: &str) {
     command: Command::Clone { repo: "".to_owned() },
   };
 
-  crate::init_handlebars(&config, &cli).unwrap();
-
-  assert_that!(render(template, &Parameters { config: &config, name: "name" }).unwrap()).is_equal_to(expected.to_owned());
+  assert_that!(Engine::new(&config, &cli).render(template, &Parameters { config: &config, name: "name" }).unwrap()).is_equal_to(expected.to_owned());
 }
 
 #[test]
 fn os_helpers() {
   let config = Config::default();
 
-  init_handlebars();
-
-  assert_that!(render(
-    "{{ #windows }}windows{{ /windows }}{{ #linux }}linux{{ /linux }}{{ #darwin }}darwin{{ /darwin }}",
-    &Parameters { config: &config, name: "" }
-  )
-  .unwrap())
+  assert_that!(get_handlebars()
+    .render(
+      "{{ #windows }}windows{{ /windows }}{{ #linux }}linux{{ /linux }}{{ #darwin }}darwin{{ /darwin }}",
+      &Parameters { config: &config, name: "" }
+    )
+    .unwrap())
   .is_equal_to(os::OS.to_string().to_ascii_lowercase());
 }
 
 #[test]
 fn os_else_helpers() {
   let config = Config::default();
-
-  init_handlebars();
 
   let mut expected = "".to_owned();
   if !os::OS.is_windows() {
@@ -81,11 +76,12 @@ fn os_else_helpers() {
   if !os::OS.is_darwin() {
     expected += "else_darwin";
   }
-  assert_that!(render(
-    "{{ #windows }}{{ else }}else_windows{{ /windows }}{{ #linux }}{{ else }}else_linux{{ /linux }}{{ #darwin }}{{ else }}else_darwin{{ /darwin }}",
-    &Parameters { config: &config, name: "" }
-  )
-  .unwrap())
+  assert_that!(get_handlebars()
+    .render(
+      "{{ #windows }}{{ else }}else_windows{{ /windows }}{{ #linux }}{{ else }}else_linux{{ /linux }}{{ #darwin }}{{ else }}else_darwin{{ /darwin }}",
+      &Parameters { config: &config, name: "" }
+    )
+    .unwrap())
   .is_equal_to(expected);
 }
 
@@ -100,7 +96,5 @@ fn eval_helper() {
     command: Command::Clone { repo: "".to_owned() },
   };
 
-  crate::init_handlebars(&config, &cli).unwrap();
-
-  assert_that!(render("{{ eval \"echo 'test'\" }}", &Parameters { config: &config, name: "" }).unwrap()).is_equal_to("test".to_owned());
+  assert_that!(Engine::new(&config, &cli).render("{{ eval \"echo 'test'\" }}", &Parameters { config: &config, name: "" }).unwrap()).is_equal_to("test".to_owned());
 }

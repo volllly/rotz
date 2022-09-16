@@ -3,6 +3,7 @@
 #![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::use_self)]
 #![allow(clippy::default_trait_access)]
+#![allow(clippy::redundant_pub_crate)]
 #![warn(clippy::filetype_is_file)]
 #![warn(clippy::string_to_string)]
 #![warn(clippy::unneeded_field_pattern)]
@@ -42,7 +43,6 @@ use cli::Cli;
 mod config;
 use config::{Config, MappedProfileProvider};
 use tap::Pipe;
-use templating::init_handlebars;
 use velcro::hash_map;
 
 mod commands;
@@ -149,12 +149,12 @@ fn main() -> Result<(), miette::Report> {
 
   let config = read_config(&cli)?;
 
-  init_handlebars(&config, &cli)?;
+  let engine = templating::Engine::new(&config, &cli);
 
   match cli.command.clone() {
-    cli::Command::Link { link } => commands::Link::new(config).execute((cli.bake(), link.bake())),
+    cli::Command::Link { link } => commands::Link::new(config, engine).execute((cli.bake(), link.bake())),
     cli::Command::Clone { repo } => commands::Clone::new(config).execute((cli, repo)),
-    cli::Command::Install { install } => commands::Install::new(config).execute((cli.bake(), install.bake())),
+    cli::Command::Install { install } => commands::Install::new(config, engine).execute((cli.bake(), install.bake())),
     cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
     cli::Command::Init { repo } => commands::Init::new(config).execute((cli, repo)),
   }

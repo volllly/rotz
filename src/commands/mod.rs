@@ -2,10 +2,10 @@ pub mod clone;
 pub use clone::Clone;
 
 pub mod install;
-pub use install::Install;
+pub(crate) use install::Install;
 
 pub mod link;
-pub use link::Link;
+pub(crate) use link::Link;
 
 pub mod sync;
 pub use sync::Sync;

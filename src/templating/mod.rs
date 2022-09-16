@@ -4,7 +4,7 @@ use directories::BaseDirs;
 use handlebars::{Context, Handlebars, Helper, HelperDef, HelperResult, Output, RenderContext, RenderError, Renderable, ScopedJson};
 use itertools::Itertools;
 use miette::Diagnostic;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 use serde::Serialize;
 use tap::{Conv, Pipe};
 use velcro::hash_map;
@@ -16,8 +16,6 @@ use crate::{
   USER_DIRS,
 };
 
-pub static HANDLEBARS: OnceCell<Handlebars> = OnceCell::new();
-
 pub static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -25,10 +23,6 @@ pub enum Error {
   #[error("Could not render templeate")]
   #[diagnostic(code(template::render))]
   RenderingTemplate(#[source] handlebars::RenderError),
-
-  #[error("Could not initialize handlebars")]
-  #[diagnostic(code(template::renderer::initialize))]
-  Initialize,
 }
 
 #[derive(Serialize)]
@@ -131,16 +125,47 @@ struct CompleteParameters<'a, T: Serialize> {
   pub dirs: &'static DirectoryPrameters,
 }
 
-pub fn render(template: &str, parameters: &impl Serialize) -> Result<String, Error> {
-  let complete = CompleteParameters {
-    parameters,
-    env: &ENV,
-    whoami: &WHOAMI_PRAMETERS,
-    os: &helpers::os::OS.to_string().to_ascii_lowercase(),
-    dirs: &DIRECTORY_PRAMETERS,
-  };
+pub(crate) struct Engine<'a>(Handlebars<'a>);
 
-  HANDLEBARS.get().unwrap().render_template(template, &complete).map_err(Error::RenderingTemplate)
+impl<'b> Engine<'b> {
+  pub fn new<'a>(config: &'a Config, cli: &'a Cli) -> Engine<'b> {
+    let mut hb = handlebars_misc_helpers::new_hbs::<'b>();
+    hb.set_strict_mode(false);
+
+    hb.register_helper("windows", WindowsHelper.conv::<Box<_>>());
+    hb.register_helper("linux", LinuxHelper.conv::<Box<_>>());
+    hb.register_helper("darwin", DarwinHelper.conv::<Box<_>>());
+
+    hb.register_helper(
+      "eval",
+      EvalHelper {
+        shell_command: config.shell_command.as_ref().cloned(),
+        dry_run: cli.dry_run,
+      }
+      .pipe(Box::new),
+    );
+
+    Self(hb)
+  }
+
+  pub fn render(&self, template: &str, parameters: &impl Serialize) -> Result<String, Error> {
+    let complete = CompleteParameters {
+      parameters,
+      env: &ENV,
+      whoami: &WHOAMI_PRAMETERS,
+      os: &helpers::os::OS.to_string().to_ascii_lowercase(),
+      dirs: &DIRECTORY_PRAMETERS,
+    };
+
+    self.render_template(template, &complete).map_err(Error::RenderingTemplate)
+  }
+
+  pub fn render_template<T>(&self, template_string: &str, data: &T) -> Result<String, RenderError>
+  where
+    T: Serialize,
+  {
+    self.0.render_template(template_string, data)
+  }
 }
 
 pub struct WindowsHelper;
@@ -199,26 +224,6 @@ impl HelperDef for EvalHelper {
       }
     }
   }
-}
-
-pub fn init_handlebars(config: &Config, cli: &Cli) -> Result<(), Error> {
-  let mut hb = handlebars_misc_helpers::new_hbs();
-  hb.set_strict_mode(false);
-
-  hb.register_helper("windows", WindowsHelper.conv::<Box<_>>());
-  hb.register_helper("linux", LinuxHelper.conv::<Box<_>>());
-  hb.register_helper("darwin", DarwinHelper.conv::<Box<_>>());
-
-  hb.register_helper(
-    "eval",
-    EvalHelper {
-      shell_command: config.shell_command.as_ref().cloned(),
-      dry_run: cli.dry_run,
-    }
-    .pipe(Box::new),
-  );
-
-  HANDLEBARS.set(hb).map_err(|_| Error::Initialize)
 }
 
 #[cfg(test)]

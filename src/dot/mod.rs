@@ -390,7 +390,7 @@ pub enum Error {
   MultipleErrors(#[from] helpers::MultipleErrors),
 }
 
-pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miette::Result<Vec<(String, Dot)>> {
+pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
   let defaults = get_defaults(dotfiles_path)?;
 
   let dots = helpers::glob_from_vec(dots, &format!("/dot.{FILE_EXTENSIONS_GLOB}"))?;
@@ -428,7 +428,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
   let dots = dotfiles.filter_map(|f| match f {
     Ok((name, Ok((text, format)))) => {
       let parameters = Parameters { config, name: &name };
-      let text = match templating::render(&text, &parameters) {
+      let text = match engine.render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
           return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
@@ -438,7 +438,7 @@ pub fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config) -> miet
       };
 
       let defaults = if let Some((defaults, format)) = defaults.as_ref() {
-        match templating::render(defaults, &parameters) {
+        match engine.render(defaults, &parameters) {
           Ok(rendered) => match repr::Dot::parse(&rendered, *format) {
             Ok(parsed) => Into::<Capabilities>::into(parsed).into(),
             Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).pipe(Err).into(),
