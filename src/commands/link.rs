@@ -7,9 +7,10 @@ use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Report, Result};
 use tap::Pipe;
 
+use super::Command;
 use crate::{
   config::{Config, LinkType},
-  USER_DIRS,
+  templating, USER_DIRS,
 };
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -24,22 +25,23 @@ enum Error {
   AlreadyExists(PathBuf),
 }
 
-pub struct Link {
+pub(crate) struct Link<'a> {
   config: Config,
+  engine: templating::Engine<'a>,
 }
 
-impl Link {
-  pub const fn new(config: crate::config::Config) -> Self {
-    Self { config }
+impl<'a> Link<'a> {
+  pub const fn new(config: crate::config::Config, engine: templating::Engine<'a>) -> Self {
+    Self { config, engine }
   }
 }
 
-impl super::Command for Link {
+impl<'a> Command for Link<'a> {
   type Args = (crate::cli::Globals, crate::cli::Link);
   type Result = Result<()>;
 
   fn execute(&self, (globals, link_command): Self::Args) -> Self::Result {
-    let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots, &self.config)?
+    let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots, &self.config, &self.engine)?
       .into_iter()
       .filter_map(|d| d.1.links.map(|l| (d.0, l)));
 

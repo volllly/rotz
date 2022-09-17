@@ -76,9 +76,9 @@ pub enum RunError {
   Write(#[from] io::Error),
 }
 
-pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<(), RunError> {
+pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<String, RunError> {
   if dry_run {
-    return ().pipe(Ok);
+    return "".to_owned().pipe(Ok);
   }
 
   let output = process::Command::new(cmd).args(args).stdin(process::Stdio::null()).output().map_err(RunError::Spawn)?;
@@ -96,7 +96,7 @@ pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run:
     RunError::Execute(output.status.code()).pipe(Err)?;
   };
 
-  ().pipe(Ok)
+  String::from_utf8_lossy(&output.stdout).to_string().pipe(Ok)
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
