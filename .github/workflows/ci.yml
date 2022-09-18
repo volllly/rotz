@@ -82,7 +82,56 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo test --all-features
+      - run: cargo test --all-features --target ${{ matrix.target }}
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - x86_64-pc-windows-gnu
+          - x86_64-pc-windows-msvc
+          - i686-unknown-linux-gnu
+          - i686-pc-windows-gnu
+          - i686-pc-windows-msvc
+          - aarch64-unknown-linux-gnu
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: cargo build --all-features --release --target ${{ matrix.target }} --target-dir ${{ runner.temp }}/${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        if: ${{ contains(matrix.target, 'windows') }}
+        with:
+          name: rotz-${{ matrix.target }}
+          path: ${{ runner.temp }}/${{ matrix.target }}/release/rotz.exe
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        if: ${{ !contains(matrix.target, 'windows') }}
+        with:
+          name: rotz-${{ matrix.target }}
+          path: ${{ runner.temp }}/${{ matrix.target }}/release/rotz
 
   release:
     name: Release
@@ -111,8 +160,14 @@ jobs:
 
       - run: cargo publish --dry-run --features all-formats
 
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
       - name: Create github Release
         uses: docker://antonyurchenko/git-release:v5
+        with:
+          args: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
