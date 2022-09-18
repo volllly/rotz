@@ -57,6 +57,18 @@ rayon = "1.5.3"
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"
 
+# [target.'cfg(cfg(target_arch = "i686")'.dependencies]
+
+[target.'cfg(target = "i686-unknown-linux-gnu")'.dependencies]
+handlebars_misc_helpers = { version = "0.12.1" }
+
+[target.'cfg(not(target = "i686-unknown-linux-gnu"))'.dependencies]
+handlebars_misc_helpers = { version = "0.12.1", default-features = false, features = [
+  "string",
+  "http_attohttpc",
+  "json",
+] }
+
 [dev-dependencies]
 fake = { version = "2.5.0", features = ["derive"] }
 rand = "0.8.5"
