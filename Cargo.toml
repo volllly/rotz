@@ -27,7 +27,7 @@ figment = { version = "0.10.7", default-features = false, features = ["env"] }
 directories = "4.0.1"
 once_cell = "1.15.0"
 derive_more = "0.99.17"
-serde = { version = "1.0.144", features = ["derive"] }
+serde = { version = "1.0.145", features = ["derive"] }
 crossterm = "0.25.0"
 itertools = "0.10.4"
 thiserror = "1.0.35"
