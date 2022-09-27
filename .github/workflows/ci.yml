@@ -86,22 +86,30 @@ jobs:
 
   build:
     name: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.target.runner }}
     # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - x86_64-pc-windows-gnu
-          - x86_64-pc-windows-msvc
+          - triple: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            filename: rotz
+          - triple: x86_64-apple-darwin
+            runner: macos-latest
+            filename: rotz
+          - triple: x86_64-pc-windows-gnu
+            runner: windows-latest
+            filename: rotz.exe
+          - triple: x86_64-pc-windows-msvc
+            runner: windows-latest
+            filename: rotz.exe
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          target: ${{ matrix.target }}
+          target: ${{ matrix.target.triple }}
 
       - uses: actions/cache@v3
         with:
@@ -111,23 +119,15 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo build --all-features --release --target ${{ matrix.target }} --target-dir ${{ runner.temp }}/${{ matrix.target }}
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        if: ${{ contains(matrix.target, 'windows') }}
-        with:
-          name: rotz-${{ matrix.target }}
-          path: ${{ runner.temp }}/${{ matrix.target }}/release/rotz.exe
+      - run: cargo build --all-features --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
-        if: ${{ !contains(matrix.target, 'windows') }}
         with:
-          name: rotz-${{ matrix.target }}
-          path: ${{ runner.temp }}/${{ matrix.target }}/release/rotz
+          name: rotz-${{ matrix.target.triple }}
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
 
   release:
     name: Release
