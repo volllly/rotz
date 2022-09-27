@@ -1,0 +1,11 @@
+global:
+  installs: i01
+
+windows:
+  installs: i02
+
+linux:
+  installs: i02
+
+darwin:
+  installs: i02
