@@ -1,0 +1,11 @@
+global:
+  installs: i01
+
+windows:
+  installs: false
+
+linux:
+  installs: false
+
+darwin:
+  installs: false

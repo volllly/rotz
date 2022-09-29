@@ -4,7 +4,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use clap::ArgEnum;
+use clap::ValueEnum;
 use crossterm::style::Stylize;
 use derive_more::{Display, IsVariant};
 #[cfg(test)]
@@ -17,7 +17,7 @@ use tap::{Pipe, TryConv};
 
 use crate::{helpers, FileFormat, USER_DIRS};
 
-#[derive(Debug, ArgEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
+#[derive(Debug, ValueEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum LinkType {
   /// Uses symbolic links for linking

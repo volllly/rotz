@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 authors = ["Paul Volavsek <paul.volavsek@gmail.com>"]
 license = "MIT"
@@ -19,7 +19,7 @@ toml = ["serde_toml", "figment/toml"]
 json = ["serde_json", "figment/json"]
 
 [dependencies]
-clap = { version = "3.2.22", features = ["derive"] }
+clap = { version = "4.0.2", features = ["derive", "color"] }
 serde_yaml = { version = "0.9.13", optional = true }
 serde_toml = { package = "toml", version = "0.5.9", optional = true }
 serde_json = { version = "1.0.85", optional = true }

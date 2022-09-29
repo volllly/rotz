@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2022-09-29
+
+### Fixed
+
+- Issue where rotz could not parse dots with mixed links section types ([#40](https://github.com/volllly/rotz/issues/40))
+
+### Changed
+
+- Updated cli parser to clap v4 which slightly changes help output
+
 ## [0.8.0] - 2022-09-16
 
 ### Added
@@ -21,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.0] - 2022-09-11
 
-### Changes
+### Changed
 
 - The repo level config file now has support for a `force` key for forced values which cannot be changed by the config file
 - Rotz can now automatically detect the filetype and parse the format if the feature (`yaml`, `toml` or `json`) is enabled
@@ -159,7 +169,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/volllly/rotz/releases/tag/v0.8.1
 [0.8.0]: https://github.com/volllly/rotz/releases/tag/v0.8.0
 [0.7.1]: https://github.com/volllly/rotz/releases/tag/v0.7.1
 [0.7.0]: https://github.com/volllly/rotz/releases/tag/v0.7.0

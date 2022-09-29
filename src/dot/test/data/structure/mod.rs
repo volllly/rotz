@@ -15,3 +15,7 @@ macro_rules! parse {
 mod s01;
 mod s02;
 mod s03;
+mod s04;
+mod s05;
+mod s06;
+mod s07;
