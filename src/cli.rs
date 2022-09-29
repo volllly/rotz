@@ -15,7 +15,7 @@ use tap::Pipe;
 
 use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
 
-#[derive(From, Debug, FromStr, Into)]
+#[derive(From, Debug, FromStr, Into, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub struct PathBuf(pub(crate) std::path::PathBuf);
 
@@ -84,7 +84,7 @@ pub struct LinkRaw {
   /// Force link creation if file already exists
   pub(crate) force: bool,
 
-  #[clap(long, short, arg_enum)]
+  #[clap(long, short)]
   #[baked(ignore)]
   /// Which link type to use for linking dotfiles
   link_type: Option<LinkType>,
