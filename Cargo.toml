@@ -34,7 +34,7 @@ thiserror = "1.0.37"
 miette = { version = "5.3.0", features = ["fancy"] }
 baker = "0.1.2"
 indexmap = "1.9.1"
-handlebars = "4.3.4"
+handlebars = "4.3.5"
 handlebars_misc_helpers = { version = "0.12.1" }
 shellwords = "1.1.0"
 path-absolutize = "3.0.13"
