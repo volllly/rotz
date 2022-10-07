@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Linked files are tracked and stored
+- When a previously linked file is not a link target anymore it will be removed ([#8](https://github.com/volllly/rotz/issues/8))
+
+### Changed
+
+- When previously linked file is linked again it will be automatically overwritten without the need for the `--force` cli flag
+
 ## [0.8.1] - 2022-09-29
 
 ### Fixed
