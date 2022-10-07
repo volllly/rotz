@@ -82,7 +82,7 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo test --all-features --target ${{ matrix.target.triple }}
+      - run: cargo test --all-features
 
   release:
     name: Release
