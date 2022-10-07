@@ -48,72 +48,29 @@ jobs:
 
       - run: cargo fmt --check
 
-      - run: cargo clippy -- -D warnings
+      - run: cargo clippy --all-features -- -D warnings
 
-  test-linux:
-    name: Test Suite Linux
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          target: x86_64-unknown-linux-gnu
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - run: cargo test --all-features
-
-  test-macos:
-    name: Test Suite Darwin
-    runs-on: macos-latest
-    needs: lint
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          target: x86_64-apple-darwin
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - run: cargo test --all-features
-
-  test-windows:
-    name: Test Suite Windows
-    runs-on: windows-latest
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.target.runner }}
     needs: lint
     strategy:
       matrix:
         target:
-          - x86_64-pc-windows-gnu
-          - x86_64-pc-windows-msvc
+          - triple: x86_64-pc-windows-gnu
+            runner: windows-latest
+          - triple: x86_64-pc-windows-msvc
+            runner: windows-latest
+          - triple: x86_64-apple-darwin
+            runner: macos-latest
+          - triple: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          target: ${{ matrix.target }}
+          target: ${{ matrix.target.triple }}
 
       - uses: actions/cache@v3
         with:
@@ -123,9 +80,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo test --all-features
+      - run: cargo test --all-features --target ${{ matrix.target.triple }}
 
   release:
     name: Release
