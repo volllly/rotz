@@ -143,7 +143,6 @@ impl AlreadyExistsError {
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub enum Error {
-  #[cfg(feature = "yaml")]
   #[error("Could not serialize config")]
   #[diagnostic(code(config::serialize))]
   SerializingConfig(#[source] helpers::ParseError),

@@ -34,12 +34,15 @@ where
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
-pub fn _join_err(result: Vec<miette::Error>) -> Result<(), MultipleErrors> {
+pub fn join_err<E>(result: Vec<E>) -> Result<(), MultipleErrors>
+where
+  E: miette::Diagnostic + Send + Sync + 'static,
+{
   if result.is_empty() {
     return ().pipe(Ok);
   };
 
-  MultipleErrors(result.into_iter().collect_vec()).pipe(Err)
+  MultipleErrors(result.into_iter().map(Into::into).collect_vec()).pipe(Err)
 }
 
 pub mod os {
