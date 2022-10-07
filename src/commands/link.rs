@@ -77,17 +77,23 @@ impl<'a> Command for Link<'a> {
         let mut printed = false;
         for (to, from) in links {
           if !current_links.contains(to) {
-            if !printed {
-              println!("{}Removing orphans for {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
-              printed = true;
-            }
-            println!("  x {}", to.to_string_lossy().green());
-
+            let mut removed = true;
             if !globals.dry_run {
-              fs::remove_file(&to)
-                .map_err(|err| Error::RemovingOrphan(from.clone(), to.clone(), err))
-                .map_err(|err| errors.push(err))
-                .ok();
+              if let Err(err) = fs::remove_file(&to) {
+                removed = false;
+
+                if err.kind() != std::io::ErrorKind::NotFound {
+                  errors.push(Error::RemovingOrphan(from.clone(), to.clone(), err));
+                }
+              }
+            }
+
+            if removed {
+              if !printed {
+                println!("{}Removing orphans for {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
+                printed = true;
+              }
+              println!("  x {}", to.to_string_lossy().green());
             }
           }
         }
