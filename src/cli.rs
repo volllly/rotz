@@ -81,7 +81,7 @@ pub struct LinkRaw {
   pub(crate) dots: Dots,
 
   #[clap(long, short)]
-  /// Force link creation if file already exists
+  /// Force link creation if file already exists and was not created by rotz
   pub(crate) force: bool,
 
   #[clap(long, short)]

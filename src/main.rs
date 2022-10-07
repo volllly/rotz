@@ -42,11 +42,13 @@ use cli::Cli;
 
 mod config;
 use config::{Config, MappedProfileProvider};
+use state::State;
 use tap::Pipe;
 use velcro::hash_map;
 
 mod commands;
 mod dot;
+mod state;
 mod templating;
 
 #[cfg(not(any(feature = "toml", feature = "yaml", feature = "json")))]
@@ -152,7 +154,10 @@ fn main() -> Result<(), miette::Report> {
   let engine = templating::Engine::new(&config, &cli);
 
   match cli.command.clone() {
-    cli::Command::Link { link } => commands::Link::new(config, engine).execute((cli.bake(), link.bake())),
+    cli::Command::Link { link } => commands::Link::new(config, engine)
+      .execute((cli.bake(), link.bake(), State::read()?))
+      .map(|state| state.write())?
+      .map_err(Into::into),
     cli::Command::Clone { repo } => commands::Clone::new(config).execute((cli, repo)),
     cli::Command::Install { install } => commands::Install::new(config, engine).execute((cli.bake(), install.bake())),
     cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
