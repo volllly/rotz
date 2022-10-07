@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2022-10-07
+
 ### Added
 
 - Linked files are tracked and stored
@@ -178,7 +180,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/volllly/rotz/releases/tag/v0.9.0
 [0.8.1]: https://github.com/volllly/rotz/releases/tag/v0.8.1
 [0.8.0]: https://github.com/volllly/rotz/releases/tag/v0.8.0
 [0.7.1]: https://github.com/volllly/rotz/releases/tag/v0.7.1
