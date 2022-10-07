@@ -1,5 +1,5 @@
 use std::{
-  collections::HashSet,
+  collections::{HashMap, HashSet},
   fs,
   path::{Path, PathBuf},
 };
@@ -8,6 +8,7 @@ use crossterm::style::{Attribute, Stylize};
 use itertools::Itertools;
 use miette::{Diagnostic, Report, Result};
 use tap::Pipe;
+use velcro::hash_map;
 
 use super::Command;
 use crate::{
@@ -24,9 +25,9 @@ enum Error {
   #[cfg_attr(not(windows), diagnostic(code(link::linking),))]
   Symlink(PathBuf, PathBuf, #[source] std::io::Error),
 
-  #[error("Could not remove orphaned link \"{1}\"")]
+  #[error("Could not remove orphaned link from \"{0}\" to \"{1}\"")]
   #[diagnostic(code(link::orphan::remove))]
-  RemovingOrphan(PathBuf, #[source] std::io::Error),
+  RemovingOrphan(PathBuf, PathBuf, #[source] std::io::Error),
 
   #[error("The file \"{0}\" already exists")]
   #[diagnostic(code(link::already_exists), help("Try using the --force flag"))]
@@ -55,22 +56,56 @@ impl<'a> Command for Link<'a> {
       .collect_vec();
 
     {
-      let current_links = links.iter().flat_map(|l| l.1.iter().map(|h| h.1.iter())).flatten().collect::<HashSet<_>>();
+      let current_links = links
+        .iter()
+        .flat_map(|l| l.1.iter().map(|h| h.1.iter()))
+        .flatten()
+        .map(|l| {
+          if l.starts_with("~/") {
+            let mut iter = l.iter();
+            iter.next();
+            USER_DIRS.home_dir().iter().chain(iter).collect()
+          } else {
+            l.clone()
+          }
+        })
+        .collect::<HashSet<_>>();
+
       let mut errors = Vec::new();
 
-      for link in &linked {
-        if !current_links.contains(&link) {
-          fs::remove_file(&link).map_err(|err| Error::RemovingOrphan(link.clone(), err)).map_err(|err| errors.push(err)).ok();
+      for (name, links) in &linked {
+        let mut printed = false;
+        for (to, from) in links {
+          if !current_links.contains(to) {
+            if !printed {
+              println!("{}Removing orphans for {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
+              printed = true;
+            }
+            println!("  x {}", to.to_string_lossy().green());
+
+            if !globals.dry_run {
+              fs::remove_file(&to)
+                .map_err(|err| Error::RemovingOrphan(from.clone(), to.clone(), err))
+                .map_err(|err| errors.push(err))
+                .ok();
+            }
+          }
+        }
+
+        if printed {
+          println!();
         }
       }
 
       helpers::join_err(errors)?;
     }
 
-    let mut new_linked = HashSet::new();
+    let mut new_linked = hash_map!();
 
     for (name, link) in links {
       println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
+
+      let mut new_linked_inner = hash_map!();
 
       let base_path = self.config.dotfiles.join(&name[1..]);
       for (from, tos) in link {
@@ -84,14 +119,19 @@ impl<'a> Command for Link<'a> {
           }
 
           if !globals.dry_run {
-            if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force, &linked) {
+            if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force, linked.get(&name)) {
               eprintln!("\n Error: {:?}", Report::new(err));
             } else {
-              new_linked.insert(to.clone());
+              new_linked_inner.insert(to.clone(), from.clone());
             }
           }
         }
       }
+
+      if !new_linked_inner.is_empty() {
+        new_linked.insert(name, new_linked_inner);
+      }
+
       println!();
     }
 
@@ -99,14 +139,14 @@ impl<'a> Command for Link<'a> {
   }
 }
 
-fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked: &HashSet<PathBuf>) -> std::result::Result<(), Error> {
+fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked: Option<&HashMap<PathBuf, PathBuf>>) -> std::result::Result<(), Error> {
   let create: fn(&Path, &Path) -> std::result::Result<(), std::io::Error> = if link_type.is_symbolic() { symlink } else { hardlink };
 
   match create(from, to) {
     Ok(ok) => ok.pipe(Ok),
     Err(err) => match err.kind() {
       std::io::ErrorKind::AlreadyExists => {
-        if force || linked.contains(to) {
+        if force || linked.map_or(false, |l| l.contains_key(to)) {
           if to.is_dir() { fs::remove_dir_all(&to) } else { fs::remove_file(&to) }.map_err(|e| Error::Symlink(from.to_path_buf(), to.to_path_buf(), e))?;
           create(from, to)
         } else {

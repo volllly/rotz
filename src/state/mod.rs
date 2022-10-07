@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use miette::Diagnostic;
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,7 @@ pub(crate) enum Error {
 
 #[derive(Serialize, Deserialize, Default)]
 pub(crate) struct State {
-  pub linked: HashSet<PathBuf>,
+  pub linked: HashMap<String, HashMap<PathBuf, PathBuf>>,
 }
 
 impl State {
@@ -44,8 +44,9 @@ impl State {
 
   pub fn write(&self) -> Result<(), Error> {
     let state_file =
-      helpers::get_file_with_format(PROJECT_DIRS.data_local_dir(), "state").unwrap_or_else(|| (PROJECT_DIRS.data_local_dir().join(format!("/state.{}", FILE_EXTENSIONS[0].0)), FILE_EXTENSIONS[0].1));
+      helpers::get_file_with_format(PROJECT_DIRS.data_local_dir(), "state").unwrap_or_else(|| (PROJECT_DIRS.data_local_dir().join(format!("state.{}", FILE_EXTENSIONS[0].0)), FILE_EXTENSIONS[0].1));
 
+    fs::create_dir_all(PROJECT_DIRS.data_local_dir()).map_err(Error::Writing)?;
     fs::write(state_file.0, serialize_state(self, state_file.1).map_err(Error::Serializing)?).map_err(Error::Writing)
   }
 }
