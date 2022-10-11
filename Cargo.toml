@@ -19,7 +19,7 @@ toml = ["serde_toml", "figment/toml"]
 json = ["serde_json", "figment/json"]
 
 [dependencies]
-clap = { version = "4.0.11", features = ["derive", "color"] }
+clap = { version = "4.0.12", features = ["derive", "color"] }
 serde_yaml = { version = "0.9.13", optional = true }
 serde_toml = { package = "toml", version = "0.5.9", optional = true }
 serde_json = { version = "1.0.86", optional = true }
