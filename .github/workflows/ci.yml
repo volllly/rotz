@@ -154,7 +154,7 @@ jobs:
       - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
         if: matrix.target.compile == 'cross'
 
-      - run: ls ${{ runner.temp }}/${{ matrix.target.triple }}/ -Depth 2
+      - run: Get-ChildItem ${{ runner.temp }}/${{ matrix.target.triple }}/ -Depth 2
         shell: pwsh
 
       - run: mv ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }} ${{ runner.temp }}/${{ matrix.target.triple }}/publish/${{ matrix.target.filename }}
