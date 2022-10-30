@@ -134,16 +134,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target.triple }}
-        if: "!${{ matrix.target.cross }}"
+        if: "!matrix.target.cross"
 
       - run: cargo install -f cross
-        if: ${{ matrix.target.cross }}
+        if: matrix.target.cross
 
       - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
-        if: "!${{ matrix.target.cross }}"
+        if: "!matrix.target.cross"
 
       - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
-        if: ${{ matrix.target.cross }}
+        if: matrix.target.cross
 
       - uses: actions/upload-artifact@v3
         with:
