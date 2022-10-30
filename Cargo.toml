@@ -67,26 +67,8 @@ rand = "0.8.5"
 rstest = "0.15.0"
 speculoos = "0.10.0"
 
-[package.metadata.cross.target.i686-unknown-linux-gnu]
+[package.metadata.cross.build]
 pre-build = [
   "dpkg --add-architecture $CROSS_DEB_ARCH",
-  "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
-]
-
-[package.metadata.cross.target.x86_64-unknown-linux-gnu]
-pre-build = [
-  "dpkg --add-architecture $CROSS_DEB_ARCH",
-  "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
-]
-
-[package.metadata.cross.target.x86_64-unknown-linux-musl]
-pre-build = [
-  "dpkg --add-architecture $CROSS_DEB_ARCH",
-  "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
-]
-
-[package.metadata.cross.target.i686-unknown-linux-musl]
-pre-build = [
-  "dpkg --add-architecture $CROSS_DEB_ARCH",
-  "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
+  "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
 ]
