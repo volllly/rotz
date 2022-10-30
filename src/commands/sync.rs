@@ -3,6 +3,8 @@ use std::ffi::OsStr;
 use crossterm::style::Attribute;
 use miette::{Diagnostic, Result};
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use walkdir::WalkDir;
 use wax::Pattern;
 
@@ -19,6 +21,7 @@ enum Error {
   CommandExecute(String, #[source] helpers::RunError),
 }
 
+#[derive(Debug)]
 pub struct Sync {
   config: Config,
 }
@@ -34,6 +37,7 @@ impl Command for Sync {
 
   type Result = Result<()>;
 
+  #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (globals, sync): Self::Args) -> Self::Result {
     if !sync.no_push {
       println!("{}Adding files{}\n", Attribute::Bold, Attribute::Reset);

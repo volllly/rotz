@@ -109,11 +109,11 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo publish --dry-run
+      - run: cargo publish --dry-run --features all-formats
 
       - name: Create github Release
         uses: docker://antonyurchenko/git-release:v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: cargo publish
+      - run: cargo publish --features all-formats

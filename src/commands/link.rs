@@ -1,5 +1,6 @@
 use std::{
   collections::{HashMap, HashSet},
+  fmt::Debug,
   fs,
   path::{Path, PathBuf},
 };
@@ -8,6 +9,8 @@ use crossterm::style::{Attribute, Stylize};
 use itertools::Itertools;
 use miette::{Diagnostic, Report, Result};
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use velcro::hash_map;
 
 use super::Command;
@@ -39,6 +42,12 @@ pub(crate) struct Link<'a> {
   engine: templating::Engine<'a>,
 }
 
+impl Debug for Link<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Link").field("config", &self.config).finish()
+  }
+}
+
 impl<'a> Link<'a> {
   pub const fn new(config: crate::config::Config, engine: templating::Engine<'a>) -> Self {
     Self { config, engine }
@@ -49,6 +58,7 @@ impl<'a> Command for Link<'a> {
   type Args = (crate::cli::Globals, crate::cli::Link, State);
   type Result = Result<State>;
 
+  #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (globals, link_command, State { linked }): Self::Args) -> Self::Result {
     let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots, &self.config, &self.engine)?
       .into_iter()
@@ -145,6 +155,7 @@ impl<'a> Command for Link<'a> {
   }
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked: Option<&HashMap<PathBuf, PathBuf>>) -> std::result::Result<(), Error> {
   let create: fn(&Path, &Path) -> std::result::Result<(), std::io::Error> = if link_type.is_symbolic() { symlink } else { hardlink };
 
@@ -166,6 +177,7 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked
 }
 
 #[cfg(windows)]
+#[cfg_attr(feature = "profiling", instrument)]
 fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   use std::os::windows::fs;
 
@@ -182,6 +194,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(unix)]
+#[cfg_attr(feature = "profiling", instrument)]
 fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   use std::os::unix::fs;
   if let Some(parent) = to.parent() {
@@ -192,6 +205,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(windows)]
+#[cfg_attr(feature = "profiling", instrument)]
 fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
@@ -206,6 +220,7 @@ fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(unix)]
+#[cfg_attr(feature = "profiling", instrument)]
 fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;

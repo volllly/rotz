@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  fmt::Debug,
   fs,
   path::{Path, PathBuf},
 };
@@ -14,6 +15,8 @@ use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
 use tap::{Pipe, TryConv};
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 
 use crate::{helpers, FileFormat, USER_DIRS};
 
@@ -92,6 +95,7 @@ impl Provider for Config {
   }
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn deserialize_config(config: &str, format: FileFormat) -> Result<Config, helpers::ParseError> {
   Ok(match format {
     #[cfg(feature = "yaml")]
@@ -103,7 +107,8 @@ fn deserialize_config(config: &str, format: FileFormat) -> Result<Config, helper
   })
 }
 
-fn serialize_config(config: &impl Serialize, format: FileFormat) -> Result<String, helpers::ParseError> {
+#[cfg_attr(feature = "profiling", instrument)]
+fn serialize_config(config: &(impl Serialize + Debug), format: FileFormat) -> Result<String, helpers::ParseError> {
   Ok(match format {
     #[cfg(feature = "yaml")]
     FileFormat::Yaml => serde_yaml::to_string(config)?,
@@ -124,6 +129,7 @@ pub struct AlreadyExistsError {
 }
 
 impl AlreadyExistsError {
+  #[cfg_attr(feature = "profiling", instrument)]
   pub fn new(name: &str, content: &str) -> Self {
     let pat = format!("{name}: ");
     let span: SourceSpan = if content.starts_with(&pat) {
@@ -168,6 +174,7 @@ pub enum Error {
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
+#[cfg_attr(feature = "profiling", instrument)]
 pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
   let format = config_file.try_conv::<FileFormat>()?;
 

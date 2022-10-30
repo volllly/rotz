@@ -1,8 +1,10 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fmt::Debug, fs, path::PathBuf};
 
 use miette::Diagnostic;
 use serde::{Deserialize, Serialize};
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 
 use crate::{helpers, FileFormat, FILE_EXTENSIONS, PROJECT_DIRS};
 
@@ -25,12 +27,13 @@ pub(crate) enum Error {
   Deserializing(#[source] helpers::ParseError),
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub(crate) struct State {
   pub linked: HashMap<String, HashMap<PathBuf, PathBuf>>,
 }
 
 impl State {
+  #[cfg_attr(feature = "profiling", instrument)]
   pub fn read() -> Result<State, Error> {
     let state_file = helpers::get_file_with_format(PROJECT_DIRS.data_local_dir(), "state");
 
@@ -42,6 +45,7 @@ impl State {
     .pipe(Ok)
   }
 
+  #[cfg_attr(feature = "profiling", instrument)]
   pub fn write(&self) -> Result<(), Error> {
     let state_file =
       helpers::get_file_with_format(PROJECT_DIRS.data_local_dir(), "state").unwrap_or_else(|| (PROJECT_DIRS.data_local_dir().join(format!("state.{}", FILE_EXTENSIONS[0].0)), FILE_EXTENSIONS[0].1));
@@ -51,6 +55,7 @@ impl State {
   }
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn deserialize_state(state: &str, format: FileFormat) -> Result<State, helpers::ParseError> {
   Ok(match format {
     #[cfg(feature = "yaml")]
@@ -62,7 +67,8 @@ fn deserialize_state(state: &str, format: FileFormat) -> Result<State, helpers::
   })
 }
 
-fn serialize_state(state: &impl Serialize, format: FileFormat) -> Result<String, helpers::ParseError> {
+#[cfg_attr(feature = "profiling", instrument)]
+fn serialize_state(state: &(impl Serialize + Debug), format: FileFormat) -> Result<String, helpers::ParseError> {
   Ok(match format {
     #[cfg(feature = "yaml")]
     FileFormat::Yaml => serde_yaml::to_string(state)?,

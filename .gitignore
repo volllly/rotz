@@ -12,3 +12,5 @@
 /target
 
 .vscode
+
+trace*.json

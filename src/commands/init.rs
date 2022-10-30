@@ -1,8 +1,10 @@
-use std::{ffi::OsStr, path::PathBuf};
+use std::{ffi::OsStr, fmt::Debug, path::PathBuf};
 
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Result};
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 
 use super::Command;
 use crate::{
@@ -17,6 +19,7 @@ enum Error {
   CreatingDir(PathBuf, #[source] std::io::Error),
 }
 
+#[derive(Debug)]
 pub struct Init {
   config: Config,
 }
@@ -32,6 +35,7 @@ impl Command for Init {
 
   type Result = Result<()>;
 
+  #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (cli, repo): Self::Args) -> Self::Result {
     if !cli.dry_run {
       config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;

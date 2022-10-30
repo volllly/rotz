@@ -44,6 +44,8 @@ mod config;
 use config::{Config, MappedProfileProvider};
 use state::State;
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use velcro::hash_map;
 
 mod commands;
@@ -141,7 +143,28 @@ impl TryFrom<&Path> for FileFormat {
   }
 }
 
+#[cfg(feature = "profiling")]
 fn main() -> Result<(), miette::Report> {
+  use tracing_subscriber::prelude::*;
+  use tracing_tracy::TracyLayer;
+
+  let tracy_layer = TracyLayer::new();
+  tracing_subscriber::registry().with(tracy_layer).init();
+
+  let result = run();
+
+  std::thread::sleep(std::time::Duration::from_secs(2));
+
+  result
+}
+
+#[cfg(not(feature = "profiling"))]
+fn main() -> Result<(), miette::Report> {
+  run()
+}
+
+#[cfg_attr(feature = "profiling", instrument)]
+fn run() -> Result<(), miette::Report> {
   let cli = Cli::parse();
 
   if !cli.config.0.exists() {

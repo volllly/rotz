@@ -12,6 +12,8 @@ use figment::{
 };
 use itertools::Itertools;
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 
 use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
 
@@ -28,7 +30,7 @@ impl Display for PathBuf {
 #[derive(Parser, Debug, Bake)]
 #[clap(version, about)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
-#[baked(name = "Globals")]
+#[baked(name = "Globals", derive(Debug))]
 pub struct Cli {
   #[clap(long, short)]
   #[baked(ignore)]
@@ -65,6 +67,7 @@ pub struct Dots {
 }
 
 impl Dots {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn add_root(&self) -> Self {
     Self {
       dots: self.dots.iter().map(|d| if d.starts_with('/') { d.to_string() } else { format!("/{d}") }).collect_vec(),
@@ -74,7 +77,7 @@ impl Dots {
 
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
-#[baked(name = "Link")]
+#[baked(name = "Link", derive(Debug))]
 pub struct LinkRaw {
   #[clap(flatten)]
   #[baked(type = "Vec<String>", map_fn(bake = "|l| l.dots.add_root().dots"))]
@@ -92,7 +95,7 @@ pub struct LinkRaw {
 
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
-#[baked(name = "Install")]
+#[baked(name = "Install", derive(Debug))]
 #[allow(clippy::struct_excessive_bools)]
 pub struct InstallRaw {
   #[clap(flatten)]
@@ -118,7 +121,7 @@ pub struct InstallRaw {
 
 #[derive(Debug, Args, Bake, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
-#[baked(name = "Sync")]
+#[baked(name = "Sync", derive(Debug))]
 pub struct SyncRaw {
   #[clap(flatten)]
   #[baked(type = "Vec<String>", map_fn(bake = "|l| l.dots.add_root().dots"))]
@@ -172,6 +175,7 @@ impl Provider for Cli {
     Metadata::named("Cli")
   }
 
+  #[cfg_attr(feature = "profiling", instrument)]
   fn data(&self) -> Result<Map<Profile, Dict>, Error> {
     let mut dict = Dict::new();
 

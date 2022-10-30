@@ -8,7 +8,10 @@ use crossterm::style::Stylize;
 use itertools::Itertools;
 use miette::{Diagnostic, NamedSource, Report, SourceSpan};
 use path_slash::PathBufExt;
+use rayon::prelude::*;
 use tap::{Pipe, TryConv};
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use walkdir::WalkDir;
 use wax::Pattern;
 
@@ -44,6 +47,7 @@ pub struct Dot {
   pub(crate) depends: Option<HashSet<String>>,
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&CapabilitiesCanonical>) -> Result<Dot, Vec<helpers::ParseError>> {
   let repr::DotCanonical {
     global,
@@ -126,6 +130,7 @@ pub enum Error {
   MultipleErrors(#[from] helpers::MultipleErrors),
 }
 
+#[cfg_attr(feature = "profiling", instrument(skip(engine)))]
 pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
   let defaults = get_defaults(dotfiles_path)?;
 
@@ -133,36 +138,30 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
 
   let paths = WalkDir::new(&dotfiles_path)
     .into_iter()
-    .filter_ok(|e| !e.file_type().is_dir())
+    .par_bridge()
+    .filter(|e| if let Ok(e) = e { !e.file_type().is_dir() } else { true })
     .map(|d| -> Result<(std::string::String, std::path::PathBuf), Error> {
       let d = d.map_err(Error::WalkingDotfiles)?;
       let path = d.path().strip_prefix(dotfiles_path).map(Path::to_path_buf).map_err(Error::PathStrip)?;
       let absolutized = helpers::absolutize_virtually(&path).map_err(|e| Error::ParseName(path.to_string_lossy().to_string(), e))?;
       Ok((absolutized, path))
     })
-    .filter_ok(|e| dots.is_match(e.0.as_str()))
-    .map_ok(|e| {
-      let format = e.1.as_path().try_conv::<FileFormat>().unwrap();
-      (e.1, format)
+    .filter(|e| if let Ok(e) = e { dots.is_match(e.0.as_str()) } else { true })
+    .map(|e| match e {
+      Ok(e) => {
+        let format = e.1.as_path().try_conv::<FileFormat>().unwrap();
+        (e.1, format).pipe(Ok)
+      }
+      Err(err) => err.pipe(Err),
     });
 
-  let dotfiles = crate::helpers::join_err_result(paths.collect())?
-    .into_iter()
-    .map(|p| {
-      let name = p.0.parent().unwrap().to_path_buf().to_slash_lossy().to_string();
-      Ok::<(String, (PathBuf, FileFormat)), Error>((name, p))
-    })
-    .map_ok(|p| {
-      (
-        p.0,
-        fs::read_to_string(dotfiles_path.join(&p.1 .0))
-          .map(|d| (d, p.1 .1))
-          .map_err(|e| Error::Io(dotfiles_path.join(p.1 .0), e)),
-      )
-    });
+  let dotfiles = crate::helpers::join_err_result(paths.collect())?.into_par_iter().map(|p| {
+    let name = p.0.parent().unwrap().to_path_buf().to_slash_lossy().to_string();
+    (name, fs::read_to_string(dotfiles_path.join(&p.0)).map(|d| (d, p.1)).map_err(|e| Error::Io(dotfiles_path.join(p.0), e)))
+  });
 
   let dots = dotfiles.filter_map(|f| match f {
-    Ok((name, Ok((text, format)))) => {
+    (name, Ok((text, format))) => {
       let parameters = Parameters { config, name: &name };
       let text = match engine.render(&text, &parameters) {
         Ok(text) => text,
@@ -196,11 +195,11 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
           .into(),
       }
     }
-    Ok((_, Err(Error::Io(file, err)))) => match err.kind() {
+    (_, Err(Error::Io(file, err))) => match err.kind() {
       std::io::ErrorKind::NotFound => None,
       _ => Error::Io(file, err).pipe(Err).into(),
     },
-    Ok((_, Err(err))) | Err(err) => err.pipe(Err).into(),
+    (_, Err(err)) => err.pipe(Err).into(),
   });
 
   let dots = canonicalize_dots(crate::helpers::join_err_result(dots.collect())?)?;
@@ -213,6 +212,7 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
   dots.pipe(Ok)
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Error> {
   let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
   if let Some(defaults) = &defaults {
@@ -239,6 +239,7 @@ fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Er
   .pipe(Ok)
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, helpers::MultipleErrors> {
   let dots = dots.into_iter().map(|mut dot| {
     let name = helpers::absolutize_virtually(Path::new(&dot.0)).map_err(|e| Error::ParseName(dot.0.clone(), e))?;

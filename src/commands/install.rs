@@ -1,9 +1,15 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  fmt::Debug,
+};
 
 use crossterm::style::{Attribute, Stylize};
 use indexmap::IndexSet;
 use miette::{Diagnostic, Report, Result};
+use rayon::prelude::*;
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use velcro::hash_map;
 use wax::{Glob, Pattern};
 
@@ -50,11 +56,18 @@ pub(crate) struct Install<'a> {
   engine: templating::Engine<'a>,
 }
 
+impl Debug for Install<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Link").field("config", &self.config).finish()
+  }
+}
+
 impl<'b> Install<'b> {
   pub const fn new(config: crate::config::Config, engine: templating::Engine<'b>) -> Self {
     Self { config, engine }
   }
 
+  #[cfg_attr(feature = "profiling", instrument)]
   fn install<'a>(
     &self,
     dots: &'a HashMap<String, InstallsDots>,
@@ -157,9 +170,10 @@ impl Command for Install<'_> {
   type Args = (crate::cli::Globals, crate::cli::Install);
   type Result = Result<()>;
 
+  #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
     let dots = crate::dot::read_dots(&self.config.dotfiles, &["/**".to_owned()], &self.config, &self.engine)?
-      .into_iter()
+      .into_par_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))
       .collect::<HashMap<String, InstallsDots>>();

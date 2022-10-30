@@ -8,6 +8,8 @@ use derive_more::IsVariant;
 use fake::{Dummy, Fake};
 use serde::Deserialize;
 use tap::{Conv, Pipe};
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use velcro::hash_set;
 
 use crate::{
@@ -57,6 +59,7 @@ pub struct DotCanonical {
 }
 
 impl From<DotComplex> for DotCanonical {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn from(value: DotComplex) -> Self {
     Self {
       global: value.global.map(Into::into),
@@ -89,6 +92,7 @@ pub struct CapabilitiesCanonical {
 }
 
 impl From<CapabilitiesComplex> for CapabilitiesCanonical {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn from(value: CapabilitiesComplex) -> Self {
     Self {
       links: value.links.map(|links| {
@@ -188,6 +192,7 @@ fn parse_inner_json<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, help
   serde_json::from_str::<T>(value)?.pipe(Ok)
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str, format: FileFormat) -> Result<T, helpers::ParseError> {
   match format {
     #[cfg(feature = "yaml")]
@@ -200,6 +205,7 @@ fn parse_inner<T: for<'de> Deserialize<'de> + Default>(value: &str, format: File
 }
 
 impl DotComplex {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn parse(value: &str, format: FileFormat) -> Result<Self, Vec<helpers::ParseError>> {
     match parse_inner::<Self>(value, format) {
       Ok(parsed) => parsed.pipe(Ok),
@@ -213,12 +219,14 @@ impl DotComplex {
 }
 
 impl DotCanonical {
+  #[cfg_attr(feature = "profiling", instrument)]
   pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, Vec<helpers::ParseError>> {
     DotComplex::parse(value, format).map(Into::into)
   }
 }
 
 impl From<DotCanonical> for CapabilitiesCanonical {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn from(
     DotCanonical {
       global,
@@ -255,6 +263,7 @@ pub trait Merge<T> {
 }
 
 impl Merge<Option<CapabilitiesCanonical>> for Option<CapabilitiesCanonical> {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn merge(self, merge: Option<CapabilitiesCanonical>) -> Self {
     if let Some(s) = self {
       if let Some(merge) = merge { s.merge(merge) } else { s }.into()
@@ -265,6 +274,7 @@ impl Merge<Option<CapabilitiesCanonical>> for Option<CapabilitiesCanonical> {
 }
 
 impl Merge<Self> for CapabilitiesCanonical {
+  #[cfg_attr(feature = "profiling", instrument)]
   fn merge(mut self, Self { mut links, installs, depends }: Self) -> Self {
     if let Some(self_links) = &mut self.links {
       if let Some(merge_links) = &mut links {

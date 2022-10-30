@@ -13,6 +13,8 @@ use path_slash::PathExt;
 #[cfg(test)]
 use speculoos::assert_that;
 use tap::Pipe;
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use wax::{Any, BuildError, Glob};
 
 use crate::{FileFormat, FILE_EXTENSIONS};
@@ -21,6 +23,7 @@ use crate::{FileFormat, FILE_EXTENSIONS};
 #[error("Encountered multiple errors")]
 pub struct MultipleErrors(#[related] Vec<miette::Error>);
 
+#[cfg_attr(feature = "profiling", instrument)]
 pub fn join_err_result<T, E>(result: Vec<Result<T, E>>) -> Result<Vec<T>, MultipleErrors>
 where
   T: Debug,
@@ -34,6 +37,7 @@ where
 }
 
 #[cfg_attr(all(nightly, coverage), no_coverage)]
+#[cfg_attr(feature = "profiling", instrument)]
 pub fn join_err<E>(result: Vec<E>) -> Result<(), MultipleErrors>
 where
   E: miette::Diagnostic + Send + Sync + 'static,
@@ -79,7 +83,8 @@ pub enum RunError {
   Write(#[from] io::Error),
 }
 
-pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr>], silent: bool, dry_run: bool) -> Result<String, RunError> {
+#[cfg_attr(feature = "profiling", instrument)]
+pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr> + Debug], silent: bool, dry_run: bool) -> Result<String, RunError> {
   if dry_run {
     return "".to_owned().pipe(Ok);
   }
@@ -109,6 +114,7 @@ pub enum GlobError {
   Build(#[from] wax::BuildError<'static>),
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'static>> {
   from
     .iter()
@@ -120,7 +126,8 @@ pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'stat
 }
 
 #[allow(clippy::redundant_pub_crate)]
-pub(crate) fn get_file_with_format(path: impl AsRef<Path>, base_name: impl AsRef<Path>) -> Option<(PathBuf, FileFormat)> {
+#[cfg_attr(feature = "profiling", instrument)]
+pub(crate) fn get_file_with_format(path: impl AsRef<Path> + Debug, base_name: impl AsRef<Path> + Debug) -> Option<(PathBuf, FileFormat)> {
   FILE_EXTENSIONS.iter().map(|e| (path.as_ref().join(base_name.as_ref().with_extension(e.0)), e.1)).find(|e| e.0.exists())
 }
 
@@ -155,6 +162,7 @@ impl<'s, O: 's, N: 's> Select<'s, O, N> for speculoos::Spec<'s, O> {
   }
 }
 
+#[cfg_attr(feature = "profiling", instrument)]
 pub fn absolutize_virtually(path: &Path) -> Result<String, std::io::Error> {
   path
     .absolutize_virtually("/")?

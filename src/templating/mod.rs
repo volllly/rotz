@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fmt::Debug, path::PathBuf};
 
 use directories::BaseDirs;
 use handlebars::{Context, Handlebars, Helper, HelperDef, HelperResult, Output, RenderContext, RenderError, Renderable, ScopedJson};
@@ -7,6 +7,8 @@ use miette::Diagnostic;
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use tap::{Conv, Pipe};
+#[cfg(feature = "profiling")]
+use tracing::instrument;
 use velcro::hash_map;
 
 use crate::{
@@ -25,13 +27,13 @@ pub enum Error {
   RenderingTemplate(#[source] handlebars::RenderError),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct Parameters<'a> {
   pub config: &'a Config,
   pub name: &'a str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct WhoamiPrameters {
   pub realname: String,
   pub username: String,
@@ -54,7 +56,7 @@ pub static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameter
   desktop_env: whoami::desktop_env().to_string(),
 });
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct DirectoryPrameters {
   pub base: HashMap<&'static str, PathBuf>,
   pub user: HashMap<&'static str, PathBuf>,
@@ -115,7 +117,7 @@ pub static DIRECTORY_PRAMETERS: Lazy<DirectoryPrameters> = Lazy::new(|| {
   DirectoryPrameters { base, user }
 });
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct CompleteParameters<'a, T: Serialize> {
   #[serde(flatten)]
   pub parameters: &'a T,
@@ -128,6 +130,7 @@ struct CompleteParameters<'a, T: Serialize> {
 pub(crate) struct Engine<'a>(Handlebars<'a>);
 
 impl<'b> Engine<'b> {
+  #[cfg_attr(feature = "profiling", instrument)]
   pub fn new<'a>(config: &'a Config, cli: &'a Cli) -> Engine<'b> {
     let mut hb = handlebars_misc_helpers::new_hbs::<'b>();
     hb.set_strict_mode(false);
@@ -148,7 +151,8 @@ impl<'b> Engine<'b> {
     Self(hb)
   }
 
-  pub fn render(&self, template: &str, parameters: &impl Serialize) -> Result<String, Error> {
+  #[cfg_attr(feature = "profiling", instrument(skip(self)))]
+  pub fn render(&self, template: &str, parameters: &(impl Serialize + Debug)) -> Result<String, Error> {
     let complete = CompleteParameters {
       parameters,
       env: &ENV,
@@ -160,10 +164,8 @@ impl<'b> Engine<'b> {
     self.render_template(template, &complete).map_err(Error::RenderingTemplate)
   }
 
-  pub fn render_template<T>(&self, template_string: &str, data: &T) -> Result<String, RenderError>
-  where
-    T: Serialize,
-  {
+  #[cfg_attr(feature = "profiling", instrument(skip(self)))]
+  pub fn render_template(&self, template_string: &str, data: &(impl Serialize + Debug)) -> Result<String, RenderError> {
     self.0.render_template(template_string, data)
   }
 }
@@ -171,6 +173,7 @@ impl<'b> Engine<'b> {
 pub struct WindowsHelper;
 
 impl HelperDef for WindowsHelper {
+  #[cfg_attr(feature = "profiling", instrument(skip(self, out)))]
   fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
     if os::OS.is_windows() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
@@ -179,6 +182,7 @@ impl HelperDef for WindowsHelper {
 pub struct LinuxHelper;
 
 impl HelperDef for LinuxHelper {
+  #[cfg_attr(feature = "profiling", instrument(skip(self, out)))]
   fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
     if os::OS.is_linux() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
@@ -187,6 +191,7 @@ impl HelperDef for LinuxHelper {
 pub struct DarwinHelper;
 
 impl HelperDef for DarwinHelper {
+  #[cfg_attr(feature = "profiling", instrument(skip(self, out)))]
   fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
     if os::OS.is_darwin() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
@@ -198,6 +203,7 @@ pub struct EvalHelper {
 }
 
 impl HelperDef for EvalHelper {
+  #[cfg_attr(feature = "profiling", instrument(skip(self)))]
   fn call_inner<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, _: &'rc Context, _: &mut RenderContext<'reg, 'rc>) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
     let cmd = h
       .param(0)
