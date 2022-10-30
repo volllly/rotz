@@ -148,22 +148,19 @@ jobs:
       - run: cargo install -f cross
         if: matrix.target.compile == 'cross'
 
-      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
+      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
         if: matrix.target.compile == 'native'
 
-      - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
+      - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
         if: matrix.target.compile == 'cross'
 
       - run: Get-ChildItem ${{ runner.temp }}/${{ matrix.target.triple }}/ -Depth 2 | select fullname
         shell: pwsh
 
-      - run: mv ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }} ${{ runner.temp }}/${{ matrix.target.triple }}/publish/${{ matrix.target.filename }}
-        shell: pwsh
-
       - uses: actions/upload-artifact@v3
         with:
           name: rotz-${{ matrix.target.triple }}
-          path: ${{ runner.temp }}/${{ matrix.target.triple }}/publish/
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/rotz
           if-no-files-found: error
 
   release:
