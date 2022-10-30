@@ -121,7 +121,7 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
+      - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
 
       - uses: actions/upload-artifact@v3
         with:
