@@ -88,22 +88,18 @@ jobs:
 
   build:
     name: build
-    runs-on: ${{ matrix.target.runner }}
+    runs-on: ubuntu-latest
     # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         target:
           - triple: x86_64-unknown-linux-gnu
-            runner: ubuntu-latest
             filename: rotz
           - triple: x86_64-unknown-linux-musl
-            runner: ubuntu-latest
             filename: rotz
           - triple: x86_64-apple-darwin
-            runner: macos-latest
             filename: rotz
           - triple: x86_64-pc-windows-msvc
-            runner: windows-latest
             filename: rotz.exe
     steps:
       - uses: actions/checkout@v3
@@ -112,8 +108,8 @@ jobs:
         if: endsWith("${{ matrix.target.triple }}", "musl")
 
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          target: ${{ matrix.target.triple }}
+
+      - run: cargo install -f cross
 
       - uses: actions/cache@v3
         with:
