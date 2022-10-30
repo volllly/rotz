@@ -154,13 +154,10 @@ jobs:
       - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
         if: matrix.target.compile == 'cross'
 
-      - run: Get-ChildItem ${{ runner.temp }}/${{ matrix.target.triple }}/ -Depth 2 | select fullname
-        shell: pwsh
-
       - uses: actions/upload-artifact@v3
         with:
           name: rotz-${{ matrix.target.triple }}
-          path: ${{ runner.temp }}/${{ matrix.target.triple }}/rotz
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
           if-no-files-found: error
 
   release:
