@@ -154,13 +154,17 @@ jobs:
       - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
         if: matrix.target.compile == 'cross'
 
+      - run: ls ${{ runner.temp }}/${{ matrix.target.triple }}/ -Depth 2
+        shell: pwsh
+
       - run: mv ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }} ${{ runner.temp }}/${{ matrix.target.triple }}/publish/${{ matrix.target.filename }}
         shell: pwsh
 
       - uses: actions/upload-artifact@v3
         with:
           name: rotz-${{ matrix.target.triple }}
-          path: ${{ runner.temp }}/${{ matrix.target.triple }}/publish
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/publish/
+          if-no-files-found: error
 
   release:
     name: Release
