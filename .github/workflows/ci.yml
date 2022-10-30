@@ -50,6 +50,8 @@ jobs:
 
       - run: cargo clippy --all-features -- -D warnings
 
+      - run: cargo clippy --features all-formats -- -D warnings
+
   test:
     name: Test Suite
     runs-on: ${{ matrix.target.runner }}
@@ -82,7 +84,7 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo test --all-features --target ${{ matrix.target.triple }}
+      - run: cargo test --features all-formats --target ${{ matrix.target.triple }}
 
   build:
     name: build
@@ -106,6 +108,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - run: sudo apt-get install musl-tools -y
+        if: endsWith("${{ matrix.target.triple }}", "musl")
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target.triple }}
@@ -120,7 +125,7 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo build --all-features --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
+      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
 
       - uses: actions/upload-artifact@v3
         with:
