@@ -156,8 +156,13 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
+          name: rotz-all
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}
+
+      - uses: actions/upload-artifact@v3
+        with:
           name: rotz-${{ matrix.target.triple }}
-          path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/${{ matrix.target.filename }}
 
   release:
     name: Release
