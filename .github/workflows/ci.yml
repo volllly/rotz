@@ -154,10 +154,13 @@ jobs:
       - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
         if: matrix.target.compile == 'cross'
 
+      - run: mv ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }} ${{ runner.temp }}/${{ matrix.target.triple }}/publish/${{ matrix.target.filename }}
+        shell: pwsh
+
       - uses: actions/upload-artifact@v3
         with:
           name: rotz-${{ matrix.target.triple }}
-          path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/publish
 
   release:
     name: Release
@@ -196,4 +199,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: cargo publish --features all-formats
+      # - run: cargo publish --features all-formats
