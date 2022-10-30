@@ -93,35 +93,57 @@ jobs:
     strategy:
       matrix:
         target:
-          - triple: x86_64-unknown-linux-gnu
-            filename: rotz
-          - triple: x86_64-unknown-linux-musl
-            filename: rotz
-          - triple: x86_64-apple-darwin
-            filename: rotz
           - triple: x86_64-pc-windows-msvc
             filename: rotz.exe
+            runner: windows-latest
+            cross: false
+
+          - triple: i686-pc-windows-msvc
+            filename: rotz.exe
+            runner: windows-latest
+            cross: false
+
+          - triple: x86_64-unknown-linux-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            cross: true
+
+          - triple: i686-unknown-linux-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            cross: true
+
+          - triple: x86_64-unknown-linux-musl
+            filename: rotz
+            runner: ubuntu-latest
+            cross: true
+
+          - triple: i686-unknown-linux-musl
+            filename: rotz
+            runner: ubuntu-latest
+            cross: true
+
+          - triple: x86_64-apple-darwin
+            filename: rotz
+            runner: macos-latest
+            cross: false
+
     steps:
       - uses: actions/checkout@v3
 
-      - run: sudo apt-get install musl-tools -y
-        if: endsWith("${{ matrix.target.triple }}", "musl")
-
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target.triple }}
+        if: ${{ matrix.target.cross }} == false
 
       - run: cargo install -f cross
+        if: ${{ matrix.target.cross }} == true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
+        if: ${{ matrix.target.cross }} == false
 
       - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}/${{ matrix.target.triple }}
+        if: ${{ matrix.target.cross }} == true
 
       - uses: actions/upload-artifact@v3
         with:
