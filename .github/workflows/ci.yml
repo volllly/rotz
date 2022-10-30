@@ -94,12 +94,12 @@ jobs:
           - triple: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             filename: rotz
+          - triple: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            filename: rotz
           - triple: x86_64-apple-darwin
             runner: macos-latest
             filename: rotz
-          - triple: x86_64-pc-windows-gnu
-            runner: windows-latest
-            filename: rotz.exe
           - triple: x86_64-pc-windows-msvc
             runner: windows-latest
             filename: rotz.exe
