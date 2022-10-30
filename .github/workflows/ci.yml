@@ -196,7 +196,7 @@ jobs:
           args: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRE_RELEASE: true
+          DRAFT_RELEASE: true
           RELEASE_NAME: v0.9.1-rc
 
       # - run: cargo publish --features all-formats
