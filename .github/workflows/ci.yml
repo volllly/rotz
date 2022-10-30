@@ -113,15 +113,15 @@ jobs:
             runner: ubuntu-latest
             compile: cross
 
-          - triple: x86_64-unknown-linux-musl
-            filename: rotz
-            runner: ubuntu-latest
-            compile: cross
+          # - triple: x86_64-unknown-linux-musl
+          #   filename: rotz
+          #   runner: ubuntu-latest
+          #   compile: cross
 
-          - triple: i686-unknown-linux-musl
-            filename: rotz
-            runner: ubuntu-latest
-            compile: cross
+          # - triple: i686-unknown-linux-musl
+          #   filename: rotz
+          #   runner: ubuntu-latest
+          #   compile: cross
 
           - triple: x86_64-apple-darwin
             filename: rotz

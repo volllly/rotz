@@ -69,5 +69,6 @@ speculoos = "0.10.0"
 
 [package.metadata.cross.build]
 pre-build = [
-  "dpkg --add-architecture $CROSS_DEB_ARCH && apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
+  "dpkg --add-architecture $CROSS_DEB_ARCH",
+  "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
 ]
