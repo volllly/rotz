@@ -192,9 +192,10 @@ jobs:
           path: artifacts
 
       - run: |
-          for i in artifacts/*; do
+          cd artifacts;
+          for i in */; do
             zip -r "${i%/}.zip" "$i";
-            rm -rf "$i/";
+            rm -rf "$i";
           done
 
       - name: Create github Release
