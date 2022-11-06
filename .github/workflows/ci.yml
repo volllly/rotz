@@ -88,8 +88,9 @@ jobs:
 
   build:
     name: build
+    needs: test
     runs-on: ${{ matrix.target.runner }}
-    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         target:
@@ -163,9 +164,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: build
     environment: crates
-    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -184,7 +185,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo publish --dry-run --features all-formats
+      - run: cargo publish --dry-run
 
       - uses: actions/download-artifact@v3
         with:
@@ -197,6 +198,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRAFT_RELEASE: true
-          RELEASE_NAME: v0.9.1-rc
 
-      # - run: cargo publish --features all-formats
+      # - run: cargo publish
