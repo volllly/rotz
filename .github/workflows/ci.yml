@@ -191,6 +191,12 @@ jobs:
         with:
           path: artifacts
 
+      - run: |
+          for i in artifacts/*; do
+            zip -r "${i%/}.zip" "$i";
+            rm -rf "$i/";
+          done
+
       - name: Create github Release
         uses: docker://antonyurchenko/git-release:v5
         with:
