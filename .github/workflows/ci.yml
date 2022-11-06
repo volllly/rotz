@@ -194,7 +194,9 @@ jobs:
       - run: |
           cd artifacts;
           for i in */; do
-            zip -r "${i%/}.zip" "$i";
+            cd "$i";
+            zip -r "../${i%/}.zip" ./;
+            cd ..;
             rm -rf "$i";
           done
 
