@@ -206,6 +206,5 @@ jobs:
           args: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DRAFT_RELEASE: true
 
-      # - run: cargo publish
+      - run: cargo publish
