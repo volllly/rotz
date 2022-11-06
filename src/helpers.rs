@@ -86,7 +86,7 @@ pub enum RunError {
 #[cfg_attr(feature = "profiling", instrument)]
 pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr> + Debug], silent: bool, dry_run: bool) -> Result<String, RunError> {
   if dry_run {
-    return "".to_owned().pipe(Ok);
+    return String::new().pipe(Ok);
   }
 
   let output = process::Command::new(cmd).args(args).stdin(process::Stdio::null()).output().map_err(RunError::Spawn)?;
@@ -118,7 +118,7 @@ pub enum GlobError {
 pub fn glob_from_vec(from: &[String], postfix: &str) -> miette::Result<Any<'static>> {
   from
     .iter()
-    .map(|g| format!("{}{}", g, postfix))
+    .map(|g| format!("{g}{postfix}"))
     .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(|e| GlobError::Build(BuildError::into_owned(e))))
     .collect_vec()
     .pipe(join_err_result)?

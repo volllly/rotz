@@ -89,7 +89,7 @@ impl<'a> Command for Link<'a> {
           if !current_links.contains(to) {
             let mut removed = true;
             if !globals.dry_run {
-              if let Err(err) = fs::remove_file(&to) {
+              if let Err(err) = fs::remove_file(to) {
                 removed = false;
 
                 if err.kind() != std::io::ErrorKind::NotFound {
@@ -164,7 +164,7 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked
     Err(err) => match err.kind() {
       std::io::ErrorKind::AlreadyExists => {
         if force || linked.map_or(false, |l| l.contains_key(to)) {
-          if to.is_dir() { fs::remove_dir_all(&to) } else { fs::remove_file(&to) }.map_err(|e| Error::Symlink(from.to_path_buf(), to.to_path_buf(), e))?;
+          if to.is_dir() { fs::remove_dir_all(to) } else { fs::remove_file(to) }.map_err(|e| Error::Symlink(from.to_path_buf(), to.to_path_buf(), e))?;
           create(from, to)
         } else {
           return Error::AlreadyExists(to.to_path_buf()).pipe(Err);

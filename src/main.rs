@@ -191,7 +191,7 @@ fn run() -> Result<(), miette::Report> {
 fn read_config(cli: &Cli) -> Result<Config, Error> {
   let env_config = Env::prefixed("ROTZ_");
 
-  let mut figment = Figment::new().merge_from_path(&cli.config.0, false)?.merge(env_config).merge(&cli);
+  let mut figment = Figment::new().merge_from_path(&cli.config.0, false)?.merge(env_config).merge(cli);
 
   let config: Config = figment.clone().join(Config::default()).extract().map_err(Error::ParsingConfig)?;
 

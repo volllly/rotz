@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 authors = ["Paul Volavsek <paul.volavsek@gmail.com>"]
 license = "MIT"
@@ -21,10 +21,10 @@ json = ["serde_json", "figment/json"]
 
 all-formats = ["yaml", "toml", "json"]
 
-profiling = ["tracing-tracy"]
+profiling = ["tracing", "tracing-tracy"]
 
 [dependencies]
-clap = { version = "4.0.18", features = ["derive", "color"] }
+clap = { version = "4.0.19", features = ["derive", "color"] }
 serde_yaml = { version = "0.9.14", optional = true }
 serde_toml = { package = "toml", version = "0.5.9", optional = true }
 serde_json = { version = "1.0.87", optional = true }
@@ -40,7 +40,11 @@ baker = "0.2.0"
 miette = { version = "5.4.1", features = ["fancy"] }
 indexmap = "1.9.1"
 handlebars = "4.3.5"
-handlebars_misc_helpers = { version = "0.12.1" }
+handlebars_misc_helpers = { version = "0.12.1", default-features = false, features = [
+  "string",
+  "http_attohttpc",
+  "json",
+] }
 shellwords = "1.1.0"
 path-absolutize = "3.0.14"
 walkdir = "2.3.2"
@@ -49,7 +53,7 @@ whoami = "1.2.3"
 path-slash = "0.2.1"
 velcro = "0.5.3"
 tap = "1.0.1"
-tracing = "0.1.37"
+tracing = { version = "0.1.37", optional = true }
 tracing-tracy = { version = "0.10.1", optional = true }
 tracing-subscriber = { version = "0.3.16", optional = true }
 rayon = "1.5.3"
@@ -57,11 +61,27 @@ rayon = "1.5.3"
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"
 
+[target.x86_64-unknown-linux-musl.dependencies]
+openssl-sys = { version = "0.9.77", features = ["vendored"] }
+
+[target.i686-unknown-linux-musl.dependencies]
+openssl-sys = { version = "0.9.77", features = ["vendored"] }
+
 [dev-dependencies]
 fake = { version = "2.5.0", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.15.0"
 speculoos = "0.10.0"
 
-[profile.dev]
-opt-level = 0
+
+[package.metadata.cross.build]
+pre-build = [
+  "dpkg --add-architecture $CROSS_DEB_ARCH",
+  "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
+]
+
+[package.metadata.cross.target.x86_64-unknown-linux-musl]
+pre-build = []
+
+[package.metadata.cross.target.i686-unknown-linux-musl]
+pre-build = []

@@ -136,17 +136,17 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
 
   let dots = helpers::glob_from_vec(dots, &format!("/dot.{FILE_EXTENSIONS_GLOB}"))?;
 
-  let paths = WalkDir::new(&dotfiles_path)
+  let paths = WalkDir::new(dotfiles_path)
     .into_iter()
     .par_bridge()
-    .filter(|e| if let Ok(e) = e { !e.file_type().is_dir() } else { true })
+    .filter(|e| e.as_ref().map_or(true, |e| !e.file_type().is_dir()))
     .map(|d| -> Result<(std::string::String, std::path::PathBuf), Error> {
       let d = d.map_err(Error::WalkingDotfiles)?;
       let path = d.path().strip_prefix(dotfiles_path).map(Path::to_path_buf).map_err(Error::PathStrip)?;
       let absolutized = helpers::absolutize_virtually(&path).map_err(|e| Error::ParseName(path.to_string_lossy().to_string(), e))?;
       Ok((absolutized, path))
     })
-    .filter(|e| if let Ok(e) = e { dots.is_match(e.0.as_str()) } else { true })
+    .filter(|e| e.as_ref().map_or(true, |e| dots.is_match(e.0.as_str())))
     .map(|e| match e {
       Ok(e) => {
         let format = e.1.as_path().try_conv::<FileFormat>().unwrap();

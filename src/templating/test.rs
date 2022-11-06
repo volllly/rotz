@@ -14,7 +14,7 @@ pub(crate) fn get_handlebars<'a>() -> Engine<'a> {
     dry_run: true,
     dotfiles: None,
     config: PathBuf("".into()),
-    command: Command::Clone { repo: "".to_owned() },
+    command: Command::Clone { repo: String::new() },
   };
 
   Engine::new(&Config::default(), &cli)
@@ -43,7 +43,7 @@ fn templating(#[case] template: &str, #[case] expected: &str) {
     dry_run: true,
     dotfiles: None,
     config: PathBuf("".into()),
-    command: Command::Clone { repo: "".to_owned() },
+    command: Command::Clone { repo: String::new() },
   };
 
   assert_that!(Engine::new(&config, &cli).render(template, &Parameters { config: &config, name: "name" }).unwrap()).is_equal_to(expected.to_owned());
@@ -66,7 +66,7 @@ fn os_helpers() {
 fn os_else_helpers() {
   let config = Config::default();
 
-  let mut expected = "".to_owned();
+  let mut expected = String::new();
   if !os::OS.is_windows() {
     expected += "else_windows";
   }
@@ -93,7 +93,7 @@ fn eval_helper() {
     dry_run: false,
     dotfiles: None,
     config: PathBuf("".into()),
-    command: Command::Clone { repo: "".to_owned() },
+    command: Command::Clone { repo: String::new() },
   };
 
   assert_that!(Engine::new(&config, &cli).render("{{ eval \"echo 'test'\" }}", &Parameters { config: &config, name: "" }).unwrap()).is_equal_to("test".to_owned());

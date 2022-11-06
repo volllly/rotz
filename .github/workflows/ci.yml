@@ -50,6 +50,8 @@ jobs:
 
       - run: cargo clippy --all-features -- -D warnings
 
+      - run: cargo clippy --features all-formats -- -D warnings
+
   test:
     name: Test Suite
     runs-on: ${{ matrix.target.runner }}
@@ -82,20 +84,94 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo test --all-features
+      - run: cargo test --features all-formats --target ${{ matrix.target.triple }}
+
+  build:
+    name: build
+    needs: test
+    runs-on: ${{ matrix.target.runner }}
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        target:
+          - triple: x86_64-pc-windows-msvc
+            filename: rotz.exe
+            runner: windows-latest
+            compile: native
+
+          - triple: i686-pc-windows-msvc
+            filename: rotz.exe
+            runner: windows-latest
+            compile: native
+
+          - triple: x86_64-unknown-linux-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: i686-unknown-linux-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: x86_64-unknown-linux-musl
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: i686-unknown-linux-musl
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: x86_64-apple-darwin
+            filename: rotz
+            runner: macos-latest
+            compile: native
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target.triple }}
+        if: matrix.target.compile == 'native'
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}
+
+      - run: cargo install -f cross
+        if: matrix.target.compile == 'cross'
+
+      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
+        if: matrix.target.compile == 'native'
+
+      - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
+        if: matrix.target.compile == 'cross'
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: rotz-${{ matrix.target.triple }}
+          path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
+          if-no-files-found: error
 
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: build
     environment: crates
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -109,11 +185,27 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: cargo publish --dry-run --features all-formats
+      - run: cargo publish --dry-run
+
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - run: |
+          cd artifacts;
+          for i in */; do
+            cd "$i";
+            zip -r "../${i%/}.zip" ./;
+            cd ..;
+            rm -rf "$i";
+          done
 
       - name: Create github Release
         uses: docker://antonyurchenko/git-release:v5
+        with:
+          args: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRAFT_RELEASE: true
 
-      - run: cargo publish --features all-formats
+      # - run: cargo publish

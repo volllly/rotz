@@ -118,7 +118,7 @@ pub static DIRECTORY_PRAMETERS: Lazy<DirectoryPrameters> = Lazy::new(|| {
 });
 
 #[derive(Serialize, Debug)]
-struct CompleteParameters<'a, T: Serialize> {
+struct CompleteParameters<'a, T> {
   #[serde(flatten)]
   pub parameters: &'a T,
   pub env: &'a HashMap<String, String>,

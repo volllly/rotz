@@ -36,7 +36,7 @@ enum Error {
 
   #[error("Could not render command templeate for {0}")]
   #[diagnostic(code(install::command::render))]
-  RenderingTemplate(String, #[source] handlebars::RenderError),
+  RenderingTemplate(String, #[source] Box<handlebars::RenderError>),
 
   #[error("Could not parse install command for {0}")]
   #[diagnostic(code(install::command::parse))]
@@ -126,14 +126,14 @@ impl<'b> Install<'b> {
         self
           .engine
           .render_template(shell_command, &hash_map! { "cmd": &inner_cmd })
-          .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err))?
+          .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err.pipe(Box::new)))?
       } else {
         inner_cmd.clone()
       };
 
       let cmd = shellwords::split(&cmd).map_err(|err| Error::ParsingInstallCommand(entry.0.clone(), err))?;
 
-      println!("{}{}{}\n", Attribute::Italic, inner_cmd, Attribute::Reset);
+      println!("{}{inner_cmd}{}\n", Attribute::Italic, Attribute::Reset);
 
       if let Err(err) = helpers::run_command(&cmd[0], &cmd[1..], false, globals.dry_run) {
         if let helpers::RunError::Spawn(err) = &err {
