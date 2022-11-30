@@ -15,8 +15,8 @@ This allows for e.g. access to environment variables.
 | `env`         | A map of Environment variables                                                                                                                           | `some.file: {{ env.HOME }}/some.file`                                   |
 | `name`        | The name of the current dot                                                                                                                              | `installs: apt install {{ name }}`                                      |
 | `os`          | The current os (either `windows`, `linux` or `darwin`) as used in dots                                                                                   | `{{#if (eq os "windows")}}some: value{{/if}}`                           |
-| `whoami`      | A map of information about the environment (see [whoami](#whoami)). Provided by the [whoami](https://github.com/dirs-dev/directories-rs#features) crate. | `some.file: /home/{{ whoami.username }}/some.file`                      |
-| `directories` | A map of directories (see [directories](#directories)). Provided by the [directories](https://github.com/ardaku/whoami#features) crate                   | `some.file: {{ directories.home }}/some.file`                           |
+| `whoami`      | A map of information about the environment (see [whoami](#whoami)). Provided by the [whoami](https://github.com/ardaku/whoami#features) crate. | `some.file: /home/{{ whoami.username }}/some.file`                      |
+| `directories` | A map of directories (see [directories](#directories)). Provided by the [directories](https://github.com/dirs-dev/directories-rs#features) crate                   | `some.file: {{ directories.home }}/some.file`                           |
  
 ### `whoami`
 
