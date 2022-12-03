@@ -71,7 +71,7 @@ openssl-sys = { version = "0.9.78", features = ["vendored"] }
 fake = { version = "2.5.0", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.16.0"
-speculoos = "0.10.0"
+speculoos = "0.11.0"
 
 
 [package.metadata.cross.build]

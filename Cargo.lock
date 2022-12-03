@@ -1933,9 +1933,9 @@ checksum = "c761262ff91894bf387ba89f6e8a7ea5adfa1bc643dbeb69b762be391355f1ff"
 
 [[package]]
 name = "speculoos"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8f81684bbc3005f83b5c0a9e03eb52c8257b15370d62dcedf548964d5bfae2d"
+checksum = "65881c9270d6157f30a09233305da51bed97eef9192d0ea21e57b1c8f05c3620"
 dependencies = [
  "num",
 ]
