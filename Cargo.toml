@@ -62,10 +62,10 @@ rayon = "1.6.0"
 junction = "0.2.0"
 
 [target.x86_64-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.78", features = ["vendored"] }
+openssl-sys = { version = "0.9.79", features = ["vendored"] }
 
 [target.i686-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.78", features = ["vendored"] }
+openssl-sys = { version = "0.9.79", features = ["vendored"] }
 
 [dev-dependencies]
 fake = { version = "2.5.0", features = ["derive"] }
