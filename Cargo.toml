@@ -35,7 +35,7 @@ derive_more = "0.99.17"
 serde = { version = "1.0.151", features = ["derive"] }
 crossterm = "0.25.0"
 itertools = "0.10.5"
-thiserror = "1.0.37"
+thiserror = "1.0.38"
 baker = "0.2.0"
 miette = { version = "5.5.0", features = ["fancy"] }
 indexmap = "1.9.2"
