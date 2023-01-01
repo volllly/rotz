@@ -51,7 +51,7 @@ walkdir = "2.3.2"
 wax = { version = "0.5.0", features = ["miette"] }
 whoami = "1.2.3"
 path-slash = "0.2.1"
-velcro = "0.5.3"
+velcro = "0.5.4"
 tap = "1.0.1"
 tracing = { version = "0.1.37", optional = true }
 tracing-tracy = { version = "0.10.1", optional = true }
