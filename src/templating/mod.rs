@@ -43,6 +43,7 @@ pub struct WhoamiPrameters {
   pub platform: String,
   pub distro: String,
   pub desktop_env: String,
+  pub arch: String,
 }
 
 pub static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameters {
@@ -54,6 +55,7 @@ pub static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameter
   platform: whoami::platform().to_string(),
   distro: whoami::distro(),
   desktop_env: whoami::desktop_env().to_string(),
+  arch: whoami::arch().to_string(),
 });
 
 #[derive(Serialize, Debug)]
