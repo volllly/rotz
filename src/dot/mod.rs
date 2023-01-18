@@ -134,7 +134,7 @@ pub enum Error {
 pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
   let defaults = get_defaults(dotfiles_path)?;
 
-  let dots = helpers::glob_from_vec(dots, &format!("/dot.{FILE_EXTENSIONS_GLOB}"))?;
+  let dots = helpers::glob_from_vec(dots, format!("/dot.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some))?;
 
   let paths = WalkDir::new(dotfiles_path)
     .into_iter()

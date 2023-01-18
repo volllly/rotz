@@ -175,17 +175,18 @@ fn run() -> Result<(), miette::Report> {
   let config = read_config(&cli)?;
 
   let engine = templating::Engine::new(&config, &cli);
-
+  let mut state = State::read()?;
   match cli.command.clone() {
     cli::Command::Link { link } => commands::Link::new(config, engine)
-      .execute((cli.bake(), link.bake(), State::read()?))
-      .map(|state| state.write())?
-      .map_err(Into::into),
+      .execute((cli.bake(), link.bake(), &state.linked))
+      .map(|linked| state.linked = linked),
     cli::Command::Clone { repo } => commands::Clone::new(config).execute((cli, repo)),
     cli::Command::Install { install } => commands::Install::new(config, engine).execute((cli.bake(), install.bake())),
     cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
     cli::Command::Init { repo } => commands::Init::new(config).execute((cli, repo)),
-  }
+  }?;
+
+  state.write().map_err(Into::into)
 }
 
 fn read_config(cli: &Cli) -> Result<Config, Error> {

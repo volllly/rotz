@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, fs, path::PathBuf};
 
+use derive_more::From;
 use miette::Diagnostic;
 use serde::{Deserialize, Serialize};
 use tap::Pipe;
@@ -27,9 +28,13 @@ pub(crate) enum Error {
   Deserializing(#[source] helpers::ParseError),
 }
 
+#[derive(Serialize, Deserialize, Default, Debug, From)]
+#[serde(transparent)]
+pub(crate) struct Linked(pub HashMap<String, HashMap<PathBuf, PathBuf>>);
+
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub(crate) struct State {
-  pub linked: HashMap<String, HashMap<PathBuf, PathBuf>>,
+  pub linked: Linked,
 }
 
 impl State {

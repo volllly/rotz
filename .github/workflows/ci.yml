@@ -207,6 +207,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: rm -rf artifacts
+      - run: git clean -xdf
 
       - run: cargo publish

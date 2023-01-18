@@ -14,3 +14,4 @@
 .vscode
 
 trace*.json
+.helix

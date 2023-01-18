@@ -12,12 +12,13 @@ use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 use velcro::hash_map;
+use wax::Pattern;
 
 use super::Command;
 use crate::{
   config::{Config, LinkType},
   helpers,
-  state::State,
+  state::{self},
   templating, USER_DIRS,
 };
 
@@ -55,11 +56,11 @@ impl<'a> Link<'a> {
 }
 
 impl<'a> Command for Link<'a> {
-  type Args = (crate::cli::Globals, crate::cli::Link, State);
-  type Result = Result<State>;
+  type Args = (crate::cli::Globals, crate::cli::Link, &'a state::Linked);
+  type Result = Result<state::Linked>;
 
   #[cfg_attr(feature = "profiling", instrument)]
-  fn execute(&self, (globals, link_command, State { linked }): Self::Args) -> Self::Result {
+  fn execute(&self, (globals, link_command, linked): Self::Args) -> Self::Result {
     let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots, &self.config, &self.engine)?
       .into_iter()
       .filter_map(|d| d.1.links.map(|l| (d.0, l)))
@@ -83,7 +84,10 @@ impl<'a> Command for Link<'a> {
 
       let mut errors = Vec::new();
 
-      for (name, links) in &linked {
+      let dots = helpers::glob_from_vec(&link_command.dots, None)?;
+      let linked = linked.0.iter().filter(|l| dots.is_match(l.0.as_str()));
+
+      for (name, links) in linked {
         let mut printed = false;
         for (to, from) in links {
           if !current_links.contains(to) {
@@ -135,7 +139,7 @@ impl<'a> Command for Link<'a> {
           }
 
           if !globals.dry_run {
-            if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force, linked.get(&name)) {
+            if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force, linked.0.get(&name)) {
               eprintln!("\n Error: {:?}", Report::new(err));
             } else {
               new_linked_inner.insert(to.clone(), from.clone());
@@ -151,7 +155,7 @@ impl<'a> Command for Link<'a> {
       println!();
     }
 
-    Ok(State { linked: new_linked })
+    state::Linked(new_linked).pipe(Ok)
   }
 }
 

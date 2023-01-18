@@ -179,7 +179,7 @@ impl Command for Install<'_> {
       .collect::<HashMap<String, InstallsDots>>();
 
     let mut installed: HashSet<&str> = HashSet::new();
-    let globs = helpers::glob_from_vec(&install_command.dots, "")?;
+    let globs = helpers::glob_from_vec(&install_command.dots, None)?;
     for dot in &dots {
       if globs.is_match(dot.0.as_str()) {
         self.install(&dots, dot, &mut installed, IndexSet::new(), (&globals, &install_command))?;

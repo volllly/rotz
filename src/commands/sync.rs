@@ -41,7 +41,7 @@ impl Command for Sync {
   fn execute(&self, (globals, sync): Self::Args) -> Self::Result {
     if !sync.no_push {
       println!("{}Adding files{}\n", Attribute::Bold, Attribute::Reset);
-      let globs = helpers::glob_from_vec(&sync.dots, "/**")?;
+      let globs = helpers::glob_from_vec(&sync.dots, "/**".pipe(Some))?;
 
       for entry in WalkDir::new(&self.config.dotfiles)
         .into_iter()
