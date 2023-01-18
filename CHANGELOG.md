@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2023-01-18
+
+### Fixed
+
+- Issue where rotz would incorrectly flag files as orphans
+
 ## [0.9.1] - 2022-11-06
 
 ### Added
@@ -186,7 +192,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/volllly/rotz/releases/tag/v0.9.2
+[0.9.1]: https://github.com/volllly/rotz/releases/tag/v0.9.1
 [0.9.0]: https://github.com/volllly/rotz/releases/tag/v0.9.0
 [0.8.1]: https://github.com/volllly/rotz/releases/tag/v0.8.1
 [0.8.0]: https://github.com/volllly/rotz/releases/tag/v0.8.0
