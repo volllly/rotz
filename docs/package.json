@@ -27,7 +27,7 @@
     "yaml": "2.2.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "2.1.0",
+    "@docusaurus/module-type-aliases": "2.2.0",
     "@tsconfig/docusaurus": "1.0.6",
     "typescript": "4.9.4"
   },
