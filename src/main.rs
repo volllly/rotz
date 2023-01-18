@@ -183,7 +183,7 @@ fn run() -> Result<(), miette::Report> {
     cli::Command::Clone { repo } => commands::Clone::new(config).execute((cli, repo)),
     cli::Command::Install { install } => commands::Install::new(config, engine).execute((cli.bake(), install.bake())),
     cli::Command::Sync { sync } => commands::Sync::new(config).execute((cli.bake(), sync.bake())),
-    cli::Command::Init { repo } => commands::Init::new(config).execute((cli, repo)),
+    cli::Command::Init { init } => commands::Init::new(config).execute((cli, init)),
   }?;
 
   state.write().map_err(Into::into)

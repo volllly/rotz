@@ -12,7 +12,7 @@ use crate::cli::Cli;
 fn read_config_formats(#[case] dotfiles_path: &str, #[case] expexted: &str) {
   let mut cli = Cli {
     dry_run: true,
-    command: crate::cli::Command::Init { repo: None },
+    command: crate::cli::Command::Init { init: Default::default() },
     config: Path::new(file!()).parent().unwrap().join("data/config/config.yaml").into(),
     dotfiles: Some(Path::new(file!()).parent().unwrap().join("data").into()),
   };
