@@ -14,9 +14,9 @@ Fully cross platform dotfile manager and dev environment bootstrapper written in
 > `Rot s`<br>
 > `Rotz`
 
-## [Roadmap](https://github.com/users/volllly/projects/1/views/1)
+## [🗺️ Roadmap](https://github.com/users/volllly/projects/1/views/1)
 
-## [Documentation](https://volllly.github.io/rotz/)
+## [📖 Documentation](https://volllly.github.io/rotz/)
 
 ## Overview
 
