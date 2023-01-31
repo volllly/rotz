@@ -132,7 +132,7 @@ pub enum Error {
 
 #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
 pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
-  let defaults = get_defaults(dotfiles_path)?;
+  let defaults = get_defaults(dotfiles_path).map_err(|e| *e)?;
 
   let dots = helpers::glob_from_vec(dots, format!("/dot.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some))?;
 
@@ -213,7 +213,7 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
 }
 
 #[cfg_attr(feature = "profiling", instrument)]
-fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Error> {
+fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Box<Error>> {
   let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
   if let Some(defaults) = &defaults {
     let path = defaults.0.to_string_lossy().to_string();
