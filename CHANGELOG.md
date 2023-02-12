@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2023-02-12
+
+### Fixed
+
+- Issue where rotz would create empty symlinks if the source file does not exist
+
 ## [0.9.2] - 2023-01-18
 
 ### Fixed
@@ -192,7 +198,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/volllly/rotz/releases/tag/v0.9.3
 [0.9.2]: https://github.com/volllly/rotz/releases/tag/v0.9.2
 [0.9.1]: https://github.com/volllly/rotz/releases/tag/v0.9.1
 [0.9.0]: https://github.com/volllly/rotz/releases/tag/v0.9.0

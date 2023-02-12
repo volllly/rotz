@@ -36,6 +36,10 @@ enum Error {
   #[error("The file \"{0}\" already exists")]
   #[diagnostic(code(link::already_exists), help("Try using the --force flag"))]
   AlreadyExists(PathBuf),
+
+  #[error("The link source file \"{0}\" does not exist exists")]
+  #[diagnostic(code(link::does_not_exist), help("Maybe you have a typo in the filename?"))]
+  LinkSourceDoesNotExist(PathBuf),
 }
 
 pub(crate) struct Link<'a> {
@@ -161,6 +165,10 @@ impl<'a> Command for Link<'a> {
 
 #[cfg_attr(feature = "profiling", instrument)]
 fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked: Option<&HashMap<PathBuf, PathBuf>>) -> std::result::Result<(), Error> {
+  if !from.exists() {
+    return Error::LinkSourceDoesNotExist(from.to_path_buf()).pipe(Err);
+  }
+
   let create: fn(&Path, &Path) -> std::result::Result<(), std::io::Error> = if link_type.is_symbolic() { symlink } else { hardlink };
 
   match create(from, to) {
