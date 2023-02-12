@@ -40,7 +40,7 @@ baker = "0.2.0"
 miette = { version = "5.5.0", features = ["fancy"] }
 indexmap = "1.9.2"
 handlebars = "4.3.6"
-handlebars_misc_helpers = { version = "0.12.1", default-features = false, features = [
+handlebars_misc_helpers = { version = "0.12.2", default-features = false, features = [
   "string",
   "http_attohttpc",
   "json",
