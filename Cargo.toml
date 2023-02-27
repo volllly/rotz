@@ -59,7 +59,7 @@ tracing-subscriber = { version = "0.3.16", optional = true }
 rayon = "1.6.1"
 
 [target.'cfg(windows)'.dependencies]
-junction = "0.2.1"
+junction = "1.0.0"
 
 [target.x86_64-unknown-linux-musl.dependencies]
 openssl-sys = { version = "0.9.80", features = ["vendored"] }
