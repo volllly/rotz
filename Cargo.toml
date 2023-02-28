@@ -24,7 +24,7 @@ all-formats = ["yaml", "toml", "json"]
 profiling = ["tracing", "tracing-tracy"]
 
 [dependencies]
-clap = { version = "4.1.7", features = ["derive", "color"] }
+clap = { version = "4.1.8", features = ["derive", "color"] }
 serde_yaml = { version = "0.9.17", optional = true }
 serde_toml = { package = "toml", version = "0.7.2", optional = true }
 serde_json = { version = "1.0.93", optional = true }
