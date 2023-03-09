@@ -32,7 +32,7 @@ figment = { version = "0.10.8", default-features = false, features = ["env"] }
 directories = "4.0.1"
 once_cell = "1.17.1"
 derive_more = "0.99.17"
-serde = { version = "1.0.153", features = ["derive"] }
+serde = { version = "1.0.154", features = ["derive"] }
 crossterm = "0.26.1"
 itertools = "0.10.5"
 thiserror = "1.0.39"
