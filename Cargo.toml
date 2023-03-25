@@ -38,7 +38,7 @@ itertools = "0.10.5"
 thiserror = "1.0.40"
 baker = "0.2.0"
 miette = { version = "5.6.0", features = ["fancy"] }
-indexmap = "1.9.2"
+indexmap = "1.9.3"
 handlebars = "4.3.6"
 handlebars_misc_helpers = { version = "0.13.0", default-features = false, features = [
   "string",
