@@ -68,7 +68,7 @@ openssl-sys = { version = "0.9.87", features = ["vendored"] }
 openssl-sys = { version = "0.9.87", features = ["vendored"] }
 
 [dev-dependencies]
-fake = { version = "2.5.0", features = ["derive"] }
+fake = { version = "2.6.1", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.17.0"
 speculoos = "0.11.0"
