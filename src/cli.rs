@@ -44,7 +44,7 @@ pub struct Cli {
       .map(|p| p.0)
       .unwrap_or_else(|| PROJECT_DIRS.config_dir().join(format!("config.{}", FILE_EXTENSIONS[0].0)))
       .into()
-})]
+  })]
   #[baked(ignore)]
   /// Path to the config file
   pub(crate) config: PathBuf,

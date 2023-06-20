@@ -41,9 +41,7 @@ impl Command for Init {
   fn execute(&self, (cli, init): Self::Args) -> Self::Result {
     if !cli.dry_run {
       config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
-    }
 
-    if !cli.dry_run {
       std::fs::create_dir_all(&self.config.dotfiles).map_err(|err| Error::CreatingDir(self.config.dotfiles.clone(), err))?;
     }
 
@@ -68,16 +66,56 @@ impl Command for Init {
       let tree = git_repo.find_tree(tree_id).unwrap();
       git_repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[]).unwrap();
 
-      init.repo.tap_some(|repo| {
-        let head = git_repo.head().unwrap();
-        if head.is_branch() {
-          git_repo.find_remote(repo).unwrap().push(&[head.name().unwrap()], None).unwrap();
-        }
-      });
+      // if init.repo.is_some() {
+      //   let head = git_repo.head().unwrap();
+      //   if head.is_branch() {
+      //     git_repo.find_remote("origin").unwrap().push(&[head.name().unwrap()], None).unwrap();
+      //   }
+      // }
 
       println!("\n{}Initialized repo{}", Attribute::Bold, Attribute::Reset);
     };
 
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use std::path::Path;
+
+  use clap::Parser;
+  use speculoos::assert_that;
+
+  use crate::{cli, commands::Command};
+
+  #[test]
+  fn should_initialize_repo() {
+    let config = crate::config::Config {
+      dotfiles: Path::new("./target/tmp").to_path_buf(),
+      ..Default::default()
+    };
+
+    let config_file = Path::new("./target/config.toml");
+    std::fs::remove_file(config_file).ok();
+    std::fs::remove_dir_all(&config.dotfiles).ok();
+    let cli = crate::cli::Cli::parse_from([
+      "",
+      "--dotfiles",
+      &config.dotfiles.to_string_lossy(),
+      "--config",
+      &config_file.to_string_lossy(),
+      "init",
+      "git@github.com:volllly/rotz.git",
+    ]);
+
+    let init = super::Init::new(config);
+
+    let cli::Command::Init { init: command } = cli.command.clone() else {
+      panic!();
+    };
+
+    init.execute((cli, command)).unwrap();
+    assert_that!(Path::new("./tmp/.git")).matches(|p| p.exists() && p.is_dir());
   }
 }
