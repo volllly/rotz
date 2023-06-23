@@ -46,7 +46,7 @@ impl Dummy<ValueFaker> for figment::value::Dict {
   }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq))]
 pub struct Config {
   /// Path to the local dotfiles

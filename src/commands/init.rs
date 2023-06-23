@@ -54,30 +54,30 @@ impl Command for Init {
         options.origin_url(repo.as_str());
       });
 
-      let git_repo = Repository::init_opts(&self.config.dotfiles, &options).map_err(|err| Error::GitInit(self.config.dotfiles.clone(), err))?;
+      options.initial_head("main");
 
-      let sig = git_repo.signature().unwrap();
-      let tree_id = {
-        let mut index = git_repo.index().unwrap();
-
-        index.write_tree().unwrap()
-      };
-
-      let tree = git_repo.find_tree(tree_id).unwrap();
-      git_repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[]).unwrap();
-
-      // if init.repo.is_some() {
-      //   let head = git_repo.head().unwrap();
-      //   if head.is_branch() {
-      //     git_repo.find_remote("origin").unwrap().push(&[head.name().unwrap()], None).unwrap();
-      //   }
-      // }
-
+      initialize_git_repo(&self.config.dotfiles, &options).map_err(|err| Error::GitInit(self.config.dotfiles.clone(), err))?;
       println!("\n{}Initialized repo{}", Attribute::Bold, Attribute::Reset);
     };
 
     Ok(())
   }
+}
+
+fn initialize_git_repo(dotfiles: &PathBuf, options: &RepositoryInitOptions) -> Result<(), git2::Error> {
+  let git_repo = Repository::init_opts(dotfiles, options)?;
+
+  let sig = git_repo.signature()?;
+  let tree_id = {
+    let mut index = git_repo.index()?;
+
+    index.write_tree()?
+  };
+
+  let tree = git_repo.find_tree(tree_id)?;
+  git_repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])?;
+
+  Ok(())
 }
 
 #[cfg(test)]
@@ -96,9 +96,13 @@ mod test {
       ..Default::default()
     };
 
-    let config_file = Path::new("./target/config.toml");
-    std::fs::remove_file(config_file).ok();
-    std::fs::remove_dir_all(&config.dotfiles).ok();
+    let config_file = config.dotfiles.parent().unwrap().join("config.toml");
+    if config_file.exists() {
+      std::fs::remove_file(&config_file).unwrap();
+    }
+    if config.dotfiles.exists() {
+      std::fs::remove_dir_all(&config.dotfiles).unwrap();
+    }
     let cli = crate::cli::Cli::parse_from([
       "",
       "--dotfiles",
@@ -109,13 +113,13 @@ mod test {
       "git@github.com:volllly/rotz.git",
     ]);
 
-    let init = super::Init::new(config);
+    let init = super::Init::new(config.clone());
 
     let cli::Command::Init { init: command } = cli.command.clone() else {
       panic!();
     };
 
     init.execute((cli, command)).unwrap();
-    assert_that!(Path::new("./tmp/.git")).matches(|p| p.exists() && p.is_dir());
+    assert_that!(Path::new(&config.dotfiles).join(".git")).matches(|p| p.exists() && p.is_dir());
   }
 }
