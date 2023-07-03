@@ -27,7 +27,7 @@ profiling = ["tracing", "tracing-tracy"]
 clap = { version = "4.3.10", features = ["derive", "color"] }
 serde_yaml = { version = "0.9.21", optional = true }
 serde_toml = { package = "toml", version = "0.7.3", optional = true }
-serde_json = { version = "1.0.96", optional = true }
+serde_json = { version = "1.0.99", optional = true }
 figment = { version = "0.10.10", default-features = false, features = ["env"] }
 directories = "5.0.1"
 once_cell = "1.17.1"
