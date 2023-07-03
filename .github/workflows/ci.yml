@@ -99,12 +99,22 @@ jobs:
             runner: windows-latest
             compile: native
 
+          - triple: aarch64-pc-windows-msvc
+            filename: rotz.exe
+            runner: windows-latest
+            compile: native
+
           - triple: i686-pc-windows-msvc
             filename: rotz.exe
             runner: windows-latest
             compile: native
 
           - triple: x86_64-unknown-linux-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: aarch64-unknown-linux-gnu
             filename: rotz
             runner: ubuntu-latest
             compile: cross
@@ -119,12 +129,22 @@ jobs:
             runner: ubuntu-latest
             compile: cross
 
+          - triple: aarch64-unknown-linux-musl
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
           - triple: i686-unknown-linux-musl
             filename: rotz
             runner: ubuntu-latest
             compile: cross
 
           - triple: x86_64-apple-darwin
+            filename: rotz
+            runner: macos-latest
+            compile: native
+
+          - triple: aarch64-apple-darwin
             filename: rotz
             runner: macos-latest
             compile: native
