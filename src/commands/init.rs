@@ -64,7 +64,7 @@ impl Command for Init {
   }
 }
 
-fn initialize_git_repo(dotfiles: &PathBuf, options: &RepositoryInitOptions) -> Result<(), git2::Error> {
+fn initialize_git_repo(dotfiles: &PathBuf, options: &RepositoryInitOptions) -> Result<Repository, git2::Error> {
   let git_repo = Repository::init_opts(dotfiles, options)?;
 
   let sig = git_repo.signature()?;
@@ -74,10 +74,12 @@ fn initialize_git_repo(dotfiles: &PathBuf, options: &RepositoryInitOptions) -> R
     index.write_tree()?
   };
 
-  let tree = git_repo.find_tree(tree_id)?;
-  git_repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])?;
+  {
+    let tree = git_repo.find_tree(tree_id)?;
+    git_repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])?;
+  }
 
-  Ok(())
+  Ok(git_repo)
 }
 
 #[cfg(test)]
