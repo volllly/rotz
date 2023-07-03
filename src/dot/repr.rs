@@ -5,7 +5,7 @@ use std::{
 
 use derive_more::IsVariant;
 #[cfg(test)]
-use fake::{Dummy, Fake};
+use fake::Dummy;
 use serde::Deserialize;
 use tap::{Conv, Pipe};
 #[cfg(feature = "profiling")]

@@ -128,6 +128,7 @@ impl<'b> Install<'b> {
           .render_template(shell_command, &hash_map! { "cmd": &inner_cmd })
           .map_err(|err| Error::RenderingTemplate(entry.0.clone(), err.pipe(Box::new)))?
       } else {
+        #[allow(clippy::redundant_clone)]
         inner_cmd.clone()
       };
 

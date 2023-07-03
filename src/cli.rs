@@ -4,7 +4,7 @@ use baker::Bake;
 use clap::{Args, Parser, Subcommand};
 use derive_more::{From, FromStr, Into};
 #[cfg(test)]
-use fake::{Dummy, Fake};
+use fake::Dummy;
 use figment::{
   map,
   value::{Dict, Map, Value},
