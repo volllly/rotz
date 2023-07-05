@@ -67,6 +67,9 @@ openssl-sys = { version = "0.9.90", features = ["vendored"] }
 [target.i686-unknown-linux-musl.dependencies]
 openssl-sys = { version = "0.9.90", features = ["vendored"] }
 
+[target.aarch64-unknown-linux-musl.dependencies]
+openssl-sys = { version = "0.9.90", features = ["vendored"] }
+
 [dev-dependencies]
 fake = { version = "2.6.1", features = ["derive"] }
 rand = "0.8.5"
@@ -84,4 +87,7 @@ pre-build = [
 pre-build = []
 
 [package.metadata.cross.target.i686-unknown-linux-musl]
+pre-build = []
+
+[package.metadata.cross.target.aarch64-unknown-linux-musl]
 pre-build = []
