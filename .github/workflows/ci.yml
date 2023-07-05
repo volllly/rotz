@@ -110,6 +110,7 @@ jobs:
     strategy:
       matrix:
         target:
+          # each musl target also needs to use vendored openssl-sys in Cargo.toml for the build to work
           - triple: x86_64-pc-windows-msvc
             filename: rotz.exe
             runner: windows-latest
