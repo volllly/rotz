@@ -173,7 +173,7 @@ impl Command for Install<'_> {
 
   #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (globals, install_command): Self::Args) -> Self::Result {
-    let dots = crate::dot::read_dots(&self.config.dotfiles, &["/**".to_owned()], &self.config, &self.engine)?
+    let dots = crate::dot::read_dots(&self.config.dotfiles, &["/".to_owned() + "**"], &self.config, &self.engine)?
       .into_par_iter()
       .filter(|d| d.1.installs.is_some() || d.1.depends.is_some())
       .map(|d| (d.0, (d.1.installs, d.1.depends)))

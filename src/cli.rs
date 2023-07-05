@@ -44,7 +44,7 @@ pub struct Cli {
       .map(|p| p.0)
       .unwrap_or_else(|| PROJECT_DIRS.config_dir().join(format!("config.{}", FILE_EXTENSIONS[0].0)))
       .into()
-})]
+  })]
   #[baked(ignore)]
   /// Path to the config file
   pub(crate) config: PathBuf,
@@ -136,6 +136,13 @@ pub struct SyncRaw {
   pub(crate) message: Option<String>,
 }
 
+#[derive(Debug, Args, Clone, Default)]
+#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
+pub struct InitRaw {
+  /// The url of the repository passed to the git init command
+  pub repo: Option<String>,
+}
+
 #[derive(Subcommand, Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum Command {
@@ -147,8 +154,8 @@ pub enum Command {
 
   /// Creates a dotfiles git repository and config
   Init {
-    /// The url of the repository passed to the git init command
-    repo: Option<String>,
+    #[clap(flatten)]
+    init: InitRaw,
   },
 
   /// Links dotfiles to the filesystem

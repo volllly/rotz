@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- rotz now uses [`git2`](https://crates.io/crates/git2) instead of spawning a local `git` executable
+
 ## [0.9.4] - 2023-07-05
 
 ### Added
