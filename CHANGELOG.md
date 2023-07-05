@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2023-07-05
+
+### Added
+
+- Added build targets for aarch64 architectures @kecrily
+
 ## [0.9.3] - 2023-02-12
 
 ### Fixed
@@ -198,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/volllly/rotz/releases/tag/v0.9.3
 [0.9.3]: https://github.com/volllly/rotz/releases/tag/v0.9.3
 [0.9.2]: https://github.com/volllly/rotz/releases/tag/v0.9.2
 [0.9.1]: https://github.com/volllly/rotz/releases/tag/v0.9.1
