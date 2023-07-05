@@ -19,8 +19,16 @@ on:
       - ".github/workflows/ci.yml"
   workflow_dispatch:
     inputs:
+      lint:
+        description: Run lint job
+        type: boolean
+        default: true
+      test:
+        description: Run test job
+        type: boolean
+        default: true
       build:
-        description: Run build step
+        description: Run build job
         type: boolean
         default: false
 
@@ -35,6 +43,7 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && ${{ inputs.lint }})
     steps:
       - uses: actions/checkout@v3
 
@@ -61,6 +70,7 @@ jobs:
   test:
     name: Test Suite
     runs-on: ${{ matrix.target.runner }}
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && ${{ inputs.test }})
     needs: lint
     strategy:
       matrix:
@@ -105,10 +115,11 @@ jobs:
             runner: windows-latest
             compile: native
 
-          - triple: aarch64-pc-windows-msvc
-            filename: rotz.exe
-            runner: windows-latest
-            compile: native
+          # Waiting for https://github.com/briansmith/ring/issues/1614 to be released
+          # # - triple: aarch64-pc-windows-msvc
+          # #   filename: rotz.exe
+          # #   runner: windows-latest
+          # #   compile: native
 
           - triple: i686-pc-windows-msvc
             filename: rotz.exe
