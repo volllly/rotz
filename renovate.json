@@ -5,7 +5,7 @@
   ],
   "packageRules": [
     {
-      "groupName": "cargo",
+      "groupName": "crates",
       "matchDatasources": [
         "crate"
       ],
