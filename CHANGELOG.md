@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.5] - 2023-07-14
+
+### Added
+
+- Added build target for aarch64-pc-windows-msvc (without handlebars_misc_helpers/http_attohttpc feature)
+- Added .sha256 checksum files to releases
+
 ## [0.9.4] - 2023-07-05
 
 ### Added
@@ -204,8 +211,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.4...HEAD
-[0.9.4]: https://github.com/volllly/rotz/releases/tag/v0.9.3
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/volllly/rotz/releases/tag/v0.9.5
+[0.9.4]: https://github.com/volllly/rotz/releases/tag/v0.9.4
 [0.9.3]: https://github.com/volllly/rotz/releases/tag/v0.9.3
 [0.9.2]: https://github.com/volllly/rotz/releases/tag/v0.9.2
 [0.9.1]: https://github.com/volllly/rotz/releases/tag/v0.9.1

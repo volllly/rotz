@@ -116,11 +116,11 @@ jobs:
             runner: windows-latest
             compile: native
 
-          # Waiting for https://github.com/briansmith/ring/issues/1614 to be released
-          # # - triple: aarch64-pc-windows-msvc
-          # #   filename: rotz.exe
-          # #   runner: windows-latest
-          # #   compile: native
+          - triple: aarch64-pc-windows-msvc
+            filename: rotz.exe
+            runner: windows-latest
+            compile: native
+            args: --no-default-features --features all-formats
 
           - triple: i686-pc-windows-msvc
             filename: rotz.exe
@@ -187,10 +187,10 @@ jobs:
       - run: cargo install -f cross
         if: matrix.target.compile == 'cross'
 
-      - run: cargo build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
+      - run: cargo build --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }} ${{ matrix.target.args || '' }}
         if: matrix.target.compile == 'native'
 
-      - run: cross build --features all-formats --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }}
+      - run: cross build --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }} ${{ matrix.target.args || '' }}
         if: matrix.target.compile == 'cross'
 
       - uses: actions/upload-artifact@v3
@@ -236,6 +236,12 @@ jobs:
             zip -r "../${i%/}.zip" ./;
             cd ..;
             rm -rf "$i";
+          done
+
+      - run: |
+          cd artifacts;
+          for i in *.zip; do
+            sha256sum "$i" | cut -d " " -f 1 > "$i.sha256";
           done
 
       - name: Create github Release
