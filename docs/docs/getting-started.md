@@ -21,9 +21,9 @@ cargo install rotz
 
 ### Other File Formats
 
-Rotz uses [`yaml`](https://yaml.org/) configuration files per default. You can also use [`toml`](https://toml.io/) or [`json`](https://www.json.org/) files instead.
+Rotz uses [`yaml`](https://yaml.org/), [`toml`](https://toml.io/) or [`json`](https://www.json.org/) configuration files per default.
 
-To use another format install Rotz using one of the following comands:
+You can install rotz with support for only one of the filetypes by using the `--features` flag.
 ```bash title="toml"
 cargo install rotz --no-default-features --features toml
 ```

@@ -34,11 +34,13 @@ You can install Rotz using cargo.
 cargo install rotz
 ```
 
-### Other File Formats
+### File Formats
 
-Rotz uses [`yaml`](https://yaml.org/) configuration files per default. You can also use [`toml`](https://toml.io/) or [`json`](https://www.json.org/) files instead.
+Rotz uses [`yaml`](https://yaml.org/), [`toml`](https://toml.io/) or [`json`](https://www.json.org/) configuration files per default.
 
-To use another format install Rotz using one of the following comands:
+> ***Note:** Rotz will auto detect the correct filetype.*
+
+You can install rotz with support for only one of the filetypes by using the `--features` flag.
 * ```sh
   cargo install rotz --no-default-features --features toml
   ```
@@ -46,7 +48,6 @@ To use another format install Rotz using one of the following comands:
   cargo install rotz --no-default-features --features json
   ```
 
-> ***Note:** You can install multiple formats and rotz will auto detect the filetype.*
 
 ## Getting Started
 
