@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added build target for aarch64-pc-windows-msvc (without handlebars_misc_helpers/http_attohttpc feature)
+- Added build target for aarch64-pc-windows-msvc (without "handlebars_misc_helpers/http_attohttpc" feature)
 - Added .sha256 checksum files to releases
 
 ## [0.9.4] - 2023-07-05
