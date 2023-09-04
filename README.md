@@ -28,13 +28,32 @@ Rotz has three main functionalities:
 
 ## Installation
 
-You can install Rotz using cargo.
+### Homebrew
+
+On Linux and MacOS you can install Rotz using [Homebrew](https://brew.sh/).
 
 ```sh
+brew install volllly/tap/rotz
+```
+
+### Scoop
+
+On Windows you can install Rotz using [Scoop](https://scoop.sh/).
+
+```pwsh
+scoop bucket add volllly https://github.com/volllly/scoop-bucket
+scoop install volllly/rotz
+```
+
+### Cargo
+
+You can install Rotz using cargo everywhere if Rust is installed.
+
+```bash
 cargo install rotz
 ```
 
-### File Formats
+#### File Formats
 
 Rotz uses [`yaml`](https://yaml.org/), [`toml`](https://toml.io/) or [`json`](https://www.json.org/) configuration files per default.
 
