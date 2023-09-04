@@ -278,7 +278,7 @@ impl Merge<Self> for CapabilitiesCanonical {
   fn merge(mut self, Self { mut links, installs, depends }: Self) -> Self {
     if let Some(self_links) = &mut self.links {
       if let Some(merge_links) = &mut links {
-        for l in merge_links.iter_mut() {
+        for l in &mut *merge_links {
           if self_links.contains_key(l.0) {
             let self_links_value = self_links.get_mut(l.0).unwrap();
             self_links_value.extend(l.1.clone());
