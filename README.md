@@ -67,6 +67,15 @@ You can install rotz with support for only one of the filetypes by using the `--
   cargo install rotz --no-default-features --features json
   ```
 
+## Installer scripts
+
+```sh
+curl -fsSL volllly.github.io/rotz/install.sh | sh
+```
+
+```pwsh
+irm volllly.github.io/rotz/install.sh | iex
+```
 
 ## Getting Started
 
