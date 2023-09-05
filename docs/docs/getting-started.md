@@ -17,7 +17,7 @@ Rotz has three main functionalities:
 
 On Linux and MacOS you can install Rotz using [Homebrew](https://brew.sh/).
 
-```sh
+```sh title="homebrew"
 brew install volllly/tap/rotz
 ```
 
@@ -25,17 +25,16 @@ brew install volllly/tap/rotz
 
 On Windows you can install Rotz using [Scoop](https://scoop.sh/).
 
-```pwsh
+```pwsh title="scoop"
 scoop bucket add volllly https://github.com/volllly/scoop-bucket
 scoop install volllly/rotz
 ```
-
 
 ### Cargo
 
 You can install Rotz using cargo everywhere if Rust is installed.
 
-```bash
+```bash title="cargo"
 cargo install rotz
 ```
 
@@ -43,13 +42,24 @@ cargo install rotz
 
 Rotz uses [`yaml`](https://yaml.org/), [`toml`](https://toml.io/) or [`json`](https://www.json.org/) configuration files per default.
 
-You can install rotz with support for only one of the filetypes by using the `--features` flag.
+You can install Rotz with support for only one of the filetypes by using the `--features` flag.
+
 ```bash title="toml"
 cargo install rotz --no-default-features --features toml
 ```
 
 ```bash title="json"
 cargo install rotz --no-default-features --features json
+```
+
+## Installer scripts
+
+```sh title="Linux and MacOS"
+curl -fsSL volllly.github.io/rotz/install.sh | sh
+```
+
+```pwsh title="Windows"
+irm volllly.github.io/rotz/install.sh | iex
 ```
 
 ---
