@@ -74,7 +74,7 @@ curl -fsSL volllly.github.io/rotz/install.sh | sh
 ```
 
 ```pwsh
-irm volllly.github.io/rotz/install.sh | iex
+irm volllly.github.io/rotz/install.ps1 | iex
 ```
 
 ## Getting Started
