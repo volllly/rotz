@@ -24,53 +24,53 @@ all-formats = ["yaml", "toml", "json"]
 profiling = ["tracing", "tracing-tracy"]
 
 [dependencies]
-clap = { version = "4.4.2", features = ["derive", "color"] }
-serde_yaml = { version = "0.9.25", optional = true }
-serde_toml = { package = "toml", version = "0.7.6", optional = true }
-serde_json = { version = "1.0.105", optional = true }
-figment = { version = "0.10.10", default-features = false, features = ["env"] }
+clap = { version = "4.4.11", features = ["derive", "color"] }
+serde_yaml = { version = "0.9.27", optional = true }
+serde_toml = { package = "toml", version = "0.8.8", optional = true }
+serde_json = { version = "1.0.108", optional = true }
+figment = { version = "0.10.12", default-features = false, features = ["env"] }
 directories = "5.0.1"
 once_cell = "1.18.0"
 derive_more = "0.99.17"
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
 crossterm = "0.27.0"
-itertools = "0.11.0"
-thiserror = "1.0.48"
+itertools = "0.12.0"
+thiserror = "1.0.50"
 baker = "0.2.0"
 miette = { version = "5.10.0", features = ["fancy"] }
-indexmap = "2.0.0"
-handlebars = "4.4.0"
+indexmap = "2.1.0"
+handlebars = "4.5.0"
 handlebars_misc_helpers = { version = "0.13.0", default-features = false, features = [
   "string",
   "json",
 ] }
 shellwords = "1.1.0"
-path-absolutize = "3.1.0"
-walkdir = "2.3.3"
-wax = { version = "0.5.0", features = ["miette"] }
+path-absolutize = "3.1.1"
+walkdir = "2.4.0"
+wax = { version = "0.6.0", features = ["miette"] }
 whoami = "1.4.1"
 path-slash = "0.2.1"
 velcro = "0.5.4"
 tap = "1.0.1"
-tracing = { version = "0.1.37", optional = true }
-tracing-tracy = { version = "0.10.3", optional = true }
-tracing-subscriber = { version = "0.3.17", optional = true }
-rayon = "1.7.0"
+tracing = { version = "0.1.40", optional = true }
+tracing-tracy = { version = "0.10.4", optional = true }
+tracing-subscriber = { version = "0.3.18", optional = true }
+rayon = "1.8.0"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
 
 [target.x86_64-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.93", features = ["vendored"] }
+openssl-sys = { version = "0.9.96", features = ["vendored"] }
 
 [target.i686-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.93", features = ["vendored"] }
+openssl-sys = { version = "0.9.96", features = ["vendored"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
-openssl-sys = { version = "0.9.93", features = ["vendored"] }
+openssl-sys = { version = "0.9.96", features = ["vendored"] }
 
 [dev-dependencies]
-fake = { version = "2.8.0", features = ["derive"] }
+fake = { version = "2.9.1", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.18.2"
 speculoos = "0.11.0"
