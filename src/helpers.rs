@@ -15,7 +15,7 @@ use speculoos::assert_that;
 use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
-use wax::{Any, BuildError, Glob};
+use wax::{Any, Glob};
 
 use crate::{FileFormat, FILE_EXTENSIONS};
 
@@ -111,7 +111,7 @@ pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr> + Debug], silent: bool, 
 pub enum GlobError {
   #[error("Could not build GlobSet")]
   #[diagnostic(code(glob::set::parse))]
-  Build(#[from] wax::BuildError<'static>),
+  Build(#[from] wax::BuildError),
 }
 
 #[cfg_attr(feature = "profiling", instrument)]
@@ -119,10 +119,10 @@ pub fn glob_from_vec(from: &[String], postfix: Option<&str>) -> miette::Result<A
   from
     .iter()
     .map(|g| postfix.map_or_else(|| g.to_string(), |postfix| format!("{g}{postfix}")))
-    .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(|e| GlobError::Build(BuildError::into_owned(e))))
+    .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(GlobError::Build))
     .collect_vec()
     .pipe(join_err_result)?
-    .pipe(|g| wax::any::<'static, Glob, _>(g).unwrap().pipe(Ok))
+    .pipe(|g| wax::any::<_>(g).unwrap().pipe(Ok))
 }
 
 #[allow(clippy::redundant_pub_crate)]

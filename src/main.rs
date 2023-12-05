@@ -1,14 +1,4 @@
 #![cfg_attr(all(nightly, coverage), feature(no_coverage))]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
-#![allow(clippy::multiple_crate_versions)]
-#![allow(clippy::use_self)]
-#![allow(clippy::default_trait_access)]
-#![allow(clippy::redundant_pub_crate)]
-#![warn(clippy::filetype_is_file)]
-#![warn(clippy::string_to_string)]
-#![warn(clippy::unneeded_field_pattern)]
-#![warn(clippy::self_named_module_files)]
-#![warn(clippy::str_to_string)]
 
 use std::{
   collections::HashMap,

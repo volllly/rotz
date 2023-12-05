@@ -48,7 +48,7 @@ enum Error {
 
   #[error("Could not parse dependency \"{0}\"")]
   #[diagnostic(code(glob::parse))]
-  ParseGlob(String, #[source] wax::BuildError<'static>),
+  ParseGlob(String, #[source] Box<wax::BuildError>),
 }
 
 pub(crate) struct Install<'a> {
@@ -85,7 +85,7 @@ impl<'b> Install<'b> {
     macro_rules! recurse {
       ($depends:expr, $error:ident) => {
         for dependency in $depends {
-          let dependency_glob = Glob::new(dependency).map_err(|e| Error::ParseGlob(dependency.clone(), e.into_owned()))?;
+          let dependency_glob = Glob::new(dependency).map_err(|e| Error::ParseGlob(dependency.clone(), e.into()))?;
 
           if stack.iter().any(|d| dependency_glob.is_match(&**d)) {
             return Error::$error {
