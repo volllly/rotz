@@ -75,3 +75,9 @@ It is possible to put a config file in your repo containing default values depen
       dotfiles: '<macosDefault>'
     })
   }} />
+
+> If no `global`, `windows`, `linux` or `darwin` key is provided the `global` key will be assumed.
+>  <TabedCodeBlock title=".dotfiles/config.{{ format }}"
+>  data={{
+>      link_type: '<globalDefault>'
+>  }} />
