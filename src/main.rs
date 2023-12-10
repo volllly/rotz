@@ -1,7 +1,7 @@
 #![cfg_attr(all(nightly, coverage), feature(no_coverage))]
 
 use std::{
-  collections::HashMap,
+  collections::{HashMap, HashSet},
   convert::TryFrom,
   fs::{self, File},
   path::{Path, PathBuf},
@@ -19,7 +19,7 @@ use figment::providers::Toml;
 use figment::providers::Yaml;
 use figment::{
   providers::{Env, Format},
-  Figment, Profile, Provider,
+  Figment, Profile,
 };
 use helpers::os;
 use miette::{Diagnostic, Result, SourceSpan};
@@ -235,6 +235,13 @@ impl<F: Format> DataExt for figment::providers::Data<F> {
   }
 }
 
+#[derive(strum::Display, strum::EnumString)]
+#[strum(ascii_case_insensitive)]
+enum Profiles {
+  Force,
+  Global,
+}
+
 impl FigmentExt for Figment {
   fn merge_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error> {
     let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
@@ -265,46 +272,64 @@ impl FigmentExt for Figment {
     let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
     if !config_str.is_empty() {
       let file_extension = &*path.as_ref().extension().unwrap().to_string_lossy();
-      macro_rules! read {
-        ($nested:expr, $mapping:expr, $then:expr) => {
-          match file_extension {
-            #[cfg(feature = "yaml")]
-            "yaml" | "yml" => MappedProfileProvider {
-              mapping: $mapping,
-              provider: Yaml::string(&config_str).set_nested(nested),
-            }
-            .pipe($then),
-            #[cfg(feature = "toml")]
-            "toml" => MappedProfileProvider {
-              mapping: $mapping,
-              provider: Toml::string(&config_str).set_nested(nested),
-            }
-            .pipe($then),
-            #[cfg(feature = "json")]
-            "json" => MappedProfileProvider {
-              mapping: $mapping,
-              provider: Json::string(&config_str).set_nested(nested),
-            }
-            .pipe($then),
-            _ => {
-              let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
-              return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
-            }
-          }
-        };
-      }
 
       if nested {
-        let config = read!(nested, mapping.clone(), |provider| Figment::new().merge(provider));
-        if config.profiles().any(|p| p == Profile::Default) {
+        let profiles = match file_extension {
+          #[cfg(feature = "yaml")]
+          "yaml" | "yml" => serde_yaml::from_str::<serde_json::Map<String, serde_json::Value>>(&config_str).unwrap().pipe(Ok),
+          #[cfg(feature = "toml")]
+          "toml" => serde_toml::from_str::<serde_json::Map<String, serde_json::Value>>(&config_str).unwrap().pipe(Ok),
+          #[cfg(feature = "json")]
+          "json" => serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&config_str).unwrap().pipe(Ok),
+          _ => {
+            let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
+            return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
+          }
+        }?
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect::<HashSet<String>>();
+
+        if profiles.contains(&Profile::Default.to_string().to_lowercase()) {
           Error::RepoConfigDefaultProfile.pipe(Err)?;
         }
 
-        nested = config
-          .profiles()
-          .any(|p| p == Profile::Global || p.as_str() == "force" || os::Os::try_from(p.as_str().as_str()).is_ok());
+        nested = profiles.iter().any(|p| Profiles::try_from(p.as_str()).is_ok() || os::Os::try_from(p.as_str()).is_ok());
       }
-      return read!(nested, mapping, |provider| { self.join(provider) }).pipe(Ok);
+
+      match file_extension {
+        #[cfg(feature = "yaml")]
+        "yaml" | "yml" => {
+          return self
+            .join(MappedProfileProvider {
+              mapping,
+              provider: Yaml::string(&config_str).set_nested(nested),
+            })
+            .pipe(Ok)
+        }
+        #[cfg(feature = "toml")]
+        "toml" => {
+          return self
+            .join(MappedProfileProvider {
+              mapping,
+              provider: Toml::string(&config_str).set_nested(nested),
+            })
+            .pipe(Ok)
+        }
+        #[cfg(feature = "json")]
+        "json" => {
+          return self
+            .join(MappedProfileProvider {
+              mapping,
+              provider: Json::string(&config_str).set_nested(nested),
+            })
+            .pipe(Ok)
+        }
+        _ => {
+          let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
+          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
+        }
+      }
     }
 
     self.pipe(Ok)

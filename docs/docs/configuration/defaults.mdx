@@ -5,9 +5,9 @@ title: Defaults
 import TabedCodeBlock from '@site/src/components/TabedCodeBlock';
 import { Section } from '@ltd/j-toml';
 
-The repo can also contain a default file `dots.yaml` in the root folder of the repo.
+The repo can also contain default files `defaults.yaml` in any folder of the repo.
 
-This file contains defaults which are automatically used for empty keys in the `dot.yaml` files.
+These files contain defaults which are automatically used in sub directories for empty keys in the `dot.yaml` files.
 
 You can use template strings `{{ name }}` to substitute the name of the application (the name of the folder the `dot.yaml` file is located in). See [templating](templating.md) for advanced templating.
 
