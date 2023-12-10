@@ -3,7 +3,7 @@ use std::path::Path;
 use speculoos::prelude::*;
 use tap::Tap;
 
-use super::read_dots;
+use super::{defaults::Defaults, read_dots};
 use crate::{helpers::Select, templating::test::get_handlebars};
 
 mod data;
@@ -73,6 +73,41 @@ fn read_non_sub_dots() {
   assert_that!(dots).has_length(2);
   assert_that!(dots).mapped_contains(|d| &d.0, &"/test01");
   assert_that!(dots).mapped_contains(|d| &d.0, &"/test02");
+}
+
+#[test]
+fn read_defaults() {
+  let defaults = Defaults::from_path(Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path()).unwrap();
+
+  assert_that!(defaults.for_path("/test03/test05")).is_some();
+  assert_that!(defaults.for_path("/test03/test04")).is_some();
+  assert_that!(defaults.for_path("/test03")).is_some();
+}
+
+#[test]
+fn read_sub_dots_with_defaults() {
+  let dots = read_dots(
+    Path::new(file!()).parent().unwrap().join("data/directory_structure").as_path(),
+    &["/test03/*".to_owned()],
+    &Default::default(),
+    &get_handlebars(),
+  )
+  .unwrap();
+
+  assert_that!(dots)
+    .tap_mut(|d| d.has_length(2))
+    .select_and(
+      |d| d.iter().find(|d| d.0 == "/test03/test04").unwrap(),
+      |d| {
+        d.map(|d| &d.1).matches(|i| i.installs.as_ref().unwrap().cmd == "test04");
+      },
+    )
+    .select_and(
+      |d| d.iter().find(|d| d.0 == "/test03/test05").unwrap(),
+      |d| {
+        d.map(|d| &d.1).matches(|i| i.installs.as_ref().unwrap().cmd == "test03");
+      },
+    );
 }
 
 #[test]
