@@ -19,7 +19,7 @@ use figment::providers::Toml;
 use figment::providers::Yaml;
 use figment::{
   providers::{Env, Format},
-  Figment, Profile,
+  Figment, Profile, Provider,
 };
 use helpers::os;
 use miette::{Diagnostic, Result, SourceSpan};
@@ -75,6 +75,10 @@ pub enum Error {
   #[error("Cloud not parse config")]
   #[diagnostic(code(config::local::parse), help("Did you provide a top level \"global\" key in the repo level config?"))]
   RepoConfigProfile(#[source] figment::Error),
+
+  #[error("Default profile not allowed in config")]
+  #[diagnostic(code(config::local::default), help("Change the top level \"default\" key in the repo level config to \"global\""))]
+  RepoConfigDefaultProfile,
 }
 
 pub(crate) static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or(Error::GettingDirs("application data")).expect("Could not read project dirs"));
@@ -198,11 +202,9 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
     figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
   }
 
-  figment
-    .join(Config::default())
-    .select(os::OS.to_string().to_ascii_lowercase())
-    .extract()
-    .map_err(Error::RepoConfigProfile)
+  let tmp = figment.join(Config::default()).select(os::OS.to_string().to_ascii_lowercase());
+
+  tmp.extract().map_err(Error::RepoConfigProfile)
 }
 
 trait FigmentExt {
@@ -256,35 +258,53 @@ impl FigmentExt for Figment {
     self.pipe(Ok)
   }
 
-  fn join_from_path(self, path: impl AsRef<Path>, nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
+  fn join_from_path(self, path: impl AsRef<Path>, mut nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
   where
     Self: std::marker::Sized,
   {
     let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
     if !config_str.is_empty() {
       let file_extension = &*path.as_ref().extension().unwrap().to_string_lossy();
-      return match file_extension {
-        #[cfg(feature = "yaml")]
-        "yaml" | "yml" => self.join(MappedProfileProvider {
-          mapping,
-          provider: Yaml::string(&config_str).set_nested(nested),
-        }),
-        #[cfg(feature = "toml")]
-        "toml" => self.join(MappedProfileProvider {
-          mapping,
-          provider: Toml::string(&config_str).set_nested(nested),
-        }),
-        #[cfg(feature = "json")]
-        "json" => self.join(MappedProfileProvider {
-          mapping,
-          provider: Json::string(&config_str).set_nested(nested),
-        }),
-        _ => {
-          let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
-          return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
-        }
+      macro_rules! read {
+        ($nested:expr, $mapping:expr, $then:expr) => {
+          match file_extension {
+            #[cfg(feature = "yaml")]
+            "yaml" | "yml" => MappedProfileProvider {
+              mapping: $mapping,
+              provider: Yaml::string(&config_str).set_nested(nested),
+            }
+            .pipe($then),
+            #[cfg(feature = "toml")]
+            "toml" => MappedProfileProvider {
+              mapping: $mapping,
+              provider: Toml::string(&config_str).set_nested(nested),
+            }
+            .pipe($then),
+            #[cfg(feature = "json")]
+            "json" => MappedProfileProvider {
+              mapping: $mapping,
+              provider: Json::string(&config_str).set_nested(nested),
+            }
+            .pipe($then),
+            _ => {
+              let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
+              return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
+            }
+          }
+        };
       }
-      .pipe(Ok);
+
+      if nested {
+        let config = read!(nested, mapping.clone(), |provider| Figment::new().merge(provider));
+        if config.profiles().any(|p| p == Profile::Default) {
+          Error::RepoConfigDefaultProfile.pipe(Err)?;
+        }
+
+        nested = config
+          .profiles()
+          .any(|p| p == Profile::Global || p.as_str() == "force" || os::Os::try_from(p.as_str().as_str()).is_ok());
+      }
+      return read!(nested, mapping, |provider| { self.join(provider) }).pipe(Ok);
     }
 
     self.pipe(Ok)
