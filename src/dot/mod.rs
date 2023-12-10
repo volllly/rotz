@@ -135,7 +135,7 @@ pub enum Error {
 
 #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
 pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
-  let defaults = Defaults::from_path(dotfiles_path)?;
+  let defaults = Defaults::from_path(dotfiles_path).map_err(|e| *e)?;
 
   let dots = helpers::glob_from_vec(dots, format!("/dot.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some))?;
 

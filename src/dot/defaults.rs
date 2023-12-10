@@ -25,10 +25,14 @@ impl Defaults {
   }
 
   #[cfg_attr(feature = "profiling", instrument)]
-  pub fn from_path(dotfiles_path: &Path) -> Result<Defaults, Error> {
+  pub fn from_path(dotfiles_path: &Path) -> Result<Defaults, Box<Error>> {
     let defaults = helpers::glob_from_vec(&["**".to_owned()], format!("/{{dots,defaults}}.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some)).unwrap();
 
-    let paths = WalkDir::new(dotfiles_path).into_iter().collect::<Result<Vec<_>, _>>().map_err(Error::WalkingDotfiles)?;
+    let paths = WalkDir::new(dotfiles_path)
+      .into_iter()
+      .collect::<Result<Vec<_>, _>>()
+      .map_err(Error::WalkingDotfiles)
+      .map_err(Box::new)?;
 
     let absolutized = paths
       .into_iter()
@@ -39,7 +43,8 @@ impl Defaults {
         let absolutized_dir = helpers::absolutize_virtually(path.parent().unwrap()).map_err(|e| Error::ParseName(path.to_string_lossy().to_string(), e))?;
         Ok::<_, Error>((absolutized, absolutized_dir, path))
       })
-      .collect::<Result<Vec<_>, _>>()?;
+      .collect::<Result<Vec<_>, _>>()
+      .map_err(Box::new)?;
 
     absolutized
       .into_iter()
@@ -69,5 +74,6 @@ impl Defaults {
       })
       .collect::<Result<HashMap<_, _>, _>>()
       .map(Defaults)
+      .map_err(Box::new)
   }
 }
