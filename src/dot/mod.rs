@@ -6,16 +6,18 @@ use std::{
 
 use crossterm::style::Stylize;
 use itertools::Itertools;
-use miette::{Diagnostic, NamedSource, Report, SourceSpan};
+use miette::{Diagnostic, NamedSource, SourceSpan};
 use path_slash::PathBufExt;
-use rayon::prelude::*;
 use tap::{Pipe, TryConv};
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 use walkdir::WalkDir;
 use wax::Pattern;
 
-use self::repr::{CapabilitiesCanonical, Merge};
+use self::{
+  defaults::Defaults,
+  repr::{CapabilitiesCanonical, Merge},
+};
 use crate::{
   config::Config,
   helpers::{self, os},
@@ -23,6 +25,7 @@ use crate::{
   FileFormat, FILE_EXTENSIONS_GLOB,
 };
 
+mod defaults;
 mod repr;
 
 #[derive(Clone, Debug)]
@@ -92,9 +95,9 @@ pub enum Error {
   #[diagnostic(code(dotfiles::filename::strip))]
   PathStrip(#[source] std::path::StripPrefixError),
 
-  #[error("Could not read dot file")]
+  #[error("Could not read file {0}")]
   #[diagnostic(code(dot::read))]
-  ReadingDot(#[source] std::io::Error),
+  ReadingDot(PathBuf, #[source] std::io::Error),
 
   #[error("Error walking dotfiles")]
   #[diagnostic(code(dotfiles::walk))]
@@ -132,13 +135,12 @@ pub enum Error {
 
 #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
 pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
-  let defaults = get_defaults(dotfiles_path).map_err(|e| *e)?;
+  let defaults = Defaults::from_path(dotfiles_path).map_err(|e| *e)?;
 
   let dots = helpers::glob_from_vec(dots, format!("/dot.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some))?;
 
   let paths = WalkDir::new(dotfiles_path)
     .into_iter()
-    .par_bridge()
     .filter(|e| e.as_ref().map_or(true, |e| !e.file_type().is_dir()))
     .map(|d| -> Result<(std::string::String, std::path::PathBuf), Error> {
       let d = d.map_err(Error::WalkingDotfiles)?;
@@ -155,7 +157,7 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
       Err(err) => err.pipe(Err),
     });
 
-  let dotfiles = crate::helpers::join_err_result(paths.collect())?.into_par_iter().map(|p| {
+  let dotfiles = crate::helpers::join_err_result(paths.collect())?.into_iter().map(|p| {
     let name = p.0.parent().unwrap().to_path_buf().to_slash_lossy().to_string();
     (name, fs::read_to_string(dotfiles_path.join(&p.0)).map(|d| (d, p.1)).map_err(|e| Error::Io(dotfiles_path.join(p.0), e)))
   });
@@ -172,7 +174,7 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
         }
       };
 
-      let defaults = if let Some((defaults, format)) = defaults.as_ref() {
+      let defaults = if let Some((defaults, format)) = defaults.for_path(&name) {
         match engine.render(defaults, &parameters) {
           Ok(rendered) => match repr::DotCanonical::parse(&rendered, *format) {
             Ok(parsed) => Into::<CapabilitiesCanonical>::into(parsed).into(),
@@ -210,33 +212,6 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
   }
 
   dots.pipe(Ok)
-}
-
-#[cfg_attr(feature = "profiling", instrument)]
-fn get_defaults(dotfiles_path: &Path) -> Result<Option<(String, FileFormat)>, Box<Error>> {
-  let mut defaults = helpers::get_file_with_format(dotfiles_path, "dots");
-  if let Some(defaults) = &defaults {
-    let path = defaults.0.to_string_lossy().to_string();
-    println!(
-      "Warning: {:?}",
-      Report::new(Error::DotsDeprecated(defaults.1.to_string(), (path.rfind("dots").unwrap(), "dots".len()).into(), path))
-    );
-  } else {
-    defaults = helpers::get_file_with_format(dotfiles_path, "dots");
-  }
-
-  if let Some(defaults) = defaults {
-    match fs::read_to_string(defaults.0) {
-      Ok(text) => (text, defaults.1).into(),
-      Err(err) => match err.kind() {
-        std::io::ErrorKind::NotFound => None,
-        _ => Error::ReadingDot(err).pipe(Err)?,
-      },
-    }
-  } else {
-    None
-  }
-  .pipe(Ok)
 }
 
 #[cfg_attr(feature = "profiling", instrument)]

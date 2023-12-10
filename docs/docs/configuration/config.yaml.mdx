@@ -58,11 +58,11 @@ These variables can be used in [templates](templating.md).
 
 ## Repo defaults
 
-It is possible to put a config file in your repo conatining default values depending on the OS. These are overridden by the config file on the machine.
+It is possible to put a config file in your repo containing default values depending on the OS. These are overridden by the config file on the machine.
 
 <TabedCodeBlock title=".dotfiles/config.{{ format }}"
   data={{
-    default: Section({
+    global: Section({
       link_type: '<globalDefault>'
     }),
     windows: Section({
@@ -75,3 +75,9 @@ It is possible to put a config file in your repo conatining default values depen
       dotfiles: '<macosDefault>'
     })
   }} />
+
+> If no `global`, `windows`, `linux` or `darwin` key is provided the `global` key will be assumed.
+>  <TabedCodeBlock title=".dotfiles/config.{{ format }}"
+>  data={{
+>      link_type: '<globalDefault>'
+>  }} />

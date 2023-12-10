@@ -1,7 +1,7 @@
 #![cfg_attr(all(nightly, coverage), feature(no_coverage))]
 
 use std::{
-  collections::HashMap,
+  collections::{HashMap, HashSet},
   convert::TryFrom,
   fs::{self, File},
   path::{Path, PathBuf},
@@ -75,6 +75,10 @@ pub enum Error {
   #[error("Cloud not parse config")]
   #[diagnostic(code(config::local::parse), help("Did you provide a top level \"global\" key in the repo level config?"))]
   RepoConfigProfile(#[source] figment::Error),
+
+  #[error("Default profile not allowed in config")]
+  #[diagnostic(code(config::local::default), help("Change the top level \"default\" key in the repo level config to \"global\""))]
+  RepoConfigDefaultProfile,
 }
 
 pub(crate) static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or(Error::GettingDirs("application data")).expect("Could not read project dirs"));
@@ -198,11 +202,9 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
     figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
   }
 
-  figment
-    .join(Config::default())
-    .select(os::OS.to_string().to_ascii_lowercase())
-    .extract()
-    .map_err(Error::RepoConfigProfile)
+  let tmp = figment.join(Config::default()).select(os::OS.to_string().to_ascii_lowercase());
+
+  tmp.extract().map_err(Error::RepoConfigProfile)
 }
 
 trait FigmentExt {
@@ -233,6 +235,13 @@ impl<F: Format> DataExt for figment::providers::Data<F> {
   }
 }
 
+#[derive(strum::Display, strum::EnumString)]
+#[strum(ascii_case_insensitive)]
+enum Profiles {
+  Force,
+  Global,
+}
+
 impl FigmentExt for Figment {
   fn merge_from_path(self, path: impl AsRef<Path>, nested: bool) -> Result<Self, Error> {
     let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
@@ -256,35 +265,71 @@ impl FigmentExt for Figment {
     self.pipe(Ok)
   }
 
-  fn join_from_path(self, path: impl AsRef<Path>, nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
+  fn join_from_path(self, path: impl AsRef<Path>, mut nested: bool, mapping: HashMap<Profile, Profile>) -> Result<Self, Error>
   where
     Self: std::marker::Sized,
   {
     let config_str = fs::read_to_string(&path).map_err(|e| Error::ReadingConfig(path.as_ref().to_path_buf(), e))?;
     if !config_str.is_empty() {
       let file_extension = &*path.as_ref().extension().unwrap().to_string_lossy();
-      return match file_extension {
+
+      if nested {
+        let profiles = match file_extension {
+          #[cfg(feature = "yaml")]
+          "yaml" | "yml" => serde_yaml::from_str::<serde_json::Map<String, serde_json::Value>>(&config_str).unwrap().pipe(Ok),
+          #[cfg(feature = "toml")]
+          "toml" => serde_toml::from_str::<serde_json::Map<String, serde_json::Value>>(&config_str).unwrap().pipe(Ok),
+          #[cfg(feature = "json")]
+          "json" => serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&config_str).unwrap().pipe(Ok),
+          _ => {
+            let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
+            return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
+          }
+        }?
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect::<HashSet<String>>();
+
+        if profiles.contains(&Profile::Default.to_string().to_lowercase()) {
+          Error::RepoConfigDefaultProfile.pipe(Err)?;
+        }
+
+        nested = profiles.iter().any(|p| Profiles::try_from(p.as_str()).is_ok() || os::Os::try_from(p.as_str()).is_ok());
+      }
+
+      match file_extension {
         #[cfg(feature = "yaml")]
-        "yaml" | "yml" => self.join(MappedProfileProvider {
-          mapping,
-          provider: Yaml::string(&config_str).set_nested(nested),
-        }),
+        "yaml" | "yml" => {
+          return self
+            .join(MappedProfileProvider {
+              mapping,
+              provider: Yaml::string(&config_str).set_nested(nested),
+            })
+            .pipe(Ok)
+        }
         #[cfg(feature = "toml")]
-        "toml" => self.join(MappedProfileProvider {
-          mapping,
-          provider: Toml::string(&config_str).set_nested(nested),
-        }),
+        "toml" => {
+          return self
+            .join(MappedProfileProvider {
+              mapping,
+              provider: Toml::string(&config_str).set_nested(nested),
+            })
+            .pipe(Ok)
+        }
         #[cfg(feature = "json")]
-        "json" => self.join(MappedProfileProvider {
-          mapping,
-          provider: Json::string(&config_str).set_nested(nested),
-        }),
+        "json" => {
+          return self
+            .join(MappedProfileProvider {
+              mapping,
+              provider: Json::string(&config_str).set_nested(nested),
+            })
+            .pipe(Ok)
+        }
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();
           return Error::UnknownExtension(file_name.clone(), (file_name.rfind(file_extension).unwrap(), file_extension.len()).into()).pipe(Err);
         }
       }
-      .pipe(Ok);
     }
 
     self.pipe(Ok)

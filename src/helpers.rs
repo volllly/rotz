@@ -51,9 +51,11 @@ where
 
 pub mod os {
   use derive_more::{Display, IsVariant};
+  use strum::EnumString;
 
-  #[derive(IsVariant, Display)]
+  #[derive(IsVariant, Display, EnumString)]
   #[allow(dead_code)]
+  #[strum(ascii_case_insensitive)]
   pub enum Os {
     Windows,
     Linux,

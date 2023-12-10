@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2023-12-10
+
+### Added
+
+- Default files `default.(yaml|toml|json)` can now be located in any folder of the dotfiles repo. The defaults will be applied to all `dot.(yaml|toml|json)` files in the same folder and all subfolders.
+
+### Changed
+
+- Repo level config file now don't need to specify `global`, `windows`, `linux` or `darwin` keys. If none is provided the `global` key will be used.
+
 ## [0.9.5] - 2023-07-14
 
 ### Added
@@ -211,7 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.9.5...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/volllly/rotz/releases/tag/v0.10.0
 [0.9.5]: https://github.com/volllly/rotz/releases/tag/v0.9.5
 [0.9.4]: https://github.com/volllly/rotz/releases/tag/v0.9.4
 [0.9.3]: https://github.com/volllly/rotz/releases/tag/v0.9.3

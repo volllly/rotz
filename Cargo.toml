@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.9.5"
+version = "0.10.0"
 edition = "2021"
 authors = ["Paul Volavsek <paul.volavsek@gmail.com>"]
 license = "MIT"
@@ -55,7 +55,7 @@ tap = "1.0.1"
 tracing = { version = "0.1.40", optional = true }
 tracing-tracy = { version = "0.10.4", optional = true }
 tracing-subscriber = { version = "0.3.18", optional = true }
-rayon = "1.8.0"
+strum = { version = "0.25", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"

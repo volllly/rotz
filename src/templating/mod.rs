@@ -162,7 +162,6 @@ impl<'b> Engine<'b> {
       os: &helpers::os::OS.to_string().to_ascii_lowercase(),
       dirs: &DIRECTORY_PRAMETERS,
     };
-
     self.render_template(template, &complete).map_err(Error::RenderingTemplate)
   }
 
