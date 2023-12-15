@@ -50,11 +50,9 @@ where
 }
 
 pub mod os {
-  use derive_more::{Display, IsVariant};
-  use strum::EnumString;
+  use strum::{Display, EnumIs, EnumString};
 
-  #[derive(IsVariant, Display, EnumString)]
-  #[allow(dead_code)]
+  #[derive(EnumIs, Display, EnumString)]
   #[strum(ascii_case_insensitive)]
   pub enum Os {
     Windows,
