@@ -9,8 +9,7 @@ use tracing::instrument;
 use crate::{helpers, FileFormat, FILE_EXTENSIONS, PROJECT_DIRS};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
-pub(crate) enum Error 
-{
+pub(crate) enum Error {
   #[error("Could not read state file")]
   #[diagnostic(code(state::read))]
   Reading(#[source] std::io::Error),
