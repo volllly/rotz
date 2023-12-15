@@ -22,8 +22,7 @@ pub struct PathBuf(pub(crate) std::path::PathBuf);
 
 impl From<std::path::PathBuf> for PathBuf {
   fn from(value: std::path::PathBuf) -> Self {
-    Self(value
-    )
+    Self(value)
   }
 }
 
