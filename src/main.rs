@@ -9,7 +9,6 @@ use std::{
 
 use clap::Parser;
 use commands::Command;
-use derive_more::Display;
 use directories::{ProjectDirs, UserDirs};
 #[cfg(feature = "json")]
 use figment::providers::Json;
@@ -24,6 +23,7 @@ use figment::{
 use helpers::os;
 use miette::{Diagnostic, Result, SourceSpan};
 use once_cell::sync::Lazy;
+use strum::Display;
 
 mod helpers;
 
@@ -98,13 +98,13 @@ pub(crate) const FILE_EXTENSIONS: &[(&str, FileFormat)] = &[
 #[derive(Debug, Display, Clone, Copy)]
 pub(crate) enum FileFormat {
   #[cfg(feature = "yaml")]
-  #[display(fmt = "yaml")]
+  #[strum(to_string = "yaml")]
   Yaml,
   #[cfg(feature = "toml")]
-  #[display(fmt = "toml")]
+  #[strum(to_string = "toml")]
   Toml,
   #[cfg(feature = "json")]
-  #[display(fmt = "json")]
+  #[strum(to_string = "json")]
   Json,
 }
 

@@ -3,10 +3,10 @@ use std::{
   path::PathBuf,
 };
 
-use derive_more::IsVariant;
 #[cfg(test)]
 use fake::Dummy;
 use serde::Deserialize;
+use strum::EnumIs;
 use tap::{Conv, Pipe};
 #[cfg(feature = "profiling")]
 use tracing::instrument;
@@ -134,7 +134,7 @@ enum LinksComplex {
   Many(HashSet<PathBuf>),
 }
 
-#[derive(Deserialize, Clone, Debug, IsVariant)]
+#[derive(Deserialize, Clone, Debug, EnumIs)]
 #[serde(untagged)]
 #[cfg_attr(test, derive(Dummy))]
 #[serde(deny_unknown_fields)]
@@ -148,7 +148,7 @@ enum InstallsComplex {
   },
 }
 
-#[derive(Deserialize, Clone, Debug, IsVariant)]
+#[derive(Deserialize, Clone, Debug, EnumIs)]
 #[serde(untagged)]
 #[cfg_attr(test, derive(Dummy))]
 #[serde(deny_unknown_fields)]

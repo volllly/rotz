@@ -7,20 +7,20 @@ use std::{
 
 use clap::ValueEnum;
 use crossterm::style::Stylize;
-use derive_more::{Display, IsVariant};
 #[cfg(test)]
 use fake::{Dummy, Fake};
 use figment::{providers::Serialized, value, Metadata, Profile, Provider};
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
+use strum::{Display, EnumIs};
 use tap::{Pipe, TryConv};
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 
 use crate::{helpers, FileFormat, USER_DIRS};
 
-#[derive(Debug, ValueEnum, Clone, Display, Deserialize, Serialize, IsVariant)]
+#[derive(Debug, ValueEnum, Clone, Display, Deserialize, Serialize, EnumIs)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum LinkType {
   /// Uses symbolic links for linking
