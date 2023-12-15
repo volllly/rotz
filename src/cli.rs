@@ -1,8 +1,7 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use baker::Bake;
 use clap::{Args, Parser, Subcommand};
-use derive_more::{From, FromStr, Into};
 #[cfg(test)]
 use fake::Dummy;
 use figment::{
@@ -17,9 +16,24 @@ use tracing::instrument;
 
 use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
 
-#[derive(From, Debug, FromStr, Into, Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub struct PathBuf(pub(crate) std::path::PathBuf);
+
+impl From<std::path::PathBuf> for PathBuf {
+  fn from(value: std::path::PathBuf) -> Self {
+    Self(value
+    )
+  }
+}
+
+impl FromStr for PathBuf {
+  type Err = <std::path::PathBuf as FromStr>::Err;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    PathBuf(std::path::PathBuf::from_str(s)?).pipe(Ok)
+  }
+}
 
 impl Display for PathBuf {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
