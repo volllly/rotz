@@ -1,7 +1,7 @@
-name: Slash Command Dispatch
+name: Chat Ops
 on:
   issue_comment:
-    types: created
+    types: [created]
 jobs:
   chatOpsDispatch:
     runs-on: ubuntu-latest
@@ -9,13 +9,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Slash Command Dispatch
-        uses: ./
+        uses: peter-evans/slash-command-dispatch@v3
         id: scd
         with:
           token: ${{ secrets.CHAT_OPS }}
           commands: |
             fmt
-          permission: none
           issue-type: pull-request
 
       - name: Edit comment with error message
