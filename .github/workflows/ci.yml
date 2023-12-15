@@ -193,7 +193,7 @@ jobs:
       - run: cross build --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }} ${{ matrix.target.args || '' }}
         if: matrix.target.compile == 'cross'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: rotz-${{ matrix.target.triple }}
           path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
