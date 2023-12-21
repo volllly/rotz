@@ -25,7 +25,7 @@ profiling = ["tracing", "tracing-tracy"]
 
 [dependencies]
 clap = { version = "4.4.11", features = ["derive", "color"] }
-serde_yaml = { version = "0.9.27", optional = true }
+serde_yaml = { version = "0.9.28", optional = true }
 serde_toml = { package = "toml", version = "0.8.8", optional = true }
 serde_json = { version = "1.0.108", optional = true }
 figment = { version = "0.10.12", default-features = false, features = ["env"] }
@@ -34,7 +34,7 @@ once_cell = "1.19.0"
 serde = { version = "1.0.193", features = ["derive"] }
 crossterm = "0.27.0"
 itertools = "0.12.0"
-thiserror = "1.0.50"
+thiserror = "1.0.51"
 baker = "0.2.0"
 miette = { version = "5.10.0", features = ["fancy"] }
 indexmap = "2.1.0"
@@ -69,7 +69,7 @@ openssl-sys = { version = "0.9.97", features = ["vendored"] }
 openssl-sys = { version = "0.9.97", features = ["vendored"] }
 
 [dev-dependencies]
-fake = { version = "2.9.1", features = ["derive"] }
+fake = { version = "2.9.2", features = ["derive"] }
 rand = "0.8.5"
 rstest = "0.18.2"
 speculoos = "0.11.0"
