@@ -245,7 +245,7 @@ jobs:
           done
 
       - name: Create github Release
-        uses: docker://antonyurchenko/git-release:v5
+        uses: docker://antonyurchenko/git-release:v6
         with:
           args: artifacts/*
         env:
