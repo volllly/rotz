@@ -36,9 +36,9 @@ crossterm = "0.27.0"
 itertools = "0.12.0"
 thiserror = "1.0.51"
 baker = "0.2.0"
-miette = { version = "5.10.0", features = ["fancy"] }
+miette = { version = "7.2.0", features = ["fancy"] }
 indexmap = "2.1.0"
-handlebars = "4.5.0"
+handlebars = "5.1.2"
 handlebars_misc_helpers = { version = "0.13.0", default-features = false, features = [
   "string",
   "json",
