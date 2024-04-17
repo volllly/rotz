@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
 
-use crossterm::style::Attribute;
+use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Result};
 use tap::Pipe;
 #[cfg(feature = "profiling")]
@@ -39,27 +39,26 @@ impl Command for Sync {
 
   #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (globals, sync): Self::Args) -> Self::Result {
-    if !sync.no_push {
-      println!("{}Adding files{}\n", Attribute::Bold, Attribute::Reset);
-      let globs = helpers::glob_from_vec(&sync.dots, "/**".pipe(Some))?;
+    println!("{}Adding files{}", Attribute::Bold, Attribute::Reset);
+    let globs = helpers::glob_from_vec(&sync.dots, None)?;
 
-      for entry in WalkDir::new(&self.config.dotfiles)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|e| globs.is_match(e.path()))
-        .filter(|e| !e.file_type().is_dir())
-      {
-        helpers::run_command(
-          "git",
-          &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("add"), OsStr::new(entry.path()), OsStr::new("-v")],
-          true,
-          globals.dry_run,
-        )
-        .map_err(|err| Error::CommandExecute("Add".to_owned(), err))?;
-      }
+    for entry in WalkDir::new(&self.config.dotfiles)
+      .into_iter()
+      .filter_map(Result::ok)
+      .filter(|e| !e.path().starts_with(".git"))
+      .filter(|e| globs.is_match(e.path()))
+      .filter(|e| !e.file_type().is_dir())
+    {
+      helpers::run_command(
+        "git",
+        &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("add"), OsStr::new(entry.path()), OsStr::new("-v")],
+        true,
+        globals.dry_run,
+      )
+      .map_err(|err| Error::CommandExecute("Add".to_owned(), err))?;
     }
 
-    println!("\n{}Commiting{}\n", Attribute::Bold, Attribute::Reset);
+    println!("\n{}Commiting{}", Attribute::Bold, Attribute::Reset);
     helpers::run_command(
       "git",
       &[
@@ -74,15 +73,15 @@ impl Command for Sync {
     )
     .map_err(|err| Error::CommandExecute("Commit".to_owned(), err))?;
 
-    println!("\n{}Pulling{}\n", Attribute::Bold, Attribute::Reset);
+    println!("\n{}Pulling{}", Attribute::Bold, Attribute::Reset);
     helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("pull")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Pull".to_owned(), err))?;
 
     if !sync.no_push {
-      println!("\n{}Pushing{}\n", Attribute::Bold, Attribute::Reset);
+      println!("\n{}Pushing{}", Attribute::Bold, Attribute::Reset);
       helpers::run_command("git", &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("push")], true, globals.dry_run).map_err(|err| Error::CommandExecute("Push".to_owned(), err))?;
     }
 
-    println!("\n{}Sync complete{}\n", Attribute::Bold, Attribute::Reset);
+    println!("\n{}Sync complete{}", Attribute::Bold, Attribute::Reset);
 
     ().pipe(Ok)
   }
