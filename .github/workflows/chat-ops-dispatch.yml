@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Slash Command Dispatch
-        uses: peter-evans/slash-command-dispatch@v3
+        uses: peter-evans/slash-command-dispatch@v4
         id: scd
         with:
           token: ${{ secrets.CHAT_OPS }}
