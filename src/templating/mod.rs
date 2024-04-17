@@ -39,7 +39,7 @@ pub struct WhoamiPrameters {
   pub username: String,
   pub lang: Vec<String>,
   pub devicename: String,
-  pub hostname: String,
+  pub hostname: Option<String>,
   pub platform: String,
   pub distro: String,
   pub desktop_env: String,
@@ -49,9 +49,9 @@ pub struct WhoamiPrameters {
 pub static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameters {
   realname: whoami::realname(),
   username: whoami::username(),
-  lang: whoami::lang().collect_vec(),
+  lang: whoami::langs().map(|l| l.map(|l| l.to_string()).collect_vec()).unwrap_or_default(),
   devicename: whoami::devicename(),
-  hostname: whoami::hostname(),
+  hostname: whoami::fallible::hostname().ok(),
   platform: whoami::platform().to_string(),
   distro: whoami::distro(),
   desktop_env: whoami::desktop_env().to_string(),
@@ -144,7 +144,7 @@ impl<'b> Engine<'b> {
     hb.register_helper(
       "eval",
       EvalHelper {
-        shell_command: config.shell_command.as_ref().cloned(),
+        shell_command: config.shell_command.clone(),
         dry_run: cli.dry_run,
       }
       .pipe(Box::new),
