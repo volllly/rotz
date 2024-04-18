@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
 
-use crossterm::style::{Attribute, Stylize};
+use crossterm::style::Attribute;
 use miette::{Diagnostic, Result};
 use tap::Pipe;
 #[cfg(feature = "profiling")]

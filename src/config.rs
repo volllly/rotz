@@ -163,7 +163,7 @@ pub enum Error {
 
   #[error("Config file already exists")]
   #[diagnostic(code(config::exists))]
-  AlreadyExists(#[label] Option<SourceSpan>, #[source_code] NamedSource, #[related] Vec<AlreadyExistsError>),
+  AlreadyExists(#[label] Option<SourceSpan>, #[source_code] NamedSource<String>, #[related] Vec<AlreadyExistsError>),
 
   #[error("Could not parse dotfiles directory \"{0}\"")]
   #[diagnostic(code(config::filename::parse), help("Did you enter a valid file?"))]

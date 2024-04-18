@@ -110,12 +110,12 @@ pub enum Error {
   #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
-  ParseDot(#[source_code] NamedSource, #[label] SourceSpan, #[related] Vec<helpers::ParseError>),
+  ParseDot(#[source_code] NamedSource<String>, #[label] SourceSpan, #[related] Vec<helpers::ParseError>),
 
   #[cfg(feature = "yaml")]
   #[error("Could not render template for dot")]
   #[diagnostic(code(dot::render))]
-  RenderDot(#[source_code] NamedSource, #[label] SourceSpan, #[source] templating::Error),
+  RenderDot(#[source_code] NamedSource<String>, #[label] SourceSpan, #[source] templating::Error),
 
   #[error("Io Error on file \"{0}\"")]
   #[diagnostic(code(io::generic))]

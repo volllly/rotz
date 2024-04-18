@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, path::PathBuf};
 
 use directories::BaseDirs;
-use handlebars::{Context, Handlebars, Helper, HelperDef, HelperResult, Output, RenderContext, RenderError, Renderable, ScopedJson};
+use handlebars::{Context, Handlebars, Helper, HelperDef, HelperResult, Output, RenderContext, RenderError, RenderErrorReason, Renderable, ScopedJson};
 use itertools::Itertools;
 use miette::Diagnostic;
 use once_cell::sync::Lazy;
@@ -25,6 +25,14 @@ pub enum Error {
   #[error("Could not render templeate")]
   #[diagnostic(code(template::render))]
   RenderingTemplate(#[source] handlebars::RenderError),
+
+  #[error("Could not parse eval command")]
+  #[diagnostic(code(template::eval::parse))]
+  ParseEvalCommand(#[source] shellwords::MismatchedQuotes),
+
+  #[error("Eval command did not run successfully")]
+  #[diagnostic(code(template::eval::run))]
+  RunEvalCommand(#[source] helpers::RunError),
 }
 
 #[derive(Serialize, Debug)]
@@ -175,7 +183,7 @@ pub struct WindowsHelper;
 
 impl HelperDef for WindowsHelper {
   #[cfg_attr(feature = "profiling", instrument(skip(self, out)))]
-  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
+  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
     if os::OS.is_windows() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
 }
@@ -184,7 +192,7 @@ pub struct LinuxHelper;
 
 impl HelperDef for LinuxHelper {
   #[cfg_attr(feature = "profiling", instrument(skip(self, out)))]
-  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
+  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
     if os::OS.is_linux() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
 }
@@ -193,7 +201,7 @@ pub struct DarwinHelper;
 
 impl HelperDef for DarwinHelper {
   #[cfg_attr(feature = "profiling", instrument(skip(self, out)))]
-  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
+  fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'rc>, r: &'reg Handlebars<'reg>, ctx: &'rc Context, rc: &mut RenderContext<'reg, 'rc>, out: &mut dyn Output) -> HelperResult {
     if os::OS.is_darwin() { h.template() } else { h.inverse() }.map(|t| t.render(r, ctx, rc, out)).map_or(Ok(()), |r| r)
   }
 }
@@ -205,28 +213,27 @@ pub struct EvalHelper {
 
 impl HelperDef for EvalHelper {
   #[cfg_attr(feature = "profiling", instrument(skip(self)))]
-  fn call_inner<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, r: &'reg Handlebars<'reg>, _: &'rc Context, _: &mut RenderContext<'reg, 'rc>) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
+  fn call_inner<'reg: 'rc, 'rc>(&self, h: &Helper<'rc>, r: &'reg Handlebars<'reg>, _: &'rc Context, _: &mut RenderContext<'reg, 'rc>) -> Result<ScopedJson<'rc>, RenderError> {
     let cmd = h
       .param(0)
-      .ok_or_else(|| RenderError::new("Param not found for helper \"eval\""))?
+      .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("eval", 0))?
       .value()
       .as_str()
-      .ok_or_else(|| RenderError::new("Param needs to be a string \"eval\""))?;
+      .ok_or_else(|| RenderErrorReason::InvalidParamType("String"))?;
 
     if self.dry_run {
       format!("{{{{ eval \"{cmd}\" }}}}").conv::<handlebars::JsonValue>().conv::<handlebars::ScopedJson>().pipe(Ok)
     } else {
       let cmd = if let Some(shell_command) = self.shell_command.as_ref() {
-        r.render_template(shell_command, &hash_map! { "cmd": &cmd })
-          .map_err(|err| RenderError::from_error("Could not render shell command", err))?
+        r.render_template(shell_command, &hash_map! { "cmd": &cmd })?
       } else {
         cmd.to_owned()
       };
 
-      let cmd = shellwords::split(&cmd).map_err(|e| RenderError::from_error("Could not parse eval command", e))?;
+      let cmd = shellwords::split(&cmd).map_err(|e| RenderErrorReason::NestedError(Box::new(Error::ParseEvalCommand(e))))?;
 
       match helpers::run_command(&cmd[0], &cmd[1..], true, false) {
-        Err(err) => RenderError::from_error("Eval command did not run successfully", err).pipe(Err),
+        Err(err) => RenderErrorReason::NestedError(Box::new(Error::RunEvalCommand(err))).conv::<RenderError>().pipe(Err),
         Ok(result) => result.trim().conv::<handlebars::JsonValue>().conv::<handlebars::ScopedJson>().pipe(Ok),
       }
     }

@@ -142,7 +142,7 @@ fn main() -> Result<(), miette::Report> {
   use tracing_subscriber::prelude::*;
   use tracing_tracy::TracyLayer;
 
-  let tracy_layer = TracyLayer::new();
+  let tracy_layer = TracyLayer::default();
   tracing_subscriber::registry().with(tracy_layer).init();
 
   let result = run();
