@@ -38,7 +38,7 @@ thiserror = "1.0.58"
 baker = "0.2.0"
 miette = { version = "7.2.0", features = ["fancy"] }
 indexmap = "2.2.6"
-handlebars = "5.1.2"
+handlebars = "6.0.0"
 handlebars_misc_helpers = { version = "0.15.0", default-features = false, features = [
   "string",
   "json",
