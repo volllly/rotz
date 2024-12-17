@@ -1,3 +1,6 @@
+#![allow(clippy::needless_borrows_for_generic_args)]
+use std::path::Path;
+
 use figment::{util::map, value};
 use rstest::rstest;
 use speculoos::prelude::*;
@@ -6,6 +9,7 @@ use super::{Engine, Parameters};
 use crate::{
   cli::{Cli, Command, PathBuf},
   config::{Config, LinkType},
+  dot::read_dots,
   helpers::os,
 };
 
@@ -47,6 +51,24 @@ fn templating(#[case] template: &str, #[case] expected: &str) {
   };
 
   assert_that!(Engine::new(&config, &cli).render(template, &Parameters { config: &config, name: "name" }).unwrap()).is_equal_to(expected.to_owned());
+}
+
+#[test]
+fn name() {
+  let dots = read_dots(
+    Path::new(file!()).parent().unwrap().join("data/dotfiles01").as_path(),
+    &["/**".to_owned()],
+    &Default::default(),
+    &get_handlebars(),
+  )
+  .unwrap();
+  dbg!(&dots);
+  assert_that!(dots.iter().find(|d| d.0 == "/test01/test02"))
+    .is_some()
+    .map(|d| &d.1.installs)
+    .is_some()
+    .map(|i| &i.cmd)
+    .is_equal_to(&"test02".into());
 }
 
 #[test]

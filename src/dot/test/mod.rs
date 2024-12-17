@@ -19,11 +19,12 @@ fn read_all_dots() {
   .unwrap();
 
   assert_that!(dots)
-    .tap_mut(|d| d.has_length(4))
+    .tap_mut(|d| d.has_length(5))
     .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test01"))
     .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test02"))
     .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test04"))
-    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test05"));
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test05"))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test06"));
 
   assert_that!(dots.iter().find(|d| d.0 == "/test02"))
     .is_some()
@@ -55,9 +56,10 @@ fn read_sub_dots() {
   .unwrap();
 
   assert_that!(dots)
-    .tap_mut(|d| d.has_length(2))
+    .tap_mut(|d| d.has_length(3))
     .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test04"))
-    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test05"));
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test05"))
+    .tap_mut(|d| d.mapped_contains(|d| &d.0, &"/test03/test06"));
 }
 
 #[test]
@@ -95,7 +97,7 @@ fn read_sub_dots_with_defaults() {
   .unwrap();
 
   assert_that!(dots)
-    .tap_mut(|d| d.has_length(2))
+    .tap_mut(|d| d.has_length(3))
     .select_and(
       |d| d.iter().find(|d| d.0 == "/test03/test04").unwrap(),
       |d| {
@@ -104,6 +106,12 @@ fn read_sub_dots_with_defaults() {
     )
     .select_and(
       |d| d.iter().find(|d| d.0 == "/test03/test05").unwrap(),
+      |d| {
+        d.map(|d| &d.1).matches(|i| i.installs.as_ref().unwrap().cmd == "test03");
+      },
+    )
+    .select_and(
+      |d| d.iter().find(|d| d.0 == "/test03/test06").unwrap(),
       |d| {
         d.map(|d| &d.1).matches(|i| i.installs.as_ref().unwrap().cmd == "test03");
       },
