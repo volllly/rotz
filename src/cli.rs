@@ -132,23 +132,6 @@ pub struct InstallRaw {
   pub(crate) skip_all_dependencies: bool,
 }
 
-#[derive(Debug, Args, Bake, Clone)]
-#[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
-#[baked(name = "Sync", derive(Debug))]
-pub struct SyncRaw {
-  #[clap(flatten)]
-  #[baked(type = "Vec<String>", map_fn(bake = "|l| l.dots.add_root().dots"))]
-  pub(crate) dots: Dots,
-
-  #[clap(long, short)]
-  /// Do not push changes
-  pub(crate) no_push: bool,
-
-  #[clap(long, short)]
-  /// Specify commit message
-  pub(crate) message: Option<String>,
-}
-
 #[derive(Subcommand, Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum Command {
@@ -168,12 +151,6 @@ pub enum Command {
   Link {
     #[clap(flatten)]
     link: LinkRaw,
-  },
-
-  /// Syncs dotfiles with the git repository
-  Sync {
-    #[clap(flatten)]
-    sync: SyncRaw,
   },
 
   /// Installs applications using the provided commands

@@ -7,9 +7,6 @@ pub(crate) use install::Install;
 pub mod link;
 pub(crate) use link::Link;
 
-pub mod sync;
-pub use sync::Sync;
-
 pub mod init;
 pub use init::Init;
 
