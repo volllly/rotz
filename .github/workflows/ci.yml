@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.lint)
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -153,6 +153,21 @@ jobs:
             compile: cross
 
           - triple: i686-unknown-linux-musl
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: x86_64-unknown-freebsd-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: aarch64-unknown-freebsd-gnu
+            filename: rotz
+            runner: ubuntu-latest
+            compile: cross
+
+          - triple: i686-unknown-freebsd-gnu
             filename: rotz
             runner: ubuntu-latest
             compile: cross
