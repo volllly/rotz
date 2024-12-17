@@ -20,38 +20,38 @@ This allows for e.g. access to environment variables.
  
 ### `whoami`
 
-| Variable      | Description                               |
-|---------------|-------------------------------------------|
-| `desktop_env` | Information about the Desktop environment |
-| `devicename`  | The device name                           |
-| `distro`      | The os distro                             |
-| `hostname`    | The hostname                              |
-| `lang`        | An array of the users prefered languages  |
-| `platform`    | The current platform                      |
-| `realname`    | The users full name                       |
-| `username`    | The current users username                |
-| `arch`        | The CPU architecture of the system.       |
+| Variable             | Description                               |
+|----------------------|-------------------------------------------|
+| `whoami.desktop_env` | Information about the Desktop environment |
+| `whoami.devicename`  | The device name                           |
+| `whoami.distro`      | The os distro                             |
+| `whoami.hostname`    | The hostname                              |
+| `whoami.lang`        | An array of the users prefered languages  |
+| `whoami.platform`    | The current platform                      |
+| `whoami.realname`    | The users full name                       |
+| `whoami.username`    | The current users username                |
+| `whoami.arch`        | The CPU architecture of the system.       |
 
 ### `directories`
 
-| Group  | Variable     |
-|--------|--------------|
-| `base` | `cache`      |
-| `base` | `config`     |
-| `base` | `data`       |
-| `base` | `data_local` |
-| `base` | `home`       |
-| `base` | `preference` |
-|        |              |
-| `user` | `audio`      |
-| `user` | `desktop`    |
-| `user` | `document`   |
-| `user` | `download`   |
-| `user` | `home`       |
-| `user` | `picture`    |
-| `user` | `public`     |
-| `user` | `template`   |
-| `user` | `video`      |
+| Variable          |
+|-------------------|
+| `base.cache`      |
+| `base.config`     |
+| `base.data`       |
+| `base.data_local` |
+| `base.home`       |
+| `base.preference` |
+|                   |
+| `user.audio`      |
+| `user.desktop`    |
+| `user.document`   |
+| `user.download`   |
+| `user.home`       |
+| `user.picture`    |
+| `user.public`     |
+| `user.template`   |
+| `user.video`      |
 
 ## Helpers
 
