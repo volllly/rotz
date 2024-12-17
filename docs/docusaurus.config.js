@@ -95,10 +95,6 @@ const config = {
                 href: 'https://github.com/volllly/rotz',
               },
               {
-                label: 'Roadmap',
-                href: 'https://github.com/users/volllly/projects/1/views/1',
-              },
-              {
                 label: 'crates.io',
                 href: 'https://crates.io/crates/rotz',
               },

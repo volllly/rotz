@@ -34,11 +34,6 @@ function HomepageHeader() {
             to="/docs/configuration">
             Configuration
           </Link>
-          <Link
-            className="button button--lg"
-            to="https://github.com/users/volllly/projects/1/views/1">
-            Roadmap
-          </Link>
         </div>
       </div>
     </header>
