@@ -1,6 +1,6 @@
 [package]
 name = "rotz"
-version = "0.10.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Paul Volavsek <paul.volavsek@gmail.com>"]
 license = "MIT"

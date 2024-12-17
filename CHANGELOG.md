@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2024-12-17
+
+### Removed
+
+- Removed the `sync` command from rotz ([334](https://github.com/volllly/rotz/discussions/334))
+
 ## [0.10.0] - 2023-12-10
 
 ### Added
@@ -221,7 +227,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/volllly/rotz/releases/tag/v1.0.0
 [0.10.0]: https://github.com/volllly/rotz/releases/tag/v0.10.0
 [0.9.5]: https://github.com/volllly/rotz/releases/tag/v0.9.5
 [0.9.4]: https://github.com/volllly/rotz/releases/tag/v0.9.4
