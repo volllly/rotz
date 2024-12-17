@@ -1,5 +1,3 @@
-#![cfg_attr(all(nightly, coverage), feature(no_coverage))]
-
 use std::{
   collections::{HashMap, HashSet},
   convert::TryFrom,

@@ -36,7 +36,6 @@ where
   }
 }
 
-#[cfg_attr(all(nightly, coverage), no_coverage)]
 #[cfg_attr(feature = "profiling", instrument)]
 pub fn join_err<E>(result: Vec<E>) -> Result<(), MultipleErrors>
 where

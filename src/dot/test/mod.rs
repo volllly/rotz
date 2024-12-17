@@ -29,19 +29,19 @@ fn read_all_dots() {
     .is_some()
     .select(|d| &d.1.depends)
     .is_some()
-    .contains(&"/test01".to_owned());
+    .contains("/test01".to_owned());
 
   assert_that!(dots.iter().find(|d| d.0 == "/test03/test04"))
     .is_some()
     .select(|d| &d.1.depends)
     .is_some()
-    .contains(&"/test02".to_owned());
+    .contains("/test02".to_owned());
 
   assert_that!(dots.iter().find(|d| d.0 == "/test03/test05"))
     .is_some()
     .select(|d| &d.1.depends)
     .is_some()
-    .contains(&"/test03/test04".to_owned());
+    .contains("/test03/test04".to_owned());
 }
 
 #[test]

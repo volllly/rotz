@@ -173,7 +173,6 @@ pub enum Error {
   InvalidFileFormat(#[from] crate::Error),
 }
 
-#[cfg_attr(all(nightly, coverage), no_coverage)]
 #[cfg_attr(feature = "profiling", instrument)]
 pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
   let format = config_file.try_conv::<FileFormat>()?;
