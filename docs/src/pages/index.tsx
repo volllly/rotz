@@ -42,20 +42,11 @@ function HomepageHeader() {
 
 let commandList: FeatureItem[] = [
   {
-    emoji: '⬆️⬇️',
-    title: 'Keep dotfiles up to date',
+    emoji: '⬇️',
+    title: 'Clone your dotfiles',
     description: (
       <>
-        With Rotz you can easily sync your local dotfiles with a git repository using the <code>rotz sync</code> command.
-      </>
-    ),
-  },
-  {
-    emoji: '🚀',
-    title: 'Deploy dotfiles',
-    description: (
-      <>
-        You can automatically symlink your dotfiles to the correct places using the <code>rotz link</code> command.
+        With Rotz you can clone your dotfiles from a git repository using the <code>rotz clone</code> command.
       </>
     ),
   },
@@ -65,6 +56,15 @@ let commandList: FeatureItem[] = [
     description: (
       <>
         You can bootstrap your new machine using the <code>rotz install</code> command.
+      </>
+    ),
+  },
+  {
+    emoji: '🚀',
+    title: 'Deploy dotfiles',
+    description: (
+      <>
+        You can automatically symlink your dotfiles to the correct places using the <code>rotz link</code> command.
       </>
     ),
   },
