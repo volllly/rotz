@@ -26,7 +26,8 @@ pub struct CapabilitiesCanonical {
 impl From<CapabilitiesComplex> for CapabilitiesCanonical {
   #[cfg_attr(feature = "profiling", instrument)]
   fn from(value: CapabilitiesComplex) -> Self {
-    Self {
+    dbg!(&value);
+    dbg!(Self {
       links: value.links.map(|links| {
         links
           .into_iter()
@@ -43,16 +44,24 @@ impl From<CapabilitiesComplex> for CapabilitiesCanonical {
       }),
       installs: value.installs.map(Into::into),
       depends: value.depends,
-    }
+    })
   }
 }
 
 impl CapabilitiesCanonical {
   #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
-  pub fn from(DotCanonical { filters }: DotCanonical, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Self {
-    let mut capabilities: Option<Self> = None;
+  pub fn from(DotCanonical { mut filters }: DotCanonical, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Self {
+    dbg!(&filters);
+    let mut capabilities = filters
+      .iter()
+      .find(|(filters, _)| filters.is_global())
+      .map(|(f, _)| f)
+      .cloned()
+      .and_then(|global| filters.shift_remove(&global));
+    dbg!(&capabilities);
 
-    for (_, capability) in filters.into_iter().filter(|(filter, _)| filter.applies(engine, parameters)) {
+    let filters = filters.into_iter().filter(|(filter, _)| filter.applies(engine, parameters));
+    for (_, capability) in filters {
       capabilities = capabilities.merge(capability.into());
     }
 

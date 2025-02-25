@@ -56,8 +56,8 @@ pub struct Dot {
 fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&CapabilitiesCanonical>, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Result<Dot, Vec<helpers::ParseError>> {
   let capabilities: Option<CapabilitiesCanonical> = defaults
     .cloned()
-    .merge(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).pipe(Some));
-
+    .merge(dbg!(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).pipe(Some)));
+  dbg!(&capabilities);
   if let Some(capabilities) = capabilities {
     Dot {
       links: capabilities.links,

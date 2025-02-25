@@ -4,6 +4,7 @@ use chumsky::{Parser, error::Simple, prelude::*};
 #[cfg(test)]
 use fake::Dummy;
 use strum::EnumString;
+use tap::Pipe;
 
 use crate::helpers::os;
 use crate::templating::{Engine, Parameters};
@@ -101,14 +102,29 @@ pub struct Filters(Vec<Filter>);
 impl FromStr for Filters {
   type Err = Vec<chumsky::error::Simple<char>>;
   fn from_str(s: &str) -> Result<Filters, Self::Err> {
-    filter().separated_by(just('|').padded()).then_ignore(end()).parse(s).map(Filters)
+    filter()
+      .separated_by(just('|').padded())
+      .then_ignore(end())
+      .try_map(|filters, span| {
+        let filters = dbg!(Filters(filters));
+        if filters.is_global() && filters.0.len() > 1 {
+          Simple::custom(span, "global can not be mixed with an operating system").pipe(Err)
+        } else {
+          filters.pipe(Ok)
+        }
+      })
+      .parse(s)
   }
 }
 
 impl Filters {
+  pub fn is_global(&self) -> bool {
+    self.0.iter().any(|f| f.os == os::Os::Global)
+  }
+
   pub fn applies(&self, engine: &Engine, parameters: &Parameters) -> bool {
     self.0.iter().any(|filter| {
-      (filter.os == os::Os::Global || os::OS == filter.os)
+      os::OS == filter.os
         && filter.attributes.iter().all(|attribute| {
           let value = engine.render(&format!("{{ {} }}", &attribute.key), parameters).unwrap();
           match attribute.operator {
@@ -234,7 +250,7 @@ mod test {
     value: String::from("some")
     }
 ]}])]
-  #[case("windows[whoami.distribution$=\"some\", test=\"other\"]", vec![Filter { os: Os::Windows, attributes: vec![
+  #[case("global[whoami.distribution$=\"some\", test=\"other\"]", vec![Filter { os: Os::Global, attributes: vec![
   Attribute {
     key: String::from("whoami.distribution"),
     operator: Operator::EndsWith,
@@ -246,7 +262,7 @@ mod test {
       value: String::from("other")
       }
 ] }])]
-  #[case("global[whoami.distribution^=\"some\"]|windows[whoami.distribution$=\"some\", test=\"other\"]", vec![Filter { os: Os::Global, attributes: vec![
+  #[case("linux[whoami.distribution^=\"some\"]|windows[whoami.distribution$=\"some\", test=\"other\"]", vec![Filter { os: Os::Linux, attributes: vec![
   Attribute {
     key: String::from("whoami.distribution"),
     operator: Operator::StartsWith,
