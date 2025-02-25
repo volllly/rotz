@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use rstest::rstest;
 use speculoos::prelude::*;
 use tap::Tap;
 

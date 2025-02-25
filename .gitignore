@@ -15,3 +15,5 @@
 
 trace*.json
 .helix
+
+.DS_Store

@@ -49,9 +49,12 @@ where
 }
 
 pub mod os {
+  #[cfg(test)]
+  use fake::Dummy;
   use strum::{Display, EnumIs, EnumString};
 
-  #[derive(EnumIs, Display, EnumString)]
+  #[derive(EnumIs, Display, Debug, EnumString, Hash, PartialEq, Eq, Clone)]
+  #[cfg_attr(test, derive(Dummy))]
   #[strum(ascii_case_insensitive)]
   pub enum Os {
     Windows,
