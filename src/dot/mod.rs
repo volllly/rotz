@@ -6,7 +6,7 @@ use std::{
 
 use crossterm::style::Stylize;
 use itertools::Itertools;
-use miette::{Diagnostic, NamedSource, SourceSpan};
+use miette::NamedSource;
 use path_slash::PathBufExt;
 use tap::{Pipe, TryConv};
 #[cfg(feature = "profiling")]
@@ -19,14 +19,16 @@ use self::{
   repr::{CapabilitiesCanonical, Merge},
 };
 use crate::{
+  FILE_EXTENSIONS_GLOB, FileFormat,
   config::Config,
-  helpers::{self, os},
-  templating::{self, Parameters},
-  FileFormat, FILE_EXTENSIONS_GLOB,
+  helpers,
+  templating::{self, Engine, Parameters},
 };
 
 mod defaults;
+mod error;
 mod repr;
+pub use error::Error;
 
 #[derive(Clone, Debug)]
 pub struct Installs {
@@ -50,32 +52,11 @@ pub struct Dot {
   pub(crate) depends: Option<HashSet<String>>,
 }
 
-#[cfg_attr(feature = "profiling", instrument)]
-fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&CapabilitiesCanonical>) -> Result<Dot, Vec<helpers::ParseError>> {
-  let repr::DotCanonical {
-    global,
-    windows,
-    linux,
-    darwin,
-    windows_linux,
-    linux_darwin,
-    darwin_windows,
-  } = repr::DotCanonical::parse(s, format)?;
-  let mut capabilities: Option<CapabilitiesCanonical> = defaults.cloned().merge(global);
-
-  if os::OS.is_windows() {
-    capabilities = capabilities.merge(windows_linux);
-    capabilities = capabilities.merge(darwin_windows);
-    capabilities = capabilities.merge(windows);
-  } else if os::OS.is_linux() {
-    capabilities = capabilities.merge(windows_linux);
-    capabilities = capabilities.merge(linux_darwin);
-    capabilities = capabilities.merge(linux);
-  } else if os::OS.is_darwin() {
-    capabilities = capabilities.merge(linux_darwin);
-    capabilities = capabilities.merge(darwin_windows);
-    capabilities = capabilities.merge(darwin);
-  }
+#[cfg_attr(feature = "profiling", instrument(skip(engine)))]
+fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&CapabilitiesCanonical>, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Result<Dot, Vec<helpers::ParseError>> {
+  let capabilities: Option<CapabilitiesCanonical> = defaults
+    .cloned()
+    .merge(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).pipe(Some));
 
   if let Some(capabilities) = capabilities {
     Dot {
@@ -87,50 +68,6 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
     Dot::default()
   }
   .pipe(Ok)
-}
-
-#[derive(thiserror::Error, Diagnostic, Debug)]
-pub enum Error {
-  #[error("Could not get relative dot directory")]
-  #[diagnostic(code(dotfiles::filename::strip))]
-  PathStrip(#[source] std::path::StripPrefixError),
-
-  #[error("Could not read file {0}")]
-  #[diagnostic(code(dot::read))]
-  ReadingDot(PathBuf, #[source] std::io::Error),
-
-  #[error("Error walking dotfiles")]
-  #[diagnostic(code(dotfiles::walk))]
-  WalkingDotfiles(#[source] walkdir::Error),
-
-  #[error("The \"dots.{0}\" file is deprecated and support will be removed in a future version.")]
-  #[diagnostic(code(dot::defaults::deprecated), severity(warning), help("Please rename this file to \"defaults.{0}\"."))]
-  DotsDeprecated(String, #[label] SourceSpan, #[source_code] String),
-
-  #[cfg(feature = "yaml")]
-  #[error("Could not parse dot")]
-  #[diagnostic(code(dot::parse))]
-  ParseDot(#[source_code] NamedSource<String>, #[label] SourceSpan, #[related] Vec<helpers::ParseError>),
-
-  #[cfg(feature = "yaml")]
-  #[error("Could not render template for dot")]
-  #[diagnostic(code(dot::render))]
-  RenderDot(#[source_code] NamedSource<String>, #[label] SourceSpan, #[source] templating::Error),
-
-  #[error("Io Error on file \"{0}\"")]
-  #[diagnostic(code(io::generic))]
-  Io(PathBuf, #[source] std::io::Error),
-
-  #[error("Could not parse dependency path \"{0}\"")]
-  #[diagnostic(code(glob::parse))]
-  ParseDependency(PathBuf, #[source] std::io::Error),
-
-  #[error("Could not parse dot name \"{0}\"")]
-  #[diagnostic(code(glob::parse))]
-  ParseName(String, #[source] std::io::Error),
-
-  #[error(transparent)]
-  MultipleErrors(#[from] helpers::MultipleErrors),
 }
 
 #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
@@ -170,27 +107,27 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
         Err(err) => {
           return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
             .pipe(Err)
-            .into()
+            .into();
         }
       };
 
       let defaults = if let Some((defaults, format)) = defaults.for_path(&name) {
         match engine.render(defaults, &parameters) {
           Ok(rendered) => match repr::DotCanonical::parse(&rendered, *format) {
-            Ok(parsed) => Into::<CapabilitiesCanonical>::into(parsed).into(),
+            Ok(parsed) => CapabilitiesCanonical::from(parsed, engine, &parameters).into(),
             Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).pipe(Err).into(),
           },
           Err(err) => {
             return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).into(), err)
               .pipe(Err)
-              .into()
+              .into();
           }
         }
       } else {
         None
       };
 
-      match from_str_with_defaults(&text, format, defaults.as_ref()) {
+      match from_str_with_defaults(&text, format, defaults.as_ref(), engine, &parameters) {
         Ok(dot) => (name.clone(), dot).pipe(Ok).into(),
         Err(err) => Error::ParseDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
           .pipe(Err)

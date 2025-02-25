@@ -1,33 +1,44 @@
-use super::{Attribute, Filter, Operator};
-use crate::os::Os;
-use rstest::rstest;
-use speculoos::assert_that;
+use speculoos::{assert_that, prelude::*};
 
-#[rstest]
-#[case("windows", vec![Filter { os: Os::Windows, attributes: vec![] }])]
-#[case("windows|linux", vec![Filter { os: Os::Windows, attributes: vec![] }, Filter { os: Os::Linux, attributes: vec![] }])]
-#[case("darwin|linux", vec![Filter { os: Os::Darwin, attributes: vec![] }, Filter { os: Os::Linux, attributes: vec![] }])]
-#[case("linux[whoami.distribution^=\"some\"]", vec![Filter { os: Os::Windows, attributes: vec![
-  Attribute {
-    key: String::from("whoami.distribution"),
-    operator: Operator::StartsWith,
-    value: String::from("some")
-    }
-]}])]
-#[case("linux[whoami.distribution&=\"some\", test=\"other\"]", vec![Filter { os: Os::Windows, attributes: vec![
-  Attribute {
-    key: String::from("whoami.distribution"),
-    operator: Operator::EndsWith,
-    value: String::from("some")
-    },
-    Attribute {
-      key: String::from("test"),
-      operator: Operator::Eq,
-      value: String::from("other")
-      }
-] }])]
-fn filter_deserialization(#[case] from: &str, #[case] filter: Vec<Filter>) {
-  let parsed = Filter::from(from).unwrap();
+use super::DotComplex;
 
-  assert_that!(parsed).is_equal_to(&filter);
+#[test]
+fn serde_test() {
+  use indexmap::IndexMap;
+  use serde::Deserialize;
+
+  #[derive(Debug, Deserialize)]
+  struct Values {
+    key: String,
+  }
+
+  #[derive(Debug, Deserialize)]
+  struct Test {
+    #[serde(flatten)]
+    properties: IndexMap<String, Values>,
+  }
+
+  dbg!(serde_yaml::from_str::<Test>(
+    r"
+    test1:
+      key: key1
+    
+    test2:
+      key: key1
+    
+    test3:
+      key: key1 
+    "
+  ))
+  .ok();
+}
+#[test]
+fn parse_dot_complex() {
+  let dot_string = r"
+  global:
+    installs: test
+  ";
+
+  let dot = DotComplex::parse(dot_string, crate::FileFormat::Yaml).unwrap();
+  assert_that!(dot.filters.contains_key("global")).is_true();
 }

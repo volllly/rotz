@@ -17,7 +17,7 @@ use tap::Pipe;
 use tracing::instrument;
 use wax::{Any, Glob};
 
-use crate::{FileFormat, FILE_EXTENSIONS};
+use crate::{FILE_EXTENSIONS, FileFormat};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 #[error("Encountered multiple errors")]
@@ -57,6 +57,7 @@ pub mod os {
   #[cfg_attr(test, derive(Dummy))]
   #[strum(ascii_case_insensitive)]
   pub enum Os {
+    Global,
     Windows,
     Linux,
     Darwin,

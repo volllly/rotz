@@ -16,10 +16,11 @@ use wax::Pattern;
 
 use super::Command;
 use crate::{
+  USER_DIRS,
   config::{Config, LinkType},
   helpers,
   state::{self},
-  templating, USER_DIRS,
+  templating,
 };
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
@@ -175,7 +176,7 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked
     Ok(ok) => ok.pipe(Ok),
     Err(err) => match err.kind() {
       std::io::ErrorKind::AlreadyExists => {
-        if force || linked.map_or(false, |l| l.contains_key(to)) {
+        if force || linked.is_some_and(|l| l.contains_key(to)) {
           if to.is_dir() { fs::remove_dir_all(to) } else { fs::remove_file(to) }.map_err(|e| Error::Symlink(from.to_path_buf(), to.to_path_buf(), e))?;
           create(from, to)
         } else {
