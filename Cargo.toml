@@ -1,7 +1,7 @@
 [package]
 name = "rotz"
 version = "1.0.0"
-edition = "2021"
+edition = "2024"
 authors = ["Paul Volavsek <paul.volavsek@gmail.com>"]
 license = "MIT"
 description = "Fully cross platform dotfile manager written in rust."
@@ -40,8 +40,8 @@ miette = { version = "7.2.0", features = ["fancy"] }
 indexmap = "2.2.6"
 handlebars = "6.2.0"
 handlebars_misc_helpers = { version = "0.17.0", default-features = false, features = [
-  "string",
-  "json",
+    "string",
+    "json",
 ] }
 shellwords = "1.1.0"
 path-absolutize = "3.1.1"
@@ -78,8 +78,8 @@ speculoos = "0.11.0"
 
 [package.metadata.cross.build]
 pre-build = [
-  "dpkg --add-architecture $CROSS_DEB_ARCH",
-  "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
 ]
 
 [package.metadata.cross.target.x86_64-unknown-linux-musl]
