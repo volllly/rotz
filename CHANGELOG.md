@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed resolution of `~` to the users home directory in configuration and cli ([#358](https://github.com/volllly/rotz/issues/358))
 
+### Removed
+
+- Removed support for the previously deprecated name `dots.(yaml|toml|json)` for the defaults file `defaults.(yaml|toml|json)`
+
 ## [1.0.0] - 2024-12-17
 
 ### Removed

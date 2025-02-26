@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use miette::Report;
 use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
@@ -26,7 +25,7 @@ impl Defaults {
 
   #[cfg_attr(feature = "profiling", instrument)]
   pub fn from_path(dotfiles_path: &Path) -> Result<Defaults, Box<Error>> {
-    let defaults = helpers::glob_from_vec(&["**".to_owned()], format!("/{{dots,defaults}}.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some)).unwrap();
+    let defaults = helpers::glob_from_vec(&["**".to_owned()], format!("/defaults.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some)).unwrap();
 
     let paths = WalkDir::new(dotfiles_path)
       .into_iter()
@@ -51,18 +50,6 @@ impl Defaults {
       .filter(|e| defaults.is_match(e.0.as_str()))
       .map(|e| (e.1, e.2))
       .map(|e| {
-        if e.1.file_name().unwrap().to_string_lossy().starts_with("dots.") {
-          let path = e.1.to_string_lossy().to_string();
-          println!(
-            "Warning: {:?}",
-            Report::new(Error::DotsDeprecated(
-              e.1.extension().unwrap().to_string_lossy().to_string(),
-              (path.rfind("dots").unwrap(), "dots".len()).into(),
-              path
-            ))
-          );
-        }
-
         (
           e.0,
           (

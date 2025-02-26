@@ -11,7 +11,7 @@ Rotz can differentiate between Windows, Linux and MacOS.
 
 To specify OS Specific behavior you need to add top level keys named `linux`, `windows`, `darwin` (for MacOS) and `general` (applied to all OSs).
 
-<TabedCodeBlock title="Example: dots.{{ format }}"
+<TabedCodeBlock title="Example: defaults.{{ format }}"
   data={{
     windows: Section({
       installs: Section({
@@ -50,7 +50,7 @@ To specify OS Specific behavior you need to add top level keys named `linux`, `w
 
 You can also combine multiple OSs per key separating them with a `|`.
 
-<TabedCodeBlock title="Example: dots.{{ format }}"
+<TabedCodeBlock title="Example: defaults.{{ format }}"
   data={{
     windows: Section({
       installs: Section({
@@ -94,7 +94,7 @@ You can check for equality with `=`, for starts with with `^`, for ends with wit
 You can also add multiple selectors to the same key `linux[some.key="some value"][other.key="other value"]`.\
 And even combine them with `|` like `linux[some.key="some value"]|windows[other.key="other value"]`.
 
-<TabedCodeBlock title="Example: dots.{{ format }}"
+<TabedCodeBlock title="Example: defaults.{{ format }}"
   data={{
     'linux[whoami.distro^="Ubuntu"]': Section({
       installs: 'sudo apt install -y {{ name }}'
