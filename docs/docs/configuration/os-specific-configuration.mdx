@@ -71,3 +71,35 @@ You can also combine multiple OSs per key separating them with a `|`.
     })
   }} />
 
+## Advanced Selection
+
+Sometimes it's necessairy to differentiate between different versions of an OS.\
+For example, you might want to differentiate between Windows 10 and Windows 11 or between Ubuntu and Fedora.\
+Or maybe you want to do differnt things depending on the host name of your machine.
+
+You can add a selector to the OS key to do this.
+
+A selector looks like this: `linux[some.key="some value"]`.
+
+You can check for equality with `=`, for starts with with `^`, for ends with with `$`, for contains with `*` and for not equals with `!=`.
+
+| Selector | Description                                         | Example                                   |
+|----------|-----------------------------------------------------|-------------------------------------------|
+| `=`      | Check for equality                                  | `linux[whoami.username="me"]`             |
+| `^=`     | Check if the value starts with the given string     | `linux[whoami.distro^="Ubuntu"]`          |
+| `$=`     | Check if the value ends with the given string       | `linux[whoami.realname$="Doe"]`           |
+| `*=`     | Check if the value contains the given string        | `linux[whoami.arch*="64"]`                |
+| `!=`     | Check if the value is not equal to the given string | `linux[config.variables.profile!="work"]` |
+
+You can also add multiple selectors to the same key `linux[some.key="some value"][other.key="other value"]`.\
+And even combine them with `|` like `linux[some.key="some value"]|windows[other.key="other value"]`.
+
+<TabedCodeBlock title="Example: dots.{{ format }}"
+  data={{
+    'linux[whoami.distro^="Ubuntu"]': Section({
+      installs: 'sudo apt install -y {{ name }}'
+    }),
+    'linux[whoami.distro^="Arch"]': Section({
+      installs: 'sudo pacman -S --noconfirm {{ name }}'
+    })
+  }} />

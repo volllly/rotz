@@ -5,16 +5,15 @@ use clap::{Args, Parser, Subcommand};
 #[cfg(test)]
 use fake::Dummy;
 use figment::{
-  map,
+  Error, Metadata, Profile, Provider, map,
   value::{Dict, Map, Value},
-  Error, Metadata, Profile, Provider,
 };
 use itertools::Itertools;
 use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 
-use crate::{config::LinkType, helpers, FILE_EXTENSIONS, PROJECT_DIRS};
+use crate::{FILE_EXTENSIONS, PROJECT_DIRS, config::LinkType, helpers};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]

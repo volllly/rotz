@@ -6,11 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added feature to allow [advanced selection](https://volllly.github.io/rotz/docs/configuration/os-specific-configuration#advanced-selection) for the os keys ([#331](https://github.com/volllly/rotz/issues/331)).
+  This allows for e.g. selecting by the distro name:
+  ```yaml
+  linux[whoami.distro^="Ubuntu"]:
+      installs: sudo apt install -y {{ name }}
+  linux[whoami.distro^="Arch"]:
+      installs: sudo pacman -S --noconfirm {{ name }}
+  ```
+
+### Changed
+
+- Updated terminal colors to be more readable
+
+### Fixed
+
+- Fixed resolution of `~` to the users home directory in configuration and cli ([#358](https://github.com/volllly/rotz/issues/358))
+
 ## [1.0.0] - 2024-12-17
 
 ### Removed
 
-- Removed the `sync` command from rotz ([334](https://github.com/volllly/rotz/discussions/334))
+- Removed the `sync` command from rotz ([#334](https://github.com/volllly/rotz/discussions/334))
 
 ## [0.10.0] - 2023-12-10
 
@@ -141,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Wildcard "*" in install command not working 
+- Wildcard "*" in install command not working
 - Defaults and global values in `dot.(yaml|toml|json)` files not working correctly
 
 ## [0.4.0] - 2022-06-29

@@ -1,18 +1,17 @@
-import React from 'react';
-import clsx from 'clsx';
-import Layout from '@theme/Layout';
-import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import Admontion from '@theme/Admonition';
-import styles from './index.module.css';
-import { Features, FeatureItem } from '@site/src/components/Features';
+import React from "react";
+import clsx from "clsx";
+import Layout from "@theme/Layout";
+import Link from "@docusaurus/Link";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
+import styles from "./index.module.css";
+import { Features, FeatureItem } from "@site/src/components/Features";
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
+    <header className={clsx("hero hero--primary", styles.heroBanner)}>
       <div className="container">
-        <div className={clsx('rotzname', styles.rotzname)}>
+        <div className={clsx("rotzname", styles.rotzname)}>
           <span>Rust Dotfilemanager</span>
           <span>Rust Dotfile manager</span>
           <span>Rust Dotfile s</span>
@@ -20,18 +19,20 @@ function HomepageHeader() {
           <span>R ust Dots</span>
           <span>R ots</span>
           <span>Rot s</span>
-          <span style={{ fontWeight: 600, fontSize: '1.5em' }}>Rotz 👃</span>
+          <span style={{ fontWeight: 600, fontSize: "1.5em" }}>Rotz 👃</span>
         </div>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/getting-started">
+            to="/docs/getting-started"
+          >
             Getting started
           </Link>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/configuration">
+            to="/docs/configuration"
+          >
             Configuration
           </Link>
         </div>
@@ -42,60 +43,67 @@ function HomepageHeader() {
 
 let commandList: FeatureItem[] = [
   {
-    emoji: '⬇️',
-    title: 'Clone your dotfiles',
+    emoji: "⬇️",
+    title: "Clone your dotfiles",
     description: (
       <>
-        With Rotz you can clone your dotfiles from a git repository using the <code>rotz clone</code> command.
+        With Rotz you can clone your dotfiles from a git repository using the{" "}
+        <code>rotz clone</code> command.
       </>
     ),
   },
   {
-    emoji: '💿',
-    title: 'Install software',
+    emoji: "💿",
+    title: "Install software",
     description: (
       <>
-        You can bootstrap your new machine using the <code>rotz install</code> command.
+        You can bootstrap your new machine using the <code>rotz install</code>{" "}
+        command.
       </>
     ),
   },
   {
-    emoji: '🚀',
-    title: 'Deploy dotfiles',
+    emoji: "🚀",
+    title: "Deploy dotfiles",
     description: (
       <>
-        You can automatically symlink your dotfiles to the correct places using the <code>rotz link</code> command.
+        You can automatically symlink your dotfiles to the correct places using
+        the <code>rotz link</code> command.
       </>
     ),
   },
 ];
 
-
 let featureList: FeatureItem[] = [
   {
-    emoji: '⚙️',
-    title: 'Versatile configuration',
+    emoji: "⚙️",
+    title: "Versatile configuration",
     description: (
       <>
-        You can specify where to link your dotfiles to and what software to install in <code>yaml</code>, <code>toml</code> or <code>json</code> config files.
+        You can specify where to link your dotfiles to and what software to
+        install in <code>yaml</code>, <code>toml</code> or <code>json</code>{" "}
+        config files.
       </>
     ),
   },
   {
-    emoji: '🪟🐧🍎',
-    title: 'Cross platform',
+    emoji: "🪟🐧🍎",
+    title: "Cross platform",
     description: (
       <>
-        Rotz works on Windows, Linux and MacOs and has full support for different configurations on each platform.
+        Rotz works on Windows, Linux and MacOs and has full support for
+        different configurations on each platform.
       </>
     ),
   },
   {
-    emoji: '🦀',
-    title: 'Open source and written in rust',
+    emoji: "🦀",
+    title: "Open source and written in rust",
     description: (
       <>
-        If you find a bug or have a feature request feel free to open a <a href="https://github.com/volllly/rotz/issues">github issue</a> or even a pull request.
+        If you find a bug or have a feature request feel free to open a{" "}
+        <a href="https://github.com/volllly/rotz/issues">github issue</a> or
+        even a pull request.
       </>
     ),
   },
@@ -104,14 +112,15 @@ let featureList: FeatureItem[] = [
 export default function Home(): JSX.Element {
   const { siteConfig } = useDocusaurusContext();
   return (
-    <Layout
-      description="Fully cross platform dotfile manager and dev environment bootstrapper written in Rust.">
+    <Layout description="Fully cross platform dotfile manager and dev environment bootstrapper written in Rust.">
       <HomepageHeader />
-      <main className={clsx('hero', styles.heroBanner)}>
+      <main className={clsx("hero", styles.heroBanner)}>
         <div className="container">
           <Features features={commandList} />
         </div>
-        <hr style={{ width: 'calc(var(--ifm-container-width) / 6)', margin: 0 }} />
+        <hr
+          style={{ width: "calc(var(--ifm-container-width) / 6)", margin: 0 }}
+        />
         <div className="container">
           <Features features={featureList} />
         </div>
@@ -119,4 +128,3 @@ export default function Home(): JSX.Element {
     </Layout>
   );
 }
-

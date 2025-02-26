@@ -12,10 +12,10 @@ use tracing::instrument;
 use velcro::hash_map;
 
 use crate::{
+  USER_DIRS,
   cli::Cli,
   config::Config,
   helpers::{self, os},
-  USER_DIRS,
 };
 
 pub static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());

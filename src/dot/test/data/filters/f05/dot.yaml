@@ -1,0 +1,2 @@
+global[config.variables.test="test"][config.variables.test^="test"]:
+  installs: i01

@@ -6,7 +6,7 @@ use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 
-use crate::{helpers, FileFormat, FILE_EXTENSIONS, PROJECT_DIRS};
+use crate::{FILE_EXTENSIONS, FileFormat, PROJECT_DIRS, helpers};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub(crate) enum Error {

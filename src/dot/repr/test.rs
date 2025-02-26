@@ -1,7 +1,5 @@
 use speculoos::{assert_that, prelude::*};
 
-use crate::helpers::Select;
-
 use super::{DotComplex, InstallsComplex};
 
 #[test]

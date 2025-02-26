@@ -112,7 +112,7 @@ impl<'b> Install<'b> {
       };
     }
 
-    if let Some(installs) = &entry.1 .0 {
+    if let Some(installs) = &entry.1.0 {
       if !(install_command.skip_all_dependencies || install_command.skip_installation_dependencies) {
         recurse!(&installs.depends, CyclicInstallDependency);
       }
@@ -155,7 +155,7 @@ impl<'b> Install<'b> {
     }
 
     if !(install_command.skip_all_dependencies || install_command.skip_dependencies) {
-      if let Some(depends) = &entry.1 .1 {
+      if let Some(depends) = &entry.1.1 {
         recurse!(depends, CyclicDependency);
       }
     }

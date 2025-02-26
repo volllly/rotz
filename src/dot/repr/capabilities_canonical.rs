@@ -5,6 +5,7 @@ use std::{
 
 #[cfg(test)]
 use fake::Dummy;
+use itertools::{Either, Itertools};
 use serde::Deserialize;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
@@ -26,8 +27,7 @@ pub struct CapabilitiesCanonical {
 impl From<CapabilitiesComplex> for CapabilitiesCanonical {
   #[cfg_attr(feature = "profiling", instrument)]
   fn from(value: CapabilitiesComplex) -> Self {
-    dbg!(&value);
-    dbg!(Self {
+    Self {
       links: value.links.map(|links| {
         links
           .into_iter()
@@ -44,24 +44,24 @@ impl From<CapabilitiesComplex> for CapabilitiesCanonical {
       }),
       installs: value.installs.map(Into::into),
       depends: value.depends,
-    })
+    }
   }
 }
 
 impl CapabilitiesCanonical {
   #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
-  pub fn from(DotCanonical { mut filters }: DotCanonical, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Self {
-    dbg!(&filters);
-    let mut capabilities = filters
-      .iter()
-      .find(|(filters, _)| filters.is_global())
-      .map(|(f, _)| f)
-      .cloned()
-      .and_then(|global| filters.shift_remove(&global));
-    dbg!(&capabilities);
+  pub fn from(DotCanonical { filters }: DotCanonical, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Self {
+    let (globals, filters): (Vec<_>, Vec<_>) = filters
+      .into_iter()
+      .filter(|(filter, _)| filter.applies(engine, parameters))
+      .partition_map(|(filter, capability)| if filter.is_global() { Either::Left } else { Either::Right }(capability));
+    let mut capabilities = None::<CapabilitiesCanonical>;
 
-    let filters = filters.into_iter().filter(|(filter, _)| filter.applies(engine, parameters));
-    for (_, capability) in filters {
+    for capability in globals {
+      capabilities = capabilities.merge(capability.into());
+    }
+
+    for capability in filters {
       capabilities = capabilities.merge(capability.into());
     }
 

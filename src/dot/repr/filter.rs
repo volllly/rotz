@@ -86,7 +86,7 @@ fn attribute() -> impl Parser<char, Attribute, Error = Simple<char>> {
   path().then(operator().padded()).then(string()).map(|((key, operator), value)| Attribute { key, operator, value })
 }
 fn attributes() -> impl Parser<char, Vec<Attribute>, Error = Simple<char>> {
-  attribute().separated_by(just(',').padded()).delimited_by(just('['), just(']')).or(empty().map(|()| vec![]))
+  attribute().delimited_by(just('['), just(']')).padded().repeated()
 }
 fn os() -> impl Parser<char, os::Os, Error = Simple<char>> {
   text::ident().try_map(|i: String, span| os::Os::try_from(i.as_str()).map_err(|e| Simple::custom(span, e)))
@@ -106,7 +106,7 @@ impl FromStr for Filters {
       .separated_by(just('|').padded())
       .then_ignore(end())
       .try_map(|filters, span| {
-        let filters = dbg!(Filters(filters));
+        let filters = Filters(filters);
         if filters.is_global() && filters.0.len() > 1 {
           Simple::custom(span, "global can not be mixed with an operating system").pipe(Err)
         } else {
@@ -124,9 +124,9 @@ impl Filters {
 
   pub fn applies(&self, engine: &Engine, parameters: &Parameters) -> bool {
     self.0.iter().any(|filter| {
-      os::OS == filter.os
+      (filter.os.is_global() || os::OS == filter.os)
         && filter.attributes.iter().all(|attribute| {
-          let value = engine.render(&format!("{{ {} }}", &attribute.key), parameters).unwrap();
+          let value = engine.render(&format!("{{{{ {} }}}}", &attribute.key), parameters).unwrap();
           match attribute.operator {
             Operator::Eq => value == attribute.value,
             Operator::StartsWith => value.starts_with(&attribute.value),
@@ -194,9 +194,9 @@ mod test {
 
   #[rstest]
   #[case("[test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
-  #[case("[test=\"value\",test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }, Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
-  #[case("[test=\"value\", test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }, Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
-  #[case("[test=\"value\" , test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }, Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
+  #[case("[test=\"value\"][test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }, Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
+  #[case("[test=\"value\"][test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }, Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
+  #[case("[test=\"value\"][test=\"value\"]", vec![Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }, Attribute { key: "test".to_owned(), operator: Operator::Eq, value: "value".to_owned() }])]
   fn attributes_parser(#[case] from: &str, #[case] expected: Vec<Attribute>) {
     let parsed = super::attributes().then_ignore(end()).parse(from).unwrap();
     assert_that!(parsed).is_equal_to(expected);
@@ -214,8 +214,7 @@ mod test {
 
   #[rstest]
   #[case("windows", Filter { os: Os::Windows, attributes: vec![] })]
-  #[case("windows[]", Filter { os: Os::Windows, attributes: vec![] })]
-  #[case("global[test=\"some\", test=\"some\"]", Filter { os: Os::Global, attributes: vec![
+  #[case("global[test=\"some\"][test=\"some\"]", Filter { os: Os::Global, attributes: vec![
     Attribute {
       key: String::from("test"),
       operator: Operator::Eq,
@@ -250,7 +249,7 @@ mod test {
     value: String::from("some")
     }
 ]}])]
-  #[case("global[whoami.distribution$=\"some\", test=\"other\"]", vec![Filter { os: Os::Global, attributes: vec![
+  #[case("global[whoami.distribution$=\"some\"][test=\"other\"]", vec![Filter { os: Os::Global, attributes: vec![
   Attribute {
     key: String::from("whoami.distribution"),
     operator: Operator::EndsWith,
@@ -262,7 +261,7 @@ mod test {
       value: String::from("other")
       }
 ] }])]
-  #[case("linux[whoami.distribution^=\"some\"]|windows[whoami.distribution$=\"some\", test=\"other\"]", vec![Filter { os: Os::Linux, attributes: vec![
+  #[case("linux[whoami.distribution^=\"some\"]|windows[whoami.distribution$=\"some\"][test=\"other\"]", vec![Filter { os: Os::Linux, attributes: vec![
   Attribute {
     key: String::from("whoami.distribution"),
     operator: Operator::StartsWith,

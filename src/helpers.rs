@@ -197,6 +197,18 @@ pub enum ParseError {
   Json(#[from] serde_json::Error),
 }
 
+pub fn resolve_home(path: impl AsRef<Path>) -> PathBuf {
+  let path = path.as_ref();
+
+  if path.starts_with("~/") {
+    let mut iter = path.iter();
+    iter.next();
+    crate::USER_DIRS.home_dir().iter().chain(iter).collect()
+  } else {
+    path.to_owned()
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use miette::Diagnostic;

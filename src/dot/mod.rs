@@ -56,8 +56,7 @@ pub struct Dot {
 fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&CapabilitiesCanonical>, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Result<Dot, Vec<helpers::ParseError>> {
   let capabilities: Option<CapabilitiesCanonical> = defaults
     .cloned()
-    .merge(dbg!(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).pipe(Some)));
-  dbg!(&capabilities);
+    .merge(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).pipe(Some));
   if let Some(capabilities) = capabilities {
     Dot {
       links: capabilities.links,
@@ -144,7 +143,7 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
   let dots = canonicalize_dots(crate::helpers::join_err_result(dots.collect())?)?;
 
   if dots.is_empty() {
-    println!("Warning: {}", "No dots found".yellow());
+    println!("Warning: {}", "No dots found".dark_yellow());
     return vec![].pipe(Ok);
   }
 

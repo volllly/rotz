@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use wax::Pattern;
 
 use super::Error;
-use crate::{helpers, FileFormat, FILE_EXTENSIONS_GLOB};
+use crate::{FILE_EXTENSIONS_GLOB, FileFormat, helpers};
 
 #[derive(Debug)]
 pub struct Defaults(HashMap<String, (String, FileFormat)>);

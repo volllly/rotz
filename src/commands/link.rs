@@ -16,7 +16,6 @@ use wax::Pattern;
 
 use super::Command;
 use crate::{
-  USER_DIRS,
   config::{Config, LinkType},
   helpers,
   state::{self},
@@ -72,20 +71,7 @@ impl<'a> Command for Link<'a> {
       .collect_vec();
 
     {
-      let current_links = links
-        .iter()
-        .flat_map(|l| l.1.iter().map(|h| h.1.iter()))
-        .flatten()
-        .map(|l| {
-          if l.starts_with("~/") {
-            let mut iter = l.iter();
-            iter.next();
-            USER_DIRS.home_dir().iter().chain(iter).collect()
-          } else {
-            l.clone()
-          }
-        })
-        .collect::<HashSet<_>>();
+      let current_links = links.iter().flat_map(|l| l.1.iter().map(|h| h.1.iter())).flatten().map(helpers::resolve_home).collect::<HashSet<_>>();
 
       let mut errors = Vec::new();
 
@@ -109,10 +95,10 @@ impl<'a> Command for Link<'a> {
 
             if removed {
               if !printed {
-                println!("{}Removing orphans for {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
+                println!("{}Removing orphans for {}{}\n", Attribute::Bold, name.as_str().dark_blue(), Attribute::Reset);
                 printed = true;
               }
-              println!("  x {}", to.to_string_lossy().green());
+              println!("  x {}", to.to_string_lossy().dark_green());
             }
           }
         }
@@ -128,20 +114,16 @@ impl<'a> Command for Link<'a> {
     let mut new_linked = hash_map!();
 
     for (name, link) in links {
-      println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().blue(), Attribute::Reset);
+      println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().dark_blue(), Attribute::Reset);
 
       let mut new_linked_inner = hash_map!();
 
       let base_path = self.config.dotfiles.join(&name[1..]);
       for (from, tos) in link {
         for mut to in tos {
-          println!("  {} -> {}", from.to_string_lossy().green(), to.to_string_lossy().green());
+          println!("  {} -> {}", from.to_string_lossy().dark_green(), to.to_string_lossy().dark_green());
           let from = base_path.join(&from);
-          if to.starts_with("~/") {
-            let mut iter = to.iter();
-            iter.next();
-            to = USER_DIRS.home_dir().iter().chain(iter).collect();
-          }
+          to = helpers::resolve_home(&to);
 
           if !globals.dry_run {
             if let Err(err) = create_link(&from, &to, &self.config.link_type, link_command.force, linked.0.get(&name)) {

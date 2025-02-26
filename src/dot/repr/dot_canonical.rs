@@ -23,25 +23,28 @@ impl TryFrom<DotComplex> for DotCanonical {
   type Error = Vec<chumsky::error::Simple<char>>;
   #[cfg_attr(feature = "profiling", instrument)]
   fn try_from(value: DotComplex) -> Result<Self, Self::Error> {
-    dbg!(&value);
-    // let mut filters = value.filters.into_iter().map(|(k, v)| Filters::from_str(&k).map(|f| (f, Into::into(v))));
-    // if filters.any(|o| o.is_err()) {
-    //   return dbg!(Err(filters.filter(Result::is_err).filter_map(Result::err).flatten().collect()));
-    // }
-    let mut f = IndexMap::new();
-    for (filters, dot) in value.filters {
-      dbg!(&filters);
-      dbg!(&dot);
-      f.insert(Filters::from_str(&filters).unwrap(), dot.into());
-      dbg!(&f);
+    let mut errors = Self::Error::new();
+    let mut filters = IndexMap::new();
+    for (filter, dot) in value.filters {
+      match Filters::from_str(&filter) {
+        Ok(f) => {
+          filters.insert(f, dot.into());
+        }
+        Err(e) => {
+          errors.extend_from_slice(&e);
+        }
+      }
     }
-    Ok(Self { filters: dbg!(f) })
+    if !errors.is_empty() {
+      return Err(errors);
+    }
+    Ok(Self { filters })
   }
 }
 
 impl DotCanonical {
   #[cfg_attr(feature = "profiling", instrument)]
   pub(crate) fn parse(value: &str, format: FileFormat) -> Result<Self, Vec<helpers::ParseError>> {
-    dbg!(DotComplex::parse(value, format).map(TryInto::try_into).map(|d| d.unwrap()))
+    DotComplex::parse(value, format).map(TryInto::try_into).map(|d| d.unwrap())
   }
 }

@@ -1,5 +1,5 @@
 use crate::{
-  cli::{Cli, Command, PathBuf},
+  cli::{Cli, Command},
   config::{Config, LinkType},
   templating::{Engine, Parameters},
 };
@@ -26,17 +26,15 @@ pub(crate) fn get_handlebars<'a>() -> Engine<'a> {
   let cli = Cli {
     dry_run: true,
     dotfiles: None,
-    config: PathBuf("".into()),
+    config: crate::cli::PathBuf("".into()),
     command: Command::Clone { repo: String::new() },
   };
 
   Engine::new(&Config::default(), &cli)
 }
 
-mod s01;
-mod s02;
-mod s03;
-mod s04;
-mod s05;
-mod s06;
-mod s07;
+mod f01;
+mod f02;
+mod f03;
+mod f04;
+mod f05;
