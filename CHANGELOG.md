@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-02-27
+
 ### Added
 
 - Added feature to allow [advanced selection](https://volllly.github.io/rotz/docs/configuration/os-specific-configuration#advanced-selection) for the os keys ([#331](https://github.com/volllly/rotz/issues/331)).
@@ -250,7 +252,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/volllly/rotz/releases/tag/v1.1.0
 [1.0.0]: https://github.com/volllly/rotz/releases/tag/v1.0.0
 [0.10.0]: https://github.com/volllly/rotz/releases/tag/v0.10.0
 [0.9.5]: https://github.com/volllly/rotz/releases/tag/v0.9.5
