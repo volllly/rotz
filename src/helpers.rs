@@ -21,7 +21,13 @@ use crate::{FILE_EXTENSIONS, FileFormat};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 #[error("Encountered multiple errors")]
-pub struct MultipleErrors(#[related] Vec<miette::Error>);
+pub struct MultipleErrors(#[related] Vec<Box<dyn miette::Diagnostic + Send + Sync>>);
+
+impl MultipleErrors {
+  pub fn from(errors: Vec<impl miette::Diagnostic + Send + Sync + 'static>) -> Self {
+    Self(errors.into_iter().map(Box::<dyn miette::Diagnostic + Send + Sync>::from).collect())
+  }
+}
 
 #[cfg_attr(feature = "profiling", instrument)]
 pub fn join_err_result<T, E>(result: Vec<Result<T, E>>) -> Result<Vec<T>, MultipleErrors>
@@ -30,7 +36,7 @@ where
   E: miette::Diagnostic + Send + Sync + 'static,
 {
   if result.iter().any(std::result::Result::is_err) {
-    MultipleErrors(result.into_iter().filter(Result::is_err).map(Result::unwrap_err).map(miette::Error::new).collect_vec()).pipe(Err)
+    MultipleErrors(result.into_iter().filter_map(Result::err).map(Box::<dyn miette::Diagnostic + Send + Sync>::from).collect_vec()).pipe(Err)
   } else {
     Ok(result.into_iter().map(Result::unwrap).collect())
   }
@@ -195,6 +201,14 @@ pub enum ParseError {
   #[diagnostic(code(parsing::json))]
   #[cfg(feature = "json")]
   Json(#[from] serde_json::Error),
+
+  #[error("Encountered errors while parsing selectors")]
+  #[diagnostic(transparent, code(parsing::selector))]
+  Selector(
+    #[from]
+    #[diagnostic_source]
+    MultipleErrors,
+  ),
 }
 
 pub fn resolve_home(path: impl AsRef<Path>) -> PathBuf {

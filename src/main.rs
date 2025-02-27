@@ -152,6 +152,7 @@ fn main() -> Result<(), miette::Report> {
 
 #[cfg(not(feature = "profiling"))]
 fn main() -> Result<(), miette::Report> {
+  miette::set_hook(Box::new(|_| Box::new(miette::MietteHandlerOpts::new().show_related_errors_as_nested().with_cause_chain().build()))).unwrap();
   run()
 }
 

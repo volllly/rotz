@@ -36,7 +36,7 @@ crossterm = "0.28.1"
 itertools = "0.14.0"
 thiserror = "2.0.7"
 baker = "0.2.0"
-miette = { version = "7.2.0", features = ["fancy"] }
+miette = { version = "7.5.0", features = ["fancy"] }
 indexmap = { version = "2.2.6", features = ["serde"] }
 handlebars = "6.2.0"
 handlebars_misc_helpers = { version = "0.17.0", default-features = false, features = [
@@ -75,7 +75,6 @@ fake = { version = "4.0.0", features = ["derive"] }
 rand = "0.9.0"
 rstest = "0.24.0"
 speculoos = "0.11.0"
-
 
 [package.metadata.cross.build]
 pre-build = [

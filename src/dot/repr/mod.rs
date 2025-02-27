@@ -25,8 +25,8 @@ mod installs_complex;
 use installs_complex::InstallsComplex;
 mod installs_canonical;
 pub use installs_canonical::*;
-mod filter;
-use filter::Filters;
+mod selector;
+use selector::Selectors;
 
 #[cfg(feature = "toml")]
 fn parse_inner_toml<T: for<'de> Deserialize<'de>>(value: &str) -> Result<T, helpers::ParseError> {

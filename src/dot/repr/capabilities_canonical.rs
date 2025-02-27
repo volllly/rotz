@@ -7,11 +7,15 @@ use std::{
 use fake::Dummy;
 use itertools::{Either, Itertools};
 use serde::Deserialize;
+use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 use velcro::hash_set;
 
-use crate::templating::{Engine, Parameters};
+use crate::{
+  helpers::{self, MultipleErrors},
+  templating::{Engine, Parameters},
+};
 
 use super::{CapabilitiesComplex, DotCanonical, InstallsCanonical, LinksComplex, Merge};
 
@@ -50,22 +54,34 @@ impl From<CapabilitiesComplex> for CapabilitiesCanonical {
 
 impl CapabilitiesCanonical {
   #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
-  pub fn from(DotCanonical { filters }: DotCanonical, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Self {
-    let (globals, filters): (Vec<_>, Vec<_>) = filters
+  pub fn from(DotCanonical { selectors }: DotCanonical, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Result<Self, helpers::ParseError> {
+    let selectors = selectors
       .into_iter()
-      .filter(|(filter, _)| filter.applies(engine, parameters))
-      .partition_map(|(filter, capability)| if filter.is_global() { Either::Left } else { Either::Right }(capability));
+      .map(|(selector, capabilities)| (selector.applies(engine, parameters), selector, capabilities))
+      .collect_vec();
+    if selectors.iter().any(|(a, _, _)| a.is_err()) {
+      return selectors
+        .into_iter()
+        .filter_map(|(applies, _, _)| applies.err())
+        .flatten()
+        .collect::<Vec<_>>()
+        .pipe(|e| Err(helpers::ParseError::Selector(MultipleErrors::from(e))));
+    }
+    let selectors = selectors
+      .into_iter()
+      .filter_map(|(applies, selector, capabilities)| if applies.unwrap() { Some((selector, capabilities)) } else { None });
+    let (globals, selectors): (Vec<_>, Vec<_>) = selectors.partition_map(|(selector, capability)| if selector.is_global() { Either::Left } else { Either::Right }(capability));
     let mut capabilities = None::<CapabilitiesCanonical>;
 
     for capability in globals {
       capabilities = capabilities.merge(capability.into());
     }
 
-    for capability in filters {
+    for capability in selectors {
       capabilities = capabilities.merge(capability.into());
     }
 
-    capabilities.unwrap_or_default()
+    capabilities.unwrap_or_default().pipe(Ok)
   }
 }
 

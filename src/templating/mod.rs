@@ -32,7 +32,11 @@ pub enum Error {
 
   #[error("Eval command did not run successfully")]
   #[diagnostic(code(template::eval::run))]
-  RunEvalCommand(#[source] helpers::RunError),
+  RunEvalCommand(
+    #[source]
+    #[diagnostic_source]
+    helpers::RunError,
+  ),
 }
 
 #[derive(Serialize, Debug)]

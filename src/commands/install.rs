@@ -31,7 +31,12 @@ enum Error {
 
   #[error("Install command for {0} did not run successfully")]
   #[diagnostic(code(install::command::run))]
-  InstallExecute(String, #[source] helpers::RunError),
+  InstallExecute(
+    String,
+    #[source]
+    #[diagnostic_source]
+    helpers::RunError,
+  ),
 
   #[error("Could not render command templeate for {0}")]
   #[diagnostic(code(install::command::render))]

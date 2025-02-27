@@ -56,7 +56,7 @@ pub struct Dot {
 fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&CapabilitiesCanonical>, engine: &Engine<'_>, parameters: &Parameters<'_>) -> Result<Dot, Vec<helpers::ParseError>> {
   let capabilities: Option<CapabilitiesCanonical> = defaults
     .cloned()
-    .merge(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).pipe(Some));
+    .merge(CapabilitiesCanonical::from(repr::DotCanonical::parse(s, format)?, engine, parameters).map_err(|e| vec![e])?.pipe(Some));
   if let Some(capabilities) = capabilities {
     Dot {
       links: capabilities.links,
@@ -113,8 +113,18 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
       let defaults = if let Some((defaults, format)) = defaults.for_path(&name) {
         match engine.render(defaults, &parameters) {
           Ok(rendered) => match repr::DotCanonical::parse(&rendered, *format) {
-            Ok(parsed) => CapabilitiesCanonical::from(parsed, engine, &parameters).into(),
-            Err(err) => return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).pipe(Err).into(),
+            Ok(parsed) => match CapabilitiesCanonical::from(parsed, engine, &parameters) {
+              Ok(ok) => ok,
+              Err(err) => {
+                return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), vec![err])
+                  .pipe(Err)
+                  .into();
+              }
+            }
+            .into(),
+            Err(err) => {
+              return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).pipe(Err).into();
+            }
           },
           Err(err) => {
             return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).into(), err)
@@ -139,7 +149,6 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
     },
     (_, Err(err)) => err.pipe(Err).into(),
   });
-
   let dots = canonicalize_dots(crate::helpers::join_err_result(dots.collect())?)?;
 
   if dots.is_empty() {

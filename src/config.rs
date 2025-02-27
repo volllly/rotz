@@ -147,7 +147,11 @@ impl AlreadyExistsError {
 pub enum Error {
   #[error("Could not serialize config")]
   #[diagnostic(code(config::serialize))]
-  SerializingConfig(#[source] helpers::ParseError),
+  SerializingConfig(
+    #[source]
+    #[diagnostic_source]
+    helpers::ParseError,
+  ),
 
   #[error("Could not write config")]
   #[diagnostic(code(config::write))]
@@ -166,7 +170,12 @@ pub enum Error {
   PathParse(PathBuf),
 
   #[error(transparent)]
-  InvalidFileFormat(#[from] crate::Error),
+  #[diagnostic(transparent)]
+  InvalidFileFormat(
+    #[from]
+    #[diagnostic_source]
+    crate::Error,
+  ),
 }
 
 #[cfg_attr(feature = "profiling", instrument)]

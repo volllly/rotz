@@ -15,8 +15,12 @@ use crate::{
 #[derive(thiserror::Error, Diagnostic, Debug)]
 enum Error {
   #[error("Clone command did not run successfully")]
-  #[diagnostic(code(clone::command::run))]
-  CloneExecute(#[from] helpers::RunError),
+  #[diagnostic(transparent, code(clone::command::run))]
+  CloneExecute(
+    #[from]
+    #[diagnostic_source]
+    helpers::RunError,
+  ),
 }
 
 #[derive(Debug)]

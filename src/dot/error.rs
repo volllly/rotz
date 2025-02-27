@@ -18,15 +18,19 @@ pub enum Error {
   #[diagnostic(code(dotfiles::walk))]
   WalkingDotfiles(#[source] walkdir::Error),
 
-  #[cfg(feature = "yaml")]
   #[error("Could not parse dot")]
   #[diagnostic(code(dot::parse))]
   ParseDot(#[source_code] NamedSource<String>, #[label] SourceSpan, #[related] Vec<helpers::ParseError>),
 
-  #[cfg(feature = "yaml")]
   #[error("Could not render template for dot")]
   #[diagnostic(code(dot::render))]
-  RenderDot(#[source_code] NamedSource<String>, #[label] SourceSpan, #[source] templating::Error),
+  RenderDot(
+    #[source_code] NamedSource<String>,
+    #[label] SourceSpan,
+    #[source]
+    #[diagnostic_source]
+    templating::Error,
+  ),
 
   #[error("Io Error on file \"{0}\"")]
   #[diagnostic(code(io::generic))]
@@ -41,5 +45,10 @@ pub enum Error {
   ParseName(String, #[source] std::io::Error),
 
   #[error(transparent)]
-  MultipleErrors(#[from] helpers::MultipleErrors),
+  #[diagnostic(transparent)]
+  MultipleErrors(
+    #[from]
+    #[diagnostic_source]
+    helpers::MultipleErrors,
+  ),
 }

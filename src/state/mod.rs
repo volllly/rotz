@@ -20,11 +20,19 @@ pub(crate) enum Error {
 
   #[error("Could not serialize state")]
   #[diagnostic(code(state::serialize))]
-  Serializing(#[source] helpers::ParseError),
+  Serializing(
+    #[source]
+    #[diagnostic_source]
+    helpers::ParseError,
+  ),
 
   #[error("Could not deserialize state")]
   #[diagnostic(code(state::deserialize))]
-  Deserializing(#[source] helpers::ParseError),
+  Deserializing(
+    #[source]
+    #[diagnostic_source]
+    helpers::ParseError,
+  ),
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

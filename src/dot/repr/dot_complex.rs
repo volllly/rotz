@@ -15,7 +15,7 @@ use tracing::instrument;
 pub(super) struct DotComplex {
   #[cfg_attr(test, dummy(faker = "IndexMapFaker"))]
   #[serde(flatten)]
-  pub filters: IndexMap<String, CapabilitiesComplex>,
+  pub selectors: IndexMap<String, CapabilitiesComplex>,
 }
 
 impl DotComplex {
@@ -24,7 +24,7 @@ impl DotComplex {
     match parse_inner::<Self>(value, format) {
       Ok(parsed) => parsed.pipe(Ok),
       Err(err) => Self {
-        filters: IndexMap::from([(
+        selectors: IndexMap::from([(
           "global".to_owned(),
           parse_inner::<DotSimplified>(value, format).map_err(|e| vec![err, e])?.conv::<CapabilitiesComplex>(),
         )]),

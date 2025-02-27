@@ -33,8 +33,8 @@ pub(crate) fn get_handlebars<'a>() -> Engine<'a> {
   Engine::new(&Config::default(), &cli)
 }
 
-mod f01;
-mod f02;
-mod f03;
-mod f04;
-mod f05;
+mod s01;
+mod s02;
+mod s03;
+mod s04;
+mod s05;
