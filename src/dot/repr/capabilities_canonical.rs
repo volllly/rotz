@@ -127,7 +127,7 @@ impl Merge<Self> for CapabilitiesCanonical {
               cmd_outer = cmd;
               depends_outer = depends;
             }
-            InstallsCanonical::None(_) => panic!(),
+            InstallsCanonical::None(_) => unreachable!(),
           }
 
           *i = match i {
