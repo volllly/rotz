@@ -15,8 +15,8 @@ use figment::providers::Toml;
 #[cfg(feature = "yaml")]
 use figment::providers::Yaml;
 use figment::{
-  providers::{Env, Format},
   Figment, Profile,
+  providers::{Env, Format},
 };
 use helpers::os;
 use miette::{Diagnostic, Result, SourceSpan};
@@ -152,6 +152,7 @@ fn main() -> Result<(), miette::Report> {
 
 #[cfg(not(feature = "profiling"))]
 fn main() -> Result<(), miette::Report> {
+  miette::set_hook(Box::new(|_| Box::new(miette::MietteHandlerOpts::new().show_related_errors_as_nested().with_cause_chain().build()))).unwrap();
   run()
 }
 
@@ -183,25 +184,27 @@ fn run() -> Result<(), miette::Report> {
 fn read_config(cli: &Cli) -> Result<Config, Error> {
   let env_config = Env::prefixed("ROTZ_");
 
-  let mut figment = Figment::new().merge_from_path(&cli.config.0, false)?.merge(env_config).merge(cli);
+  let config_path = helpers::resolve_home(&cli.config.0);
+
+  let mut figment = Figment::new().merge_from_path(&config_path, false)?.merge(env_config).merge(cli);
 
   let config: Config = figment.clone().join(Config::default()).extract().map_err(Error::ParsingConfig)?;
 
-  let dotfiles = if config.dotfiles.starts_with("~/") {
-    let mut iter = config.dotfiles.iter();
-    iter.next();
-    USER_DIRS.home_dir().iter().chain(iter).collect()
-  } else {
-    config.dotfiles
-  };
+  let dotfiles = helpers::resolve_home(&config.dotfiles);
 
   if let Some((config, _)) = helpers::get_file_with_format(dotfiles, "config") {
     figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
   }
 
-  let tmp = figment.join(Config::default()).select(os::OS.to_string().to_ascii_lowercase());
+  let mut config: Config = figment
+    .join(Config::default())
+    .select(os::OS.to_string().to_ascii_lowercase())
+    .extract()
+    .map_err(Error::RepoConfigProfile)?;
 
-  tmp.extract().map_err(Error::RepoConfigProfile)
+  config.dotfiles = helpers::resolve_home(&config.dotfiles);
+
+  config.pipe(Ok)
 }
 
 trait FigmentExt {
@@ -224,11 +227,7 @@ impl<F: Format> DataExt for figment::providers::Data<F> {
   where
     Self: std::marker::Sized,
   {
-    if nested {
-      self.nested()
-    } else {
-      self
-    }
+    if nested { self.nested() } else { self }
   }
 }
 
@@ -302,7 +301,7 @@ impl FigmentExt for Figment {
               mapping,
               provider: Yaml::string(&config_str).set_nested(nested),
             })
-            .pipe(Ok)
+            .pipe(Ok);
         }
         #[cfg(feature = "toml")]
         "toml" => {
@@ -311,7 +310,7 @@ impl FigmentExt for Figment {
               mapping,
               provider: Toml::string(&config_str).set_nested(nested),
             })
-            .pipe(Ok)
+            .pipe(Ok);
         }
         #[cfg(feature = "json")]
         "json" => {
@@ -320,7 +319,7 @@ impl FigmentExt for Figment {
               mapping,
               provider: Json::string(&config_str).set_nested(nested),
             })
-            .pipe(Ok)
+            .pipe(Ok);
         }
         _ => {
           let file_name = path.as_ref().file_name().unwrap().to_string_lossy().to_string();

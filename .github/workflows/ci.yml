@@ -75,8 +75,6 @@ jobs:
     strategy:
       matrix:
         target:
-          - triple: x86_64-pc-windows-gnu
-            runner: windows-latest
           - triple: x86_64-pc-windows-msvc
             runner: windows-latest
           - triple: x86_64-apple-darwin

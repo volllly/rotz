@@ -1,0 +1,20 @@
+global:
+  installs: i01
+
+windows[config.variables.test!="test"]:
+  installs: i02
+
+linux[config.variables.test!="test"]:
+  installs: i02
+
+darwin[config.variables.test!="test"]:
+  installs: i02
+
+windows[config.variables.test="test"]:
+  installs: i02
+
+linux[config.variables.test="test"]:
+  installs: i02
+
+darwin[config.variables.test="test"]:
+  installs: i02

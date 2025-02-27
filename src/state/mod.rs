@@ -6,7 +6,7 @@ use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 
-use crate::{helpers, FileFormat, FILE_EXTENSIONS, PROJECT_DIRS};
+use crate::{FILE_EXTENSIONS, FileFormat, PROJECT_DIRS, helpers};
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub(crate) enum Error {
@@ -20,11 +20,19 @@ pub(crate) enum Error {
 
   #[error("Could not serialize state")]
   #[diagnostic(code(state::serialize))]
-  Serializing(#[source] helpers::ParseError),
+  Serializing(
+    #[source]
+    #[diagnostic_source]
+    helpers::ParseError,
+  ),
 
   #[error("Could not deserialize state")]
   #[diagnostic(code(state::deserialize))]
-  Deserializing(#[source] helpers::ParseError),
+  Deserializing(
+    #[source]
+    #[diagnostic_source]
+    helpers::ParseError,
+  ),
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

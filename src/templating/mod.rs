@@ -12,10 +12,10 @@ use tracing::instrument;
 use velcro::hash_map;
 
 use crate::{
+  USER_DIRS,
   cli::Cli,
   config::Config,
   helpers::{self, os},
-  USER_DIRS,
 };
 
 pub static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
@@ -32,7 +32,11 @@ pub enum Error {
 
   #[error("Eval command did not run successfully")]
   #[diagnostic(code(template::eval::run))]
-  RunEvalCommand(#[source] helpers::RunError),
+  RunEvalCommand(
+    #[source]
+    #[diagnostic_source]
+    helpers::RunError,
+  ),
 }
 
 #[derive(Serialize, Debug)]

@@ -1,0 +1,8 @@
+global[config.variables.test="test"]:
+  installs: i01
+
+global[config.variables.test!="test"]:
+  installs: i02
+
+global[config.variables.test^="test"]:
+  installs: i03

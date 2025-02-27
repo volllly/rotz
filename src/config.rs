@@ -9,7 +9,7 @@ use clap::ValueEnum;
 use crossterm::style::Stylize;
 #[cfg(test)]
 use fake::{Dummy, Fake};
-use figment::{providers::Serialized, value, Metadata, Profile, Provider};
+use figment::{Metadata, Profile, Provider, providers::Serialized, value};
 use miette::{Diagnostic, NamedSource, Result, SourceSpan};
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ use tap::{Pipe, TryConv};
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 
-use crate::{helpers, FileFormat, USER_DIRS};
+use crate::{FileFormat, USER_DIRS, helpers};
 
 #[derive(Debug, ValueEnum, Clone, Display, Deserialize, Serialize, EnumIs)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
@@ -136,11 +136,7 @@ impl AlreadyExistsError {
       (0, pat.len()).into()
     } else {
       let starts = content.match_indices(&format!("\n{pat}")).collect::<Vec<_>>();
-      if starts.len() == 1 {
-        (starts[0].0 + 1, pat.len()).into()
-      } else {
-        (0, content.len()).into()
-      }
+      if starts.len() == 1 { (starts[0].0 + 1, pat.len()).into() } else { (0, content.len()).into() }
     };
 
     Self { name: name.to_owned(), span }
@@ -151,7 +147,11 @@ impl AlreadyExistsError {
 pub enum Error {
   #[error("Could not serialize config")]
   #[diagnostic(code(config::serialize))]
-  SerializingConfig(#[source] helpers::ParseError),
+  SerializingConfig(
+    #[source]
+    #[diagnostic_source]
+    helpers::ParseError,
+  ),
 
   #[error("Could not write config")]
   #[diagnostic(code(config::write))]
@@ -170,7 +170,12 @@ pub enum Error {
   PathParse(PathBuf),
 
   #[error(transparent)]
-  InvalidFileFormat(#[from] crate::Error),
+  #[diagnostic(transparent)]
+  InvalidFileFormat(
+    #[from]
+    #[diagnostic_source]
+    crate::Error,
+  ),
 }
 
 #[cfg_attr(feature = "profiling", instrument)]

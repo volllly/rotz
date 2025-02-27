@@ -62,7 +62,6 @@ fn name() {
     &get_handlebars(),
   )
   .unwrap();
-  dbg!(&dots);
   assert_that!(dots.iter().find(|d| d.0 == "/test01/test02"))
     .is_some()
     .map(|d| &d.1.installs)
@@ -75,12 +74,14 @@ fn name() {
 fn os_helpers() {
   let config = Config::default();
 
-  assert_that!(get_handlebars()
-    .render(
-      "{{ #windows }}windows{{ /windows }}{{ #linux }}linux{{ /linux }}{{ #darwin }}darwin{{ /darwin }}",
-      &Parameters { config: &config, name: "" }
-    )
-    .unwrap())
+  assert_that!(
+    get_handlebars()
+      .render(
+        "{{ #windows }}windows{{ /windows }}{{ #linux }}linux{{ /linux }}{{ #darwin }}darwin{{ /darwin }}",
+        &Parameters { config: &config, name: "" }
+      )
+      .unwrap()
+  )
   .is_equal_to(os::OS.to_string().to_ascii_lowercase());
 }
 
@@ -98,12 +99,14 @@ fn os_else_helpers() {
   if !os::OS.is_darwin() {
     expected += "else_darwin";
   }
-  assert_that!(get_handlebars()
-    .render(
-      "{{ #windows }}{{ else }}else_windows{{ /windows }}{{ #linux }}{{ else }}else_linux{{ /linux }}{{ #darwin }}{{ else }}else_darwin{{ /darwin }}",
-      &Parameters { config: &config, name: "" }
-    )
-    .unwrap())
+  assert_that!(
+    get_handlebars()
+      .render(
+        "{{ #windows }}{{ else }}else_windows{{ /windows }}{{ #linux }}{{ else }}else_linux{{ /linux }}{{ #darwin }}{{ else }}else_darwin{{ /darwin }}",
+        &Parameters { config: &config, name: "" }
+      )
+      .unwrap()
+  )
   .is_equal_to(expected);
 }
 
