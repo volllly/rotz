@@ -2,6 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use baker::Bake;
 use clap::{Args, Parser, Subcommand};
+use clap_complete::Shell;
 #[cfg(test)]
 use fake::Dummy;
 use figment::{
@@ -157,6 +158,19 @@ pub enum Command {
     #[clap(flatten)]
     install: InstallRaw,
   },
+
+  #[cfg(not(test))]
+  #[clap(verbatim_doc_comment)]
+  /// Adds completions to shell
+  ///
+  /// Depending on your shell, you'll have to look up where to place the completion file.
+  /// The recommended filename is _rotz
+  ///
+  /// - In bash, if you have `bash-completion` installed, you can place the completion file in `~/.local/share/bash-completion`
+  /// - In zsh, place it anywhere inside a directory in your `$fpath` variable
+  /// - In fish, place it in `~/.config/fish/completions`
+  /// - In powershell, source the file in your `$PROFILE`
+  Completions { shell: Option<Shell> },
 }
 
 impl Provider for Cli {
