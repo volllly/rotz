@@ -176,7 +176,6 @@ fn run() -> Result<(), miette::Report> {
     cli::Command::Clone { repo } => commands::Clone::new(config).execute((cli, repo)),
     cli::Command::Install { install } => commands::Install::new(config, engine).execute((cli.bake(), install.bake())),
     cli::Command::Init { repo } => commands::Init::new(config).execute((cli, repo)),
-    #[cfg(not(test))]
     cli::Command::Completions { shell } => commands::Completions::new().execute(shell),
   }?;
 

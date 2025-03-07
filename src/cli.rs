@@ -159,7 +159,6 @@ pub enum Command {
     install: InstallRaw,
   },
 
-  #[cfg(not(test))]
   #[clap(verbatim_doc_comment)]
   /// Adds completions to shell
   ///
@@ -170,7 +169,10 @@ pub enum Command {
   /// - In zsh, place it anywhere inside a directory in your `$fpath` variable
   /// - In fish, place it in `~/.config/fish/completions`
   /// - In powershell, source the file in your `$PROFILE`
-  Completions { shell: Option<Shell> },
+  Completions {
+    #[cfg_attr(test, dummy(default))]
+    shell: Option<Shell>,
+  },
 }
 
 impl Provider for Cli {
