@@ -10,6 +10,9 @@ pub(crate) use link::Link;
 pub mod init;
 pub use init::Init;
 
+pub mod completions;
+pub use completions::Completions;
+
 pub trait Command {
   type Args;
   type Result;
