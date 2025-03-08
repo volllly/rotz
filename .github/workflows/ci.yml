@@ -182,7 +182,7 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}
 
-      - run: cargo install -f cross
+      - run: cargo install cross --git https://github.com/cross-rs/cross
         if: matrix.target.compile == 'cross'
 
       - run: cargo build --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }} ${{ matrix.target.args || '' }}
