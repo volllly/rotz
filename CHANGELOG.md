@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-04-14
+
+- Update dependencies
+- Update selector error messages
+
 ## [1.2.0] - 2025-03-07
 
 - Added shell completion ([#365](https://github.com/volllly/rotz/pull/365) by [@IcyTv](https://github.com/IcyTv))
@@ -179,7 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Global `--dry-run` cli parameter
 - Implemented install command functionality
-- Option to skip installing dependences in install command
+- Option to skip installing dependencies in install command
 - Option to continue on installation error in install command
 - Support for a repo level config file. You can now add a `config.(yaml|toml|json)` file containing os specific defaults to the root of your dotfiles repo.
 - `shell_command` configuration parameter
@@ -256,7 +261,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotfile linking
 - Error handling
 
-[Unreleased]: https://github.com/volllly/rotz/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/volllly/rotz/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/volllly/rotz/releases/tag/v1.2.1
 [1.2.0]: https://github.com/volllly/rotz/releases/tag/v1.2.0
 [1.1.0]: https://github.com/volllly/rotz/releases/tag/v1.1.0
 [1.0.0]: https://github.com/volllly/rotz/releases/tag/v1.0.0

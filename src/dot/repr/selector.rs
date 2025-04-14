@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use chumsky::{Parser, error::Simple, prelude::*};
+use chumsky::{Parser, prelude::*};
 #[cfg(test)]
 use fake::Dummy;
-use miette::{Diagnostic, LabeledSpan, SourceSpan};
+use miette::{Diagnostic, LabeledSpan};
 use strum::EnumString;
-use tap::{Conv, Pipe};
+use tap::Pipe;
 
 use crate::helpers::{MultipleErrors, os};
 use crate::templating::{self, Engine, Parameters};
@@ -41,7 +41,7 @@ pub(super) struct Selector {
   pub attributes: Vec<Attribute>,
 }
 
-fn string() -> impl Parser<char, String, Error = Simple<char>> {
+fn string<'src>() -> impl Parser<'src, &'src str, String, extra::Err<Rich<'src, char>>> {
   let escape = just('\\').ignore_then(
     just('\\')
       .or(just('/'))
@@ -52,28 +52,22 @@ fn string() -> impl Parser<char, String, Error = Simple<char>> {
       .or(just('r').to('\r'))
       .or(just('t').to('\t'))
       .or(
-        just('u').ignore_then(
-          chumsky::prelude::filter(|c: &char| c.is_ascii_hexdigit())
-            .repeated()
-            .exactly(4)
-            .collect::<String>()
-            .validate(|digits, span, emit| {
-              char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
-                emit(Simple::custom(span, "invalid unicode character"));
-                '\u{FFFD}' // unicode replacement character
-              })
-            }),
-        ),
+        just('u').ignore_then(any().filter(|c: &char| c.is_ascii_hexdigit()).repeated().exactly(4).collect::<String>().validate(|digits, e, emitter| {
+          char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(|| {
+            emitter.emit(Rich::custom(e.span(), "invalid unicode character"));
+            '\u{FFFD}' // unicode replacement character
+          })
+        })),
       ),
   );
 
   just('"')
-    .ignore_then(chumsky::prelude::filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
+    .ignore_then(any().filter(|c| *c != '\\' && *c != '"').or(escape).repeated().collect::<Vec<_>>())
     .then_ignore(just('"'))
-    .collect::<String>()
+    .map(|s| s.into_iter().collect::<String>())
 }
 
-fn operator() -> impl Parser<char, Operator, Error = Simple<char>> {
+fn operator<'src>() -> impl Parser<'src, &'src str, Operator, extra::Err<Rich<'src, char>>> {
   just("=")
     .map(|_| Operator::Eq)
     .or(just("$=").map(|_| Operator::EndsWith))
@@ -81,19 +75,19 @@ fn operator() -> impl Parser<char, Operator, Error = Simple<char>> {
     .or(just("*=").map(|_| Operator::Contains))
     .or(just("!=").map(|_| Operator::NotEq))
 }
-fn path() -> impl Parser<char, String, Error = Simple<char>> {
-  text::ident().separated_by(just('.')).at_least(1).map(|k| k.join("."))
+fn path<'src>() -> impl Parser<'src, &'src str, String, extra::Err<Rich<'src, char>>> {
+  text::ident().separated_by(just('.')).at_least(1).collect::<Vec<&str>>().map(|k| k.join("."))
 }
-fn attribute() -> impl Parser<char, Attribute, Error = Simple<char>> {
+fn attribute<'src>() -> impl Parser<'src, &'src str, Attribute, extra::Err<Rich<'src, char>>> {
   path().then(operator().padded()).then(string()).map(|((key, operator), value)| Attribute { key, operator, value })
 }
-fn attributes() -> impl Parser<char, Vec<Attribute>, Error = Simple<char>> {
-  attribute().delimited_by(just('['), just(']')).padded().repeated()
+fn attributes<'src>() -> impl Parser<'src, &'src str, Vec<Attribute>, extra::Err<Rich<'src, char>>> {
+  attribute().delimited_by(just('['), just(']')).padded().repeated().collect::<Vec<_>>()
 }
-fn os() -> impl Parser<char, os::Os, Error = Simple<char>> {
-  text::ident().try_map(|i: String, span| os::Os::try_from(i.as_str()).map_err(|e| Simple::custom(span, e)))
+fn os<'src>() -> impl Parser<'src, &'src str, os::Os, extra::Err<Rich<'src, char>>> {
+  text::ident().try_map(|i: &str, span| os::Os::try_from(i).map_err(|e| Rich::custom(span, e)))
 }
-fn selector() -> impl Parser<char, Selector, Error = Simple<char>> {
+fn selector<'src>() -> impl Parser<'src, &'src str, Selector, extra::Err<Rich<'src, char>>> {
   os().then(attributes()).map(|(os, attributes)| Selector { os, attributes })
 }
 
@@ -106,16 +100,18 @@ impl FromStr for Selectors {
   fn from_str(s: &str) -> Result<Selectors, Self::Err> {
     selector()
       .separated_by(just('|').padded())
+      .collect::<Vec<_>>()
       .then_ignore(end())
       .try_map(|selectors, span| {
         let selectors = Selectors(selectors);
         if selectors.is_global() && selectors.0.len() > 1 {
-          Simple::custom(span, "global can not be mixed with an operating system").pipe(Err)
+          Rich::custom(span, "global can not be mixed with an operating system").pipe(Err)
         } else {
           selectors.pipe(Ok)
         }
       })
       .parse(s)
+      .into_result()
       .map_err(|e| MultipleErrors::from_chumsky(s, e))
   }
 }
@@ -176,30 +172,20 @@ struct SelectorError {
 }
 
 impl MultipleErrors {
-  fn from_chumsky(selector: &str, errors: Vec<chumsky::error::Simple<char>>) -> Self {
+  fn from_chumsky(selector: &str, errors: Vec<Rich<char>>) -> Self {
     MultipleErrors::from(
       errors
         .into_iter()
         .map(|e| {
           let (reason, labels) = match e.reason() {
-            chumsky::error::SimpleReason::Unexpected => (
-              e.found().map_or_else(|| "Selector ended unexpectedly".to_owned(), |f| format!("unexpected character {f:?}")),
-              vec![LabeledSpan::new_with_span(
-                {
-                  let expected = e.expected().filter_map(|e| *e).collect::<Vec<char>>();
-                  if expected.is_empty() { None } else { Some(format!("expected one of: {expected:?}")) }
-                },
-                e.span(),
-              )],
+            chumsky::error::RichReason::ExpectedFound { expected, found } => (
+              found.map_or_else(|| "Selector ended unexpectedly".to_owned(), |f| format!("unexpected input: {f:?}")),
+              expected
+                .iter()
+                .map(|p| LabeledSpan::new_with_span(Some(format!("expected one of: {p}")), e.span().into_range()))
+                .collect(),
             ),
-            chumsky::error::SimpleReason::Unclosed { span, delimiter } => (
-              "Found unclosed delimiter".to_owned(),
-              vec![
-                LabeledSpan::at(e.span(), "opening delimiter"),
-                LabeledSpan::at((span.start..span.end).conv::<SourceSpan>(), format!("expected closing: {delimiter:?}")),
-              ],
-            ),
-            chumsky::error::SimpleReason::Custom(c) => (c.clone(), vec![LabeledSpan::new_with_span(None, e.span())]),
+            chumsky::error::RichReason::Custom(c) => (c.clone(), vec![LabeledSpan::new_with_span(None, e.span().into_range())]),
           };
 
           SelectorError {
