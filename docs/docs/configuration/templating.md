@@ -17,7 +17,7 @@ This allows for e.g. access to environment variables.
 | `os`     | The current os (either `windows`, `linux` or `darwin`) as used in dots                                                                                                          | `{{#if (eq os "windows")}}some: value{{/if}}`                           |
 | `whoami` | A map of information about the environment (see [whoami](#whoami)). Provided by the [whoami](https://github.com/ardaku/whoami#features) crate.                                  | `some.file: /home/{{ whoami.username }}/some.file`                      |
 | `dirs`   | A map of directories (see [below](#directories) for a list of available directories). Provided by the [directories](https://github.com/dirs-dev/directories-rs#features) crate. | `some.file: {{ dirs.base.home }}/some.file`                             |
- 
+
 ### `whoami`
 
 | Variable             | Description                               |
@@ -36,22 +36,22 @@ This allows for e.g. access to environment variables.
 
 | Variable          |
 |-------------------|
-| `base.cache`      |
-| `base.config`     |
-| `base.data`       |
-| `base.data_local` |
-| `base.home`       |
-| `base.preference` |
+| `dirs.base.cache`      |
+| `dirs.base.config`     |
+| `dirs.base.data`       |
+| `dirs.base.data_local` |
+| `dirs.base.home`       |
+| `dirs.base.preference` |
 |                   |
-| `user.audio`      |
-| `user.desktop`    |
-| `user.document`   |
-| `user.download`   |
-| `user.home`       |
-| `user.picture`    |
-| `user.public`     |
-| `user.template`   |
-| `user.video`      |
+| `dirs.user.audio`      |
+| `dirs.user.desktop`    |
+| `dirs.user.document`   |
+| `dirs.user.download`   |
+| `dirs.user.home`       |
+| `dirs.user.picture`    |
+| `dirs.user.public`     |
+| `dirs.user.template`   |
+| `dirs.user.video`      |
 
 ## Helpers
 
