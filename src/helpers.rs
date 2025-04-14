@@ -49,7 +49,7 @@ where
 {
   if result.is_empty() {
     return ().pipe(Ok);
-  };
+  }
 
   MultipleErrors(result.into_iter().map(Into::into).collect_vec()).pipe(Err)
 }
@@ -111,7 +111,7 @@ pub fn run_command(cmd: &str, args: &[impl AsRef<OsStr> + Debug], silent: bool, 
       std::io::stdout().write_all(&output.stderr)?;
     }
     RunError::Execute(output.status.code()).pipe(Err)?;
-  };
+  }
 
   String::from_utf8_lossy(&output.stdout).to_string().pipe(Ok)
 }

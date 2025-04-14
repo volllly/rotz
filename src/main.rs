@@ -3,6 +3,7 @@ use std::{
   convert::TryFrom,
   fs::{self, File},
   path::{Path, PathBuf},
+  sync::LazyLock,
 };
 
 use clap::Parser;
@@ -20,7 +21,6 @@ use figment::{
 };
 use helpers::os;
 use miette::{Diagnostic, Result, SourceSpan};
-use once_cell::sync::Lazy;
 use strum::Display;
 
 mod helpers;
@@ -79,8 +79,8 @@ pub enum Error {
   RepoConfigDefaultProfile,
 }
 
-pub(crate) static PROJECT_DIRS: Lazy<ProjectDirs> = Lazy::new(|| ProjectDirs::from("com", "", "rotz").ok_or(Error::GettingDirs("application data")).expect("Could not read project dirs"));
-pub(crate) static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| UserDirs::new().ok_or(Error::GettingDirs("user")).expect("Could not read user dirs"));
+pub(crate) static PROJECT_DIRS: LazyLock<ProjectDirs> = LazyLock::new(|| ProjectDirs::from("com", "", "rotz").ok_or(Error::GettingDirs("application data")).expect("Could not read project dirs"));
+pub(crate) static USER_DIRS: LazyLock<UserDirs> = LazyLock::new(|| UserDirs::new().ok_or(Error::GettingDirs("user")).expect("Could not read user dirs"));
 pub(crate) const FILE_EXTENSIONS_GLOB: &str = "{y<a>ml,toml,json}";
 pub(crate) const FILE_EXTENSIONS: &[(&str, FileFormat)] = &[
   #[cfg(feature = "yaml")]

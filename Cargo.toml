@@ -30,7 +30,6 @@ serde_toml = { package = "toml", version = "0.8.12", optional = true }
 serde_json = { version = "1.0.116", optional = true }
 figment = { version = "0.10.18", default-features = false, features = ["env"] }
 directories = "6.0.0"
-once_cell = "1.19.0"
 serde = { version = "1.0.198", features = ["derive"] }
 crossterm = "0.29.0"
 itertools = "0.14.0"

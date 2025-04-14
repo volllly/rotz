@@ -1722,7 +1722,6 @@ dependencies = [
  "itertools 0.14.0",
  "junction",
  "miette 7.5.0",
- "once_cell",
  "openssl-sys",
  "path-absolutize",
  "path-slash",

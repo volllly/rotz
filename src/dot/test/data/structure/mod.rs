@@ -1,12 +1,13 @@
+use std::sync::LazyLock;
+
 use crate::{
   cli::{Cli, Command, PathBuf},
   config::{Config, LinkType},
   templating::{Engine, Parameters},
 };
 use figment::{util::map, value};
-use once_cell::sync::Lazy;
 
-static CONFIG: Lazy<Config> = Lazy::new(|| Config {
+static CONFIG: LazyLock<Config> = LazyLock::new(|| Config {
   dotfiles: "dotfiles".into(),
   link_type: LinkType::Hard,
   shell_command: "shell_command".to_owned().into(),

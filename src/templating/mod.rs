@@ -1,10 +1,9 @@
-use std::{collections::HashMap, fmt::Debug, path::PathBuf};
+use std::{collections::HashMap, fmt::Debug, path::PathBuf, sync::LazyLock};
 
 use directories::BaseDirs;
 use handlebars::{Context, Handlebars, Helper, HelperDef, HelperResult, Output, RenderContext, RenderError, RenderErrorReason, Renderable, ScopedJson};
 use itertools::Itertools;
 use miette::Diagnostic;
-use once_cell::sync::Lazy;
 use serde::Serialize;
 use tap::{Conv, Pipe};
 #[cfg(feature = "profiling")]
@@ -18,7 +17,7 @@ use crate::{
   helpers::{self, os},
 };
 
-pub static ENV: Lazy<HashMap<String, String>> = Lazy::new(|| std::env::vars().collect());
+pub static ENV: LazyLock<HashMap<String, String>> = LazyLock::new(|| std::env::vars().collect());
 
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub enum Error {
@@ -58,7 +57,7 @@ pub struct WhoamiPrameters {
   pub arch: String,
 }
 
-pub static WHOAMI_PRAMETERS: Lazy<WhoamiPrameters> = Lazy::new(|| WhoamiPrameters {
+pub static WHOAMI_PRAMETERS: LazyLock<WhoamiPrameters> = LazyLock::new(|| WhoamiPrameters {
   realname: whoami::realname(),
   username: whoami::username(),
   lang: whoami::langs().map(|l| l.map(|l| l.to_string()).collect_vec()).unwrap_or_default(),
@@ -76,7 +75,7 @@ pub struct DirectoryPrameters {
   pub user: HashMap<&'static str, PathBuf>,
 }
 
-pub static DIRECTORY_PRAMETERS: Lazy<DirectoryPrameters> = Lazy::new(|| {
+pub static DIRECTORY_PRAMETERS: LazyLock<DirectoryPrameters> = LazyLock::new(|| {
   let mut base: HashMap<&'static str, PathBuf> = HashMap::new();
 
   if let Some(dirs) = BaseDirs::new() {
