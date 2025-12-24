@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `Copy` link type option for copying files instead of creating symbolic or hard links ([#384](https://github.com/volllly/rotz/issues/384))
+
 ## [1.2.1] - 2025-04-14
 
 - Update dependencies
