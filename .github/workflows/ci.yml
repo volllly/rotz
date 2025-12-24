@@ -45,13 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.lint)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -82,13 +82,13 @@ jobs:
           - triple: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target.triple }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -166,14 +166,14 @@ jobs:
             compile: native
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           target: ${{ matrix.target.triple }}
         if: matrix.target.compile == 'native'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -191,7 +191,7 @@ jobs:
       - run: cross build --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }} ${{ matrix.target.args || '' }}
         if: matrix.target.compile == 'cross'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: rotz-${{ matrix.target.triple }}
           path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
@@ -207,11 +207,11 @@ jobs:
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -223,7 +223,7 @@ jobs:
 
       - run: cargo publish --dry-run
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: artifacts
 

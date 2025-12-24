@@ -152,7 +152,11 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked
     return Error::LinkSourceDoesNotExist(from.to_path_buf()).pipe(Err);
   }
 
-  let create: fn(&Path, &Path) -> std::result::Result<(), std::io::Error> = if link_type.is_symbolic() { symlink } else { hardlink };
+  let create: fn(&Path, &Path) -> std::result::Result<(), std::io::Error> = match link_type {
+    LinkType::Symbolic => symlink,
+    LinkType::Hard => hardlink,
+    LinkType::Copy => copyfile,
+  };
 
   match create(from, to) {
     Ok(ok) => ok.pipe(Ok),
@@ -173,7 +177,7 @@ fn create_link(from: &Path, to: &Path, link_type: &LinkType, force: bool, linked
 
 #[cfg(windows)]
 #[cfg_attr(feature = "profiling", instrument)]
-fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   use std::os::windows::fs;
 
   if let Some(parent) = to.parent() {
@@ -190,7 +194,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
 
 #[cfg(unix)]
 #[cfg_attr(feature = "profiling", instrument)]
-fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   use std::os::unix::fs;
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
@@ -201,7 +205,7 @@ fn symlink(from: &Path, to: &Path) -> std::io::Result<()> {
 
 #[cfg(windows)]
 #[cfg_attr(feature = "profiling", instrument)]
-fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
   }
@@ -216,10 +220,46 @@ fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
 
 #[cfg(unix)]
 #[cfg_attr(feature = "profiling", instrument)]
-fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
   if let Some(parent) = to.parent() {
     std::fs::create_dir_all(parent)?;
   }
   fs::hard_link(from, to)?;
   ().pipe(Ok)
+}
+
+#[cfg_attr(feature = "profiling", instrument)]
+pub(crate) fn copyfile(from: &Path, to: &Path) -> std::io::Result<()> {
+  if let Some(parent) = to.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
+
+  if from.is_dir() {
+    copy_dir_all(from, to)?;
+  } else {
+    fs::copy(from, to)?;
+  }
+  ().pipe(Ok)
+}
+
+pub(crate) fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+  fs::create_dir_all(dst)?;
+  for entry in fs::read_dir(src)? {
+    let entry = entry?;
+    let ty = entry.file_type()?;
+    if ty.is_dir() {
+      copy_dir_all(&entry.path(), &dst.join(entry.file_name()))?;
+    } else {
+      fs::copy(&entry.path(), &dst.join(entry.file_name()))?;
+    }
+  }
+  Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  mod common;
+  mod copy;
+  mod hard;
+  mod symbolic;
 }

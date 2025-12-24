@@ -27,6 +27,8 @@ pub enum LinkType {
   Symbolic,
   /// Uses hard links for linking
   Hard,
+  /// Copies files instead of linking
+  Copy,
 }
 
 #[cfg(test)]
