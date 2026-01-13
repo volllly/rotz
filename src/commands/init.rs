@@ -41,13 +41,24 @@ impl Command for Init {
       config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
     }
 
-    std::fs::create_dir_all(&self.config.dotfiles).map_err(|err| Error::CreatingDir(self.config.dotfiles.to_string_lossy().to_string(), err))?;
+    std::fs::create_dir_all(self.config.primary_dotfiles_path()).map_err(|err| Error::CreatingDir(self.config.primary_dotfiles_path().to_string_lossy().to_string(), err))?;
 
-    println!("\n{}Initializing repo in \"{}\"{}\n", Attribute::Bold, self.config.dotfiles.to_string_lossy().green(), Attribute::Reset);
+    println!(
+      "\n{}Initializing repo in \"{}\"{}\n",
+      Attribute::Bold,
+      self.config.primary_dotfiles_path().to_string_lossy().green(),
+      Attribute::Reset
+    );
 
     helpers::run_command(
       "git",
-      &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("init"), OsStr::new("-b"), OsStr::new("main")],
+      &[
+        OsStr::new("-C"),
+        self.config.primary_dotfiles_path().as_os_str(),
+        OsStr::new("init"),
+        OsStr::new("-b"),
+        OsStr::new("main"),
+      ],
       false,
       cli.dry_run,
     )?;
@@ -59,7 +70,7 @@ impl Command for Init {
         "git",
         &[
           OsStr::new("-C"),
-          self.config.dotfiles.as_os_str(),
+          self.config.primary_dotfiles_path().as_os_str(),
           OsStr::new("remote"),
           OsStr::new("add"),
           OsStr::new("origin"),
@@ -73,7 +84,7 @@ impl Command for Init {
         "git",
         &[
           OsStr::new("-C"),
-          self.config.dotfiles.as_os_str(),
+          self.config.primary_dotfiles_path().as_os_str(),
           OsStr::new("push"),
           OsStr::new("--set-upstream"),
           OsStr::new("origin"),
@@ -85,7 +96,13 @@ impl Command for Init {
 
       helpers::run_command(
         "git",
-        &[OsStr::new("-C"), self.config.dotfiles.as_os_str(), OsStr::new("push"), OsStr::new("-u"), OsStr::new("origin")],
+        &[
+          OsStr::new("-C"),
+          self.config.primary_dotfiles_path().as_os_str(),
+          OsStr::new("push"),
+          OsStr::new("-u"),
+          OsStr::new("origin"),
+        ],
         false,
         cli.dry_run,
       )?;

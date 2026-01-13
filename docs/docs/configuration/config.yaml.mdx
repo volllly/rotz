@@ -10,13 +10,52 @@ The following settings are configurable in the config file like so:
 
 <TabedCodeBlock title="config.{{ format }}"
   data={{
-    dotfiles: "<path to dotfiles>",
+    dotfiles: "<path to dotfiles> or [\"<path1>\", \"<path2>\", ...]",
     link_type: "<'symbolic'|'hard'>",
     shell_command: "<shell command template used for the install command>",
     variables: "<map of variables which can be used in templates>"
   }} />
 
 Those settings can be overridden in the cli when applicable (see `rotz --help` and `rotz <command> --help` to get more information).
+
+## `dotfiles`
+
+The dotfiles setting specifies where your dotfiles are located. This can be configured in two ways:
+
+### Single Directory (Traditional)
+
+<TabedCodeBlock title="config.{{ format }}"
+  data={{
+    dotfiles: "~/.dotfiles"
+  }} />
+
+### Multiple Directories (New in v1.2.2)
+
+<TabedCodeBlock title="config.{{ format }}"
+  data={{
+    dotfiles: [
+      "~/.dotfiles/personal",
+      "~/.dotfiles/work", 
+      "~/.dotfiles/system"
+    ]
+  }} />
+
+When using multiple directories, rotz will:
+- Read dots from all directories in order
+- Apply "first directory wins" conflict resolution if the same dot exists in multiple directories
+- Use the first directory for clone/init operations
+- Track which directory each dot comes from during linking
+
+**Common Use Cases:**
+- **Personal/Work separation**: Keep personal and work dotfiles in separate repositories
+- **Modular organization**: Organize by application type (shell, editors, system tools)
+- **Environment-specific configs**: Different configs for different environments
+
+**Migration from Single Directory:**
+Existing single-directory configurations remain fully compatible. To migrate:
+1. Move your dotfiles to organized subdirectories
+2. Update your config.yaml to use the array format
+3. The first directory in the array becomes your primary directory for git operations
 
 ## `shell_command`
 
