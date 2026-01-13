@@ -20,13 +20,27 @@ use tracing::instrument;
 
 use crate::{FileFormat, USER_DIRS, helpers};
 
-#[derive(Debug, ValueEnum, Clone, Display, Deserialize, Serialize, EnumIs)]
+#[derive(Debug, ValueEnum, Clone, Copy, Display, Serialize, EnumIs)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub enum LinkType {
   /// Uses symbolic links for linking
   Symbolic,
   /// Uses hard links for linking
   Hard,
+}
+
+impl<'de> Deserialize<'de> for LinkType {
+  fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    let s = String::deserialize(deserializer)?;
+    match s.to_lowercase().as_str() {
+      "symbolic" => Ok(LinkType::Symbolic),
+      "hard" => Ok(LinkType::Hard),
+      _ => Err(serde::de::Error::unknown_variant(&s, &["Symbolic", "Hard", "symbolic", "hard"])),
+    }
+  }
 }
 
 /// Represents one or more dotfiles directories
