@@ -49,11 +49,11 @@ impl Command for Clone {
       "{}Cloning \"{}\" to \"{}\"{}\n",
       Attribute::Bold,
       repo.as_str().blue(),
-      self.config.dotfiles.to_string_lossy().green(),
+      self.config.primary_dotfiles_path().to_string_lossy().green(),
       Attribute::Reset
     );
 
-    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(&repo), self.config.dotfiles.as_os_str()], false, cli.dry_run)?;
+    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(&repo), self.config.primary_dotfiles_path().as_os_str()], false, cli.dry_run)?;
 
     println!("\n{}Cloned repo{}", Attribute::Bold, Attribute::Reset);
 

@@ -191,7 +191,7 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
 
   let config: Config = figment.clone().join(Config::default()).extract().map_err(Error::ParsingConfig)?;
 
-  let dotfiles = helpers::resolve_home(&config.dotfiles);
+  let dotfiles = helpers::resolve_home(config.dotfiles.first_path());
 
   if let Some((config, _)) = helpers::get_file_with_format(dotfiles, "config") {
     figment = figment.join_from_path(config, true, hash_map!( "global".into(): "default".into(), "force".into(): "global".into() ))?;
@@ -203,7 +203,7 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
     .extract()
     .map_err(Error::RepoConfigProfile)?;
 
-  config.dotfiles = helpers::resolve_home(&config.dotfiles);
+  config.resolve_dotfiles_homes();
 
   config.pipe(Ok)
 }

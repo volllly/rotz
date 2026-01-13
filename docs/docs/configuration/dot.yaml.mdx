@@ -10,6 +10,27 @@ import { Section } from '@ltd/j-toml';
 > ## Sections
 > <TOCInline toc={toc} />
 
+## Empty Files
+
+An empty `dot.yaml` file is valid and acts as if it contained the following default configuration:
+
+```yaml
+global:
+  installs: false
+  depends: []
+  links: {}
+```
+
+This means an empty file will:
+- Not install any packages
+- Have no dependencies
+- Create no symbolic links
+- Effectively be a no-operation (no-op) dot directory
+
+This behavior is useful for placeholder directories or when you want to disable all operations for a particular dot configuration.
+
+## Configuration Keys
+
 The `dot.yaml` file consists of four optional keys:
 
 | key        | requirement | function                                              |

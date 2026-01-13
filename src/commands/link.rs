@@ -65,13 +65,18 @@ impl<'a> Command for Link<'a> {
 
   #[cfg_attr(feature = "profiling", instrument)]
   fn execute(&self, (globals, link_command, linked): Self::Args) -> Self::Result {
-    let links = crate::dot::read_dots(&self.config.dotfiles, &link_command.dots, &self.config, &self.engine)?
+    let links = crate::dot::read_dots_with_sources(&link_command.dots, &self.config, &self.engine)?
       .into_iter()
-      .filter_map(|d| d.1.links.map(|l| (d.0, l)))
+      .filter_map(|(name, dot, source)| dot.links.map(|l| (name, l, source)))
       .collect_vec();
 
     {
-      let current_links = links.iter().flat_map(|l| l.1.iter().map(|h| h.1.iter())).flatten().map(helpers::resolve_home).collect::<HashSet<_>>();
+      let current_links = links
+        .iter()
+        .flat_map(|(_, link_map, _)| link_map.iter().map(|h| h.1.iter()))
+        .flatten()
+        .map(helpers::resolve_home)
+        .collect::<HashSet<_>>();
 
       let mut errors = Vec::new();
 
@@ -113,12 +118,18 @@ impl<'a> Command for Link<'a> {
 
     let mut new_linked = hash_map!();
 
-    for (name, link) in links {
-      println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().dark_blue(), Attribute::Reset);
+    for (name, link, source_dir) in links {
+      println!(
+        "{}Linking {} (from {}){}\n",
+        Attribute::Bold,
+        name.as_str().dark_blue(),
+        source_dir.display().to_string().dark_green(),
+        Attribute::Reset
+      );
 
       let mut new_linked_inner = hash_map!();
 
-      let base_path = self.config.dotfiles.join(&name[1..]);
+      let base_path = source_dir.join(&name[1..]);
       for (from, tos) in link {
         for mut to in tos {
           println!("  {} -> {}", from.to_string_lossy().dark_green(), to.to_string_lossy().dark_green());

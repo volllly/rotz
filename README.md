@@ -24,6 +24,24 @@ Rotz has three main functionalities:
 2. Installing the applications you need to start working on an new/empty machine
 3. Full Cross platform functionality [See Configuration](https://volllly.github.io/rotz/docs/configuration/os-specific-configuration)
 
+### Multi-Dotfiles Support (New in v1.2.2)
+
+Rotz now supports managing dotfiles from multiple directories, enabling better organization and separation of concerns:
+
+- **Personal/Work separation**: Keep personal and work dotfiles in separate repositories
+- **Modular organization**: Organize by application type (shell, editors, system tools)  
+- **Environment-specific configs**: Different configs for different environments
+
+```yaml
+# config.yaml
+dotfiles:
+  - "~/.dotfiles/personal"
+  - "~/.dotfiles/work"
+  - "~/.dotfiles/system"
+```
+
+When using multiple directories, rotz applies "first directory wins" conflict resolution and tracks which directory each dot comes from during linking.
+
 ## Installation
 
 ### Homebrew
@@ -90,6 +108,27 @@ To link your `dotfiles` use `rotz link`.
 ## Usage
 
 Run `rotz --help` to see all commands Rotz has.
+
+### Configuration Examples
+
+#### Single Directory (Traditional)
+```yaml
+# ~/.config/rotz/config.yaml
+dotfiles: "~/.dotfiles"
+link_type: symbolic
+```
+
+#### Multiple Directories
+```yaml
+# ~/.config/rotz/config.yaml
+dotfiles:
+  - "~/.dotfiles/personal"  # Personal configs (highest priority)
+  - "~/.dotfiles/work"      # Work-specific configs
+  - "~/.dotfiles/system"    # System-level configs
+link_type: symbolic
+```
+
+Existing single-directory configurations remain fully compatible.
 
 ## Contribute
 

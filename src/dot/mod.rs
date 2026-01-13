@@ -71,6 +71,92 @@ fn from_str_with_defaults(s: &str, format: FileFormat, defaults: Option<&Capabil
 
 #[cfg_attr(feature = "profiling", instrument(skip(engine)))]
 pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
+  // Backward compatibility: convert single path to multiple paths and call multi version
+  read_dots_multi(&[dotfiles_path.to_path_buf()], dots, config, engine)
+}
+
+/// Read dots from multiple dotfiles directories with conflict resolution
+#[cfg_attr(feature = "profiling", instrument(skip(engine)))]
+pub(crate) fn read_dots_multi(dotfiles_paths: &[std::path::PathBuf], dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
+  use std::collections::HashMap;
+
+  if dotfiles_paths.is_empty() {
+    println!("Warning: {}", "No dotfiles paths provided".dark_yellow());
+    return vec![].pipe(Ok);
+  }
+
+  let mut all_dots: HashMap<String, (Dot, std::path::PathBuf)> = HashMap::new();
+  let mut conflicts: Vec<(String, Vec<std::path::PathBuf>)> = Vec::new();
+
+  for (_priority, dotfiles_path) in dotfiles_paths.iter().enumerate() {
+    if !dotfiles_path.exists() {
+      println!("Warning: Dotfiles directory does not exist: {}", dotfiles_path.display().to_string().dark_yellow());
+      continue;
+    }
+
+    match read_dots_from_single_path(dotfiles_path, dots, config, engine) {
+      Ok(dots_from_path) => {
+        for (dot_name, dot) in dots_from_path {
+          if let Some((_, existing_source)) = all_dots.get(&dot_name) {
+            // Conflict detected - track it
+            let conflict_sources = vec![existing_source.clone(), dotfiles_path.clone()];
+            if let Some((_, existing_conflicts)) = conflicts.iter_mut().find(|(name, _)| name == &dot_name) {
+              if !existing_conflicts.contains(dotfiles_path) {
+                existing_conflicts.push(dotfiles_path.clone());
+              }
+            } else {
+              conflicts.push((dot_name.clone(), conflict_sources));
+            }
+
+            // First directory wins (priority 0 beats priority 1, etc.)
+            // Don't overwrite existing dot
+            continue;
+          } else {
+            // No conflict, add the dot
+            all_dots.insert(dot_name, (dot, dotfiles_path.clone()));
+          }
+        }
+      }
+      Err(e) => {
+        println!(
+          "Warning: Failed to read dots from {}: {}",
+          dotfiles_path.display().to_string().dark_yellow(),
+          e.to_string().dark_yellow()
+        );
+        // Continue processing other directories
+      }
+    }
+  }
+
+  // Log conflicts
+  for (dot_name, conflicting_paths) in conflicts {
+    println!(
+      "Info: Dot '{}' found in multiple directories (using first): {}",
+      dot_name.dark_blue(),
+      conflicting_paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ").dark_green()
+    );
+  }
+
+  if all_dots.is_empty() {
+    println!("Warning: {}", "No dots found in any directory".dark_yellow());
+    return vec![].pipe(Ok);
+  }
+
+  // Convert back to the expected format
+  let result: Vec<(String, Dot)> = all_dots.into_iter().map(|(name, (dot, _))| (name, dot)).collect();
+
+  println!(
+    "Info: Loaded {} dots from {} directories",
+    result.len().to_string().dark_green(),
+    dotfiles_paths.len().to_string().dark_green()
+  );
+
+  result.pipe(Ok)
+}
+
+/// Read dots from a single dotfiles directory (helper function)
+#[cfg_attr(feature = "profiling", instrument(skip(engine)))]
+fn read_dots_from_single_path(dotfiles_path: &Path, dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
   let defaults = Defaults::from_path(dotfiles_path).map_err(|e| *e)?;
 
   let dots = helpers::glob_from_vec(dots, format!("/dot.{FILE_EXTENSIONS_GLOB}").as_str().pipe(Some))?;
@@ -159,6 +245,90 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
   dots.pipe(Ok)
 }
 
+/// Read dots using Config's dotfiles paths
+#[cfg_attr(feature = "profiling", instrument(skip(engine)))]
+pub(crate) fn read_dots_from_config(dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot)>> {
+  read_dots_multi(config.dotfiles_paths(), dots, config, engine)
+}
+
+/// Read dots with source directory information for linking
+#[cfg_attr(feature = "profiling", instrument(skip(engine)))]
+pub(crate) fn read_dots_with_sources(dots: &[String], config: &Config, engine: &templating::Engine<'_>) -> miette::Result<Vec<(String, Dot, std::path::PathBuf)>> {
+  use std::collections::HashMap;
+
+  if config.dotfiles_paths().is_empty() {
+    println!("Warning: {}", "No dotfiles paths provided".dark_yellow());
+    return vec![].pipe(Ok);
+  }
+
+  let mut all_dots: HashMap<String, (Dot, std::path::PathBuf)> = HashMap::new();
+  let mut conflicts: Vec<(String, Vec<std::path::PathBuf>)> = Vec::new();
+
+  for dotfiles_path in config.dotfiles_paths() {
+    if !dotfiles_path.exists() {
+      println!("Warning: Dotfiles directory does not exist: {}", dotfiles_path.display().to_string().dark_yellow());
+      continue;
+    }
+
+    match read_dots_from_single_path(dotfiles_path, dots, config, engine) {
+      Ok(dots_from_path) => {
+        for (dot_name, dot) in dots_from_path {
+          if let Some((_, existing_source)) = all_dots.get(&dot_name) {
+            // Conflict detected - track it
+            let conflict_sources = vec![existing_source.clone(), dotfiles_path.clone()];
+            if let Some((_, existing_conflicts)) = conflicts.iter_mut().find(|(name, _)| name == &dot_name) {
+              if !existing_conflicts.contains(dotfiles_path) {
+                existing_conflicts.push(dotfiles_path.clone());
+              }
+            } else {
+              conflicts.push((dot_name.clone(), conflict_sources));
+            }
+
+            // First directory wins - don't overwrite existing dot
+            continue;
+          } else {
+            // No conflict, add the dot with its source directory
+            all_dots.insert(dot_name, (dot, dotfiles_path.clone()));
+          }
+        }
+      }
+      Err(e) => {
+        println!(
+          "Warning: Failed to read dots from {}: {}",
+          dotfiles_path.display().to_string().dark_yellow(),
+          e.to_string().dark_yellow()
+        );
+        // Continue processing other directories
+      }
+    }
+  }
+
+  // Log conflicts
+  for (dot_name, conflicting_paths) in conflicts {
+    println!(
+      "Info: Dot '{}' found in multiple directories (using first): {}",
+      dot_name.dark_blue(),
+      conflicting_paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ").dark_green()
+    );
+  }
+
+  if all_dots.is_empty() {
+    println!("Warning: {}", "No dots found in any directory".dark_yellow());
+    return vec![].pipe(Ok);
+  }
+
+  // Convert to the format with source directory information
+  let result: Vec<(String, Dot, std::path::PathBuf)> = all_dots.into_iter().map(|(name, (dot, source))| (name, dot, source)).collect();
+
+  println!(
+    "Info: Loaded {} dots from {} directories",
+    result.len().to_string().dark_green(),
+    config.dotfiles_paths().len().to_string().dark_green()
+  );
+
+  result.pipe(Ok)
+}
+
 #[cfg_attr(feature = "profiling", instrument)]
 fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, helpers::MultipleErrors> {
   let dots = dots.into_iter().map(|mut dot| {
@@ -192,3 +362,6 @@ fn canonicalize_dots(dots: Vec<(String, Dot)>) -> Result<Vec<(String, Dot)>, hel
 
 #[cfg(test)]
 mod test;
+
+#[cfg(test)]
+mod tests;
