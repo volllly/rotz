@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, fmt::Debug, path::PathBuf};
+use std::{ffi::OsStr, fmt::Debug};
 
 use crossterm::style::{Attribute, Stylize};
 use miette::{Diagnostic, Result};
@@ -16,7 +16,7 @@ use crate::{
 enum Error {
   #[error("Could not create dotfiles directory \"{0}\"")]
   #[diagnostic(code(init::dotfiles::create))]
-  CreatingDir(PathBuf, #[source] std::io::Error),
+  CreatingDir(String, #[source] std::io::Error),
 }
 
 #[derive(Debug)]
@@ -41,7 +41,7 @@ impl Command for Init {
       config::create_config_file(cli.dotfiles.as_ref().map(|d| d.0.as_path()), &cli.config.0)?;
     }
 
-    std::fs::create_dir_all(&self.config.dotfiles).map_err(|err| Error::CreatingDir(self.config.dotfiles.clone(), err))?;
+    std::fs::create_dir_all(&self.config.dotfiles).map_err(|err| Error::CreatingDir(self.config.dotfiles.to_string_lossy().to_string(), err))?;
 
     println!("\n{}Initializing repo in \"{}\"{}\n", Attribute::Bold, self.config.dotfiles.to_string_lossy().green(), Attribute::Reset);
 

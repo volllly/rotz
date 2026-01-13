@@ -71,7 +71,7 @@ pub struct Cli {
   pub(crate) command: Command,
 }
 
-#[derive(Debug, Args, Clone)]
+#[derive(Debug, Args, Clone, Default)]
 #[cfg_attr(test, derive(Dummy, PartialEq, Eq))]
 pub struct Dots {
   #[clap(default_value = "**")]
@@ -185,7 +185,7 @@ impl Provider for Cli {
     let mut dict = Dict::new();
 
     if let Some(dotfiles) = &self.dotfiles {
-      dict.insert("dotfiles".to_owned(), Value::serialize(dotfiles.to_string())?);
+      dict.insert("dotfiles".to_owned(), Value::serialize(dotfiles.0.to_string_lossy().to_string())?);
     }
 
     if let Command::Link {
@@ -201,3 +201,6 @@ impl Provider for Cli {
     .pipe(Ok)
   }
 }
+
+#[cfg(test)]
+mod tests;
