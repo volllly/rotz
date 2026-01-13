@@ -13,6 +13,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: stable
           components: rustfmt
 
       - name: cargo fmt
@@ -24,7 +25,7 @@ jobs:
       - name: Commit to the PR branch
         if: steps.fmt.outputs.format == 'true'
         run: |
-          cargo fmt 
+          cargo fmt
           git config --global user.name 'actions-bot'
           git config --global user.email '58130806+actions-bot@users.noreply.github.com'
           git commit -am ":art:"
