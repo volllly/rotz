@@ -88,3 +88,42 @@ In this example:
 - Personal git config in `personal/git/` takes priority over work git config
 - Work-specific ssh configuration is isolated
 - System-level configurations are separate from user configs
+
+## Empty dot.yaml Files
+
+An empty `dot.yaml` file is a valid configuration that performs no operations:
+
+```yaml
+# This is an empty file - no content needed
+```
+
+This is equivalent to:
+
+```yaml
+global:
+  installs: false
+  depends: []
+  links: {}
+```
+
+### Use Cases for Empty Files
+
+**Placeholder Directories:**
+```
+~/.dotfiles/
+├── editors/
+│   ├── vscode/
+│   │   └── dot.yaml      # Configured editor
+│   └── vim/
+│       └── dot.yaml      # Empty - placeholder for future config
+└── shells/
+    ├── zsh/
+    │   └── dot.yaml      # Active shell config
+    └── bash/
+        └── dot.yaml      # Empty - disabled but ready
+```
+
+**Conditional Disabling:**
+- Temporarily disable a dot configuration without deleting files
+- Maintain directory structure while preventing operations
+- Keep placeholders for future configuration expansion
