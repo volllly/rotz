@@ -109,7 +109,9 @@ fn test_cli_different_commands() {
     dotfiles: None,
     config: PathBuf(StdPathBuf::from("config.yaml")),
     dry_run: false,
-    command: Command::Clone { repo: "https://github.com/user/dotfiles".to_string() },
+    command: Command::Clone {
+      repo: "https://github.com/user/dotfiles".to_string(),
+    },
   };
 
   let cli_init = Cli {

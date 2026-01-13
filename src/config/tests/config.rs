@@ -4,10 +4,7 @@ use std::path::PathBuf;
 
 #[test]
 fn test_config_helper_methods() {
-  let paths = vec![
-    PathBuf::from("/home/user/.dotfiles/personal"),
-    PathBuf::from("/home/user/.dotfiles/work"),
-  ];
+  let paths = vec![PathBuf::from("/home/user/.dotfiles/personal"), PathBuf::from("/home/user/.dotfiles/work")];
   let config = Config {
     dotfiles: DotfilesPath::Multiple(paths.clone()),
     link_type: LinkType::Symbolic,
@@ -32,10 +29,7 @@ fn test_config_default() {
 #[test]
 fn test_config_resolve_dotfiles_homes() {
   let mut config = Config {
-    dotfiles: DotfilesPath::Multiple(vec![
-      PathBuf::from("~/.dotfiles/personal"),
-      PathBuf::from("~/.dotfiles/work"),
-    ]),
+    dotfiles: DotfilesPath::Multiple(vec![PathBuf::from("~/.dotfiles/personal"), PathBuf::from("~/.dotfiles/work")]),
     link_type: LinkType::Symbolic,
     shell_command: None,
     variables: Dict::new(),
