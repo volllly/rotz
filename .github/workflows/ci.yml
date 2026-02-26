@@ -191,7 +191,7 @@ jobs:
       - run: cross build --release --target ${{ matrix.target.triple }} --target-dir ${{ runner.temp }} ${{ matrix.target.args || '' }}
         if: matrix.target.compile == 'cross'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rotz-${{ matrix.target.triple }}
           path: ${{ runner.temp }}/${{ matrix.target.triple }}/release/${{ matrix.target.filename }}
@@ -223,7 +223,7 @@ jobs:
 
       - run: cargo publish --dry-run
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
