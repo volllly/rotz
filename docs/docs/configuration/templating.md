@@ -38,6 +38,7 @@ This allows for e.g. access to environment variables.
 |-------------------|
 | `dirs.base.cache`      |
 | `dirs.base.config`     |
+| `dirs.base.config_local` |
 | `dirs.base.data`       |
 | `dirs.base.data_local` |
 | `dirs.base.home`       |

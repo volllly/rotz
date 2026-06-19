@@ -81,6 +81,7 @@ pub static DIRECTORY_PRAMETERS: LazyLock<DirectoryPrameters> = LazyLock::new(|| 
   if let Some(dirs) = BaseDirs::new() {
     base.insert("cache", dirs.cache_dir().to_path_buf());
     base.insert("config", dirs.config_dir().to_path_buf());
+    base.insert("config_local", dirs.config_local_dir().to_path_buf());
     base.insert("data", dirs.data_dir().to_path_buf());
     base.insert("data_local", dirs.data_local_dir().to_path_buf());
     base.insert("home", dirs.home_dir().to_path_buf());
