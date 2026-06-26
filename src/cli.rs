@@ -83,7 +83,7 @@ impl Dots {
   #[cfg_attr(feature = "profiling", instrument)]
   fn add_root(&self) -> Self {
     Self {
-      dots: self.dots.iter().map(|d| if d.starts_with('/') { d.to_string() } else { format!("/{d}") }).collect_vec(),
+      dots: self.dots.iter().map(|d| if d.starts_with('/') { d.clone() } else { format!("/{d}") }).collect_vec(),
     }
   }
 }

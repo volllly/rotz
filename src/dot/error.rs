@@ -29,7 +29,7 @@ pub enum Error {
     #[label] SourceSpan,
     #[source]
     #[diagnostic_source]
-    templating::Error,
+    templating::BoxedError,
   ),
 
   #[error("Io Error on file \"{0}\"")]

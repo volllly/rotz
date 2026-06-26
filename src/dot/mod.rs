@@ -104,7 +104,7 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
       let text = match engine.render(&text, &parameters) {
         Ok(text) => text,
         Err(err) => {
-          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err)
+          return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), text.clone()), (0, text.len()).into(), err.into())
             .pipe(Err)
             .into();
         }
@@ -116,18 +116,16 @@ pub(crate) fn read_dots(dotfiles_path: &Path, dots: &[String], config: &Config, 
             Ok(parsed) => match CapabilitiesCanonical::from(parsed, engine, &parameters) {
               Ok(ok) => ok,
               Err(err) => {
-                return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), vec![err])
-                  .pipe(Err)
-                  .into();
+                return Error::ParseDot(NamedSource::new(defaults, defaults.clone()), (0, defaults.len()).into(), vec![err]).pipe(Err).into();
               }
             }
             .into(),
             Err(err) => {
-              return Error::ParseDot(NamedSource::new(defaults, defaults.to_string()), (0, defaults.len()).into(), err).pipe(Err).into();
+              return Error::ParseDot(NamedSource::new(defaults, defaults.clone()), (0, defaults.len()).into(), err).pipe(Err).into();
             }
           },
           Err(err) => {
-            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.to_string()), (0, defaults.len()).into(), err)
+            return Error::RenderDot(NamedSource::new(format!("{name}/dot.{format}"), defaults.clone()), (0, defaults.len()).into(), err.into())
               .pipe(Err)
               .into();
           }

@@ -38,6 +38,21 @@ pub enum Error {
   ),
 }
 
+#[derive(thiserror::Error, Diagnostic, Debug)]
+#[error(transparent)]
+#[diagnostic(transparent)]
+// Boxed variant to avoid returning large error struct
+// as reported by Clippy. Necessary as miette don't implement
+// a blanket impl Diagnostic<Box<T>> for T : Diagnostic
+// so it uses transparent repr for derives
+pub struct BoxedError(Box<Error>);
+
+impl From<Error> for BoxedError {
+  fn from(value: Error) -> Self {
+    BoxedError(value.into())
+  }
+}
+
 #[derive(Serialize, Debug)]
 pub struct Parameters<'a> {
   pub config: &'a Config,

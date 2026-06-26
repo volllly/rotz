@@ -127,7 +127,7 @@ pub enum GlobError {
 pub fn glob_from_vec(from: &[String], postfix: Option<&str>) -> miette::Result<Any<'static>> {
   from
     .iter()
-    .map(|g| postfix.map_or_else(|| g.to_string(), |postfix| format!("{g}{postfix}")))
+    .map(|g| postfix.map_or_else(|| g.clone(), |postfix| format!("{g}{postfix}")))
     .map(|g| Glob::new(&g).map(Glob::into_owned).map_err(GlobError::Build))
     .collect_vec()
     .pipe(join_err_result)?

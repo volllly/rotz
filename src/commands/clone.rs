@@ -53,7 +53,7 @@ impl Command for Clone {
       Attribute::Reset
     );
 
-    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(&repo), self.config.dotfiles.as_os_str()], false, cli.dry_run)?;
+    helpers::run_command("git", &[OsStr::new("clone"), OsStr::new(&repo), self.config.dotfiles.as_os_str()], false, cli.dry_run).map_err(Error::CloneExecute)?;
 
     println!("\n{}Cloned repo{}", Attribute::Bold, Attribute::Reset);
 

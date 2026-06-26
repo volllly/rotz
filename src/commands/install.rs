@@ -141,10 +141,10 @@ impl<'b> Install<'b> {
       println!("{}{inner_cmd}{}\n", Attribute::Italic, Attribute::Reset);
 
       if let Err(err) = helpers::run_command(&cmd[0], &cmd[1..], false, globals.dry_run) {
-        if let helpers::RunError::Spawn(err) = &err {
-          if err.kind() == std::io::ErrorKind::NotFound {
-            eprintln!("\n Error: {:?}", Report::new(Error::CouldNotSpawn(format!("{:?}", self.config.shell_command))));
-          }
+        if let helpers::RunError::Spawn(err) = &err
+          && err.kind() == std::io::ErrorKind::NotFound
+        {
+          eprintln!("\n Error: {:?}", Report::new(Error::CouldNotSpawn(format!("{:?}", self.config.shell_command))));
         }
 
         let error = Error::InstallExecute(entry.0.clone(), err);
@@ -159,10 +159,10 @@ impl<'b> Install<'b> {
       installed.insert(entry.0.as_str());
     }
 
-    if !(install_command.skip_all_dependencies || install_command.skip_dependencies) {
-      if let Some(depends) = &entry.1.1 {
-        recurse!(depends, CyclicDependency);
-      }
+    if !(install_command.skip_all_dependencies || install_command.skip_dependencies)
+      && let Some(depends) = &entry.1.1
+    {
+      recurse!(depends, CyclicDependency);
     }
 
     ().pipe(Ok)

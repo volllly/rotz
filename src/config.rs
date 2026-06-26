@@ -182,23 +182,23 @@ pub enum Error {
 pub fn create_config_file(dotfiles: Option<&Path>, config_file: &Path) -> Result<(), Error> {
   let format = config_file.try_conv::<FileFormat>()?;
 
-  if let Ok(existing_config_str) = fs::read_to_string(config_file) {
-    if let Ok(existing_config) = deserialize_config(&existing_config_str, format) {
-      let mut errors: Vec<AlreadyExistsError> = vec![];
+  if let Ok(existing_config_str) = fs::read_to_string(config_file)
+    && let Ok(existing_config) = deserialize_config(&existing_config_str, format)
+  {
+    let mut errors: Vec<AlreadyExistsError> = vec![];
 
-      if let Some(dotfiles) = dotfiles {
-        if existing_config.dotfiles != dotfiles {
-          errors.push(AlreadyExistsError::new("dotfiles", &existing_config_str));
-        }
-      }
-
-      return Error::AlreadyExists(
-        errors.is_empty().then(|| (0, existing_config_str.len()).into()),
-        NamedSource::new(config_file.to_string_lossy(), existing_config_str),
-        errors,
-      )
-      .pipe(Err);
+    if let Some(dotfiles) = dotfiles
+      && existing_config.dotfiles != dotfiles
+    {
+      errors.push(AlreadyExistsError::new("dotfiles", &existing_config_str));
     }
+
+    return Error::AlreadyExists(
+      errors.is_empty().then(|| (0, existing_config_str.len()).into()),
+      NamedSource::new(config_file.to_string_lossy(), existing_config_str),
+      errors,
+    )
+    .pipe(Err);
   }
 
   let mut map = HashMap::new();

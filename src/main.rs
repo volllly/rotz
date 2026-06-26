@@ -68,11 +68,11 @@ pub enum Error {
 
   #[error("Cloud not parse config")]
   #[diagnostic(code(config::parse), help("Is the config file in the correct format?"))]
-  ParsingConfig(#[source] figment::Error),
+  ParsingConfig(#[source] Box<figment::Error>),
 
   #[error("Cloud not parse config")]
   #[diagnostic(code(config::local::parse), help("Did you provide a top level \"global\" key in the repo level config?"))]
-  RepoConfigProfile(#[source] figment::Error),
+  RepoConfigProfile(#[source] Box<figment::Error>),
 
   #[error("Default profile not allowed in config")]
   #[diagnostic(code(config::local::default), help("Change the top level \"default\" key in the repo level config to \"global\""))]
@@ -189,7 +189,7 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
 
   let mut figment = Figment::new().merge_from_path(&config_path, false)?.merge(env_config).merge(cli);
 
-  let config: Config = figment.clone().join(Config::default()).extract().map_err(Error::ParsingConfig)?;
+  let config: Config = figment.clone().join(Config::default()).extract().map_err(Box::from).map_err(Error::ParsingConfig)?;
 
   let dotfiles = helpers::resolve_home(&config.dotfiles);
 
@@ -201,6 +201,7 @@ fn read_config(cli: &Cli) -> Result<Config, Error> {
     .join(Config::default())
     .select(os::OS.to_string().to_ascii_lowercase())
     .extract()
+    .map_err(Box::from)
     .map_err(Error::RepoConfigProfile)?;
 
   config.dotfiles = helpers::resolve_home(&config.dotfiles);
