@@ -107,3 +107,9 @@ unneeded_field_pattern = { level = "warn", priority = 1 }
 self_named_module_files = { level = "warn", priority = 1 }
 str_to_string = { level = "warn", priority = 1 }
 as_conversions = { level = "warn", priority = 1 }
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+opt-level = "z"  # Optimize for size.
+lto = true
+codegen-units = 1
