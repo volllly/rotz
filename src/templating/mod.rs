@@ -46,27 +46,27 @@ pub struct Parameters<'a> {
 
 #[derive(Serialize, Debug)]
 pub struct WhoamiPrameters {
-  pub realname: String,
-  pub username: String,
+  pub realname: Option<String>,
+  pub username: Option<String>,
   pub lang: Vec<String>,
-  pub devicename: String,
+  pub devicename: Option<String>,
   pub hostname: Option<String>,
   pub platform: String,
-  pub distro: String,
-  pub desktop_env: String,
+  pub distro: Option<String>,
+  pub desktop_env: Option<String>,
   pub arch: String,
 }
 
 pub static WHOAMI_PRAMETERS: LazyLock<WhoamiPrameters> = LazyLock::new(|| WhoamiPrameters {
-  realname: whoami::realname(),
-  username: whoami::username(),
-  lang: whoami::langs().map(|l| l.map(|l| l.to_string()).collect_vec()).unwrap_or_default(),
-  devicename: whoami::devicename(),
-  hostname: whoami::fallible::hostname().ok(),
+  realname: whoami::realname().ok(),
+  username: whoami::username().ok(),
+  lang: whoami::lang_prefs().map(|l| l.message_langs().map(|l| l.to_string()).collect_vec()).unwrap_or_default(),
+  devicename: whoami::devicename().ok(),
+  hostname: whoami::hostname().ok(),
   platform: whoami::platform().to_string(),
-  distro: whoami::distro(),
-  desktop_env: whoami::desktop_env().to_string(),
-  arch: whoami::arch().to_string(),
+  distro: whoami::distro().ok(),
+  desktop_env: whoami::desktop_env().map(|e| e.to_string()),
+  arch: whoami::cpu_arch().to_string(),
 });
 
 #[derive(Serialize, Debug)]

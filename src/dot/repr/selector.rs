@@ -85,7 +85,7 @@ fn attributes<'src>() -> impl Parser<'src, &'src str, Vec<Attribute>, extra::Err
   attribute().delimited_by(just('['), just(']')).padded().repeated().collect::<Vec<_>>()
 }
 fn os<'src>() -> impl Parser<'src, &'src str, os::Os, extra::Err<Rich<'src, char>>> {
-  text::ident().try_map(|i: &str, span| os::Os::try_from(i).map_err(|e| Rich::custom(span, e)))
+  text::ident().try_map(|i: &str, span| os::Os::try_from(i).map_err(|e| Rich::custom(span, e.to_string())))
 }
 fn selector<'src>() -> impl Parser<'src, &'src str, Selector, extra::Err<Rich<'src, char>>> {
   os().then(attributes()).map(|(os, attributes)| Selector { os, attributes })

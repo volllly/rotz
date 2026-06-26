@@ -12,7 +12,7 @@ use tap::{Pipe, TryConv};
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 use walkdir::WalkDir;
-use wax::Pattern;
+use wax::Program;
 
 use self::{
   defaults::Defaults,

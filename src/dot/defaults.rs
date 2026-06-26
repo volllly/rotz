@@ -4,7 +4,7 @@ use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 use walkdir::WalkDir;
-use wax::Pattern;
+use wax::Program;
 
 use super::Error;
 use crate::{FILE_EXTENSIONS_GLOB, FileFormat, helpers};

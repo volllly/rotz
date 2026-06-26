@@ -27,7 +27,7 @@ pub(crate) fn get_handlebars<'a>() -> Engine<'a> {
 #[rstest]
 #[case("{{ config.variables.test }}", "test")]
 #[case("{{ config.variables.nested.nest }}", "nest")]
-#[case("{{ whoami.username }}", &whoami::username())]
+#[case("{{ whoami.username }}", &whoami::username().unwrap_or_default())]
 #[case("{{ dirs.user.home }}", &directories::UserDirs::new().unwrap().home_dir().to_string_lossy().to_string())]
 #[case("{{ os }}", &crate::helpers::os::OS.to_string().to_ascii_lowercase())]
 fn templating(#[case] template: &str, #[case] expected: &str) {

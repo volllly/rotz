@@ -12,7 +12,7 @@ use tap::Pipe;
 #[cfg(feature = "profiling")]
 use tracing::instrument;
 use velcro::hash_map;
-use wax::Pattern;
+use wax::Program;
 
 use super::Command;
 use crate::{
