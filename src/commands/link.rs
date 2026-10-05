@@ -70,12 +70,13 @@ impl<'a> Command for Link<'a> {
       .filter_map(|d| d.1.links.map(|l| (d.0, l)))
       .collect_vec();
 
+    let dots = helpers::glob_from_vec(&link_command.dots, None)?;
+
     {
       let current_links = links.iter().flat_map(|l| l.1.iter().map(|h| h.1.iter())).flatten().map(helpers::resolve_home).collect::<HashSet<_>>();
 
       let mut errors = Vec::new();
 
-      let dots = helpers::glob_from_vec(&link_command.dots, None)?;
       let linked = linked.0.iter().filter(|l| dots.is_match(l.0.as_str()));
 
       for (name, links) in linked {
@@ -111,7 +112,10 @@ impl<'a> Command for Link<'a> {
       helpers::join_err(errors)?;
     }
 
-    let mut new_linked = hash_map!();
+    let mut new_linked = linked.0.clone();
+    if !globals.dry_run {
+      new_linked.retain(|name, _| !dots.is_match(name.as_str()));
+    }
 
     for (name, link) in links {
       println!("{}Linking {}{}\n", Attribute::Bold, name.as_str().dark_blue(), Attribute::Reset);
@@ -222,4 +226,83 @@ fn hardlink(from: &Path, to: &Path) -> std::io::Result<()> {
   }
   fs::hard_link(from, to)?;
   ().pipe(Ok)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::config::{Config, LinkType};
+
+  struct TestDir(PathBuf);
+
+  impl Drop for TestDir {
+    fn drop(&mut self) {
+      let _ = fs::remove_dir_all(&self.0);
+    }
+  }
+
+  fn setup() -> (TestDir, Config, state::Linked) {
+    let root = TestDir(std::env::temp_dir().join(format!("rotz-link-{}", rand::random::<u64>())));
+    let dots = root.0.join("dots");
+    let vim = dots.join("vim");
+    fs::create_dir_all(&vim).unwrap();
+
+    let source = vim.join("vimrc");
+    fs::write(&source, b"vim").unwrap();
+    let target = root.0.join("vimrc");
+    fs::write(root.0.join("stale-vimrc"), b"stale").unwrap();
+    fs::write(vim.join("dot.yaml"), format!("links:\n  vimrc: {}\n", target.display())).unwrap();
+
+    let config = Config {
+      dotfiles: dots,
+      link_type: LinkType::Hard,
+      ..Config::default()
+    };
+    let linked = state::Linked(hash_map! {
+      "/psql".into(): hash_map! { root.0.join("psql-target"): root.0.join("psql-source") },
+      "/vim".into(): hash_map! {
+        target: root.0.join("old-vim-source"),
+        root.0.join("stale-vimrc"): root.0.join("old-stale-vim-source"),
+      },
+    });
+
+    (root, config, linked)
+  }
+
+  #[test]
+  fn scoped_link_rebuilds_selected_and_preserves_unselected_state() {
+    let (root, config, linked) = setup();
+    let result = Link::new(config, templating::test::get_handlebars())
+      .execute((
+        crate::cli::Globals { dry_run: false },
+        crate::cli::Link {
+          dots: vec!["/vim".into()],
+          force: false,
+        },
+        &linked,
+      ))
+      .unwrap();
+
+    assert_eq!(result.0.get("/psql"), linked.0.get("/psql"));
+    assert_eq!(result.0.get("/vim"), Some(&hash_map! { root.0.join("vimrc"): root.0.join("dots/vim/vimrc") }));
+    assert!(!root.0.join("stale-vimrc").exists());
+  }
+
+  #[test]
+  fn dry_run_preserves_all_state() {
+    let (root, config, linked) = setup();
+    let result = Link::new(config, templating::test::get_handlebars())
+      .execute((
+        crate::cli::Globals { dry_run: true },
+        crate::cli::Link {
+          dots: vec!["/vim".into()],
+          force: false,
+        },
+        &linked,
+      ))
+      .unwrap();
+
+    assert_eq!(result.0, linked.0);
+    assert!(!root.0.join("vimrc").exists());
+  }
 }
